@@ -106,12 +106,23 @@ def run_strategy_comparison(
     # 8. Falsification: Benchmark Return Dependence Diagnostic (Market Returns)
     benchmark_bars = data.get("SMH") or (next(iter(data.values())) if data else [])
     benchmark_boot = stationary_block_bootstrap(
-        bars=benchmark_bars, expected_block_size=20, num_simulations=500, symbol="SMH"
+        bars=benchmark_bars,
+        expected_block_size=20,
+        num_simulations=500,
+        symbol="SMH",
+        period_scope="FULL",
     )
 
     # 9. Falsification: Strategy-Level Return Robustness Diagnostic (Daily Strategy Returns)
+    full_sessions = sorted(
+        {b.timestamp.strftime("%Y-%m-%d") for bars in data.values() for b in bars}
+    )
     strategy_boot = strategy_return_bootstrap(
-        trades=risk_res.trades, initial_cash=risk_cfg.portfolio.initial_cash, num_simulations=500
+        trades=risk_res.trades,
+        initial_cash=risk_cfg.portfolio.initial_cash,
+        num_simulations=500,
+        evaluation_dates=full_sessions,
+        period_scope="FULL",
     )
 
     # 10. Out-of-Sample Train / Validation / Test Segmentation
@@ -149,10 +160,15 @@ def run_strategy_comparison(
         test_m["regime_adapted"] = calculate_metrics(res_te_g)
 
         # Final untouched test/OOS robustness evaluation
+        test_sessions = sorted(
+            {b.timestamp.strftime("%Y-%m-%d") for bars in oos_splits.test.values() for b in bars}
+        )
         oos_strat_boot = strategy_return_bootstrap(
             trades=res_te_r.trades,
             initial_cash=risk_cfg.portfolio.initial_cash,
             num_simulations=500,
+            evaluation_dates=test_sessions,
+            period_scope="TEST_OOS",
         )
 
         legacy_oos_comp = {

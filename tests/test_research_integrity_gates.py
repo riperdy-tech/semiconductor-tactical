@@ -48,6 +48,76 @@ def test_a1_synthetic_fixture_refusal():
         )
 
 
+def test_a1_cli_main_exit_nonzero(monkeypatch):
+    from tactical_engine.historical_runner import main as runner_main
+    from tactical_engine.research.historical_comparison import main as comp_main
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "historical_runner",
+            "--data-dir",
+            "data/sample_historical",
+            "--config",
+            "configs/historical_daily.yaml",
+        ],
+    )
+    with pytest.raises(SystemExit) as exc1:
+        runner_main()
+    assert exc1.value.code != 0
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "historical_comparison",
+            "--data-dir",
+            "data/sample_historical",
+            "--config",
+            "configs/historical_daily.yaml",
+        ],
+    )
+    with pytest.raises(SystemExit) as exc2:
+        comp_main()
+    assert exc2.value.code != 0
+
+
+def test_a1_cli_subprocesses_exit_nonzero():
+    import subprocess
+    import sys
+
+    res1 = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "tactical_engine.historical_runner",
+            "--data-dir",
+            "data/sample_historical",
+            "--config",
+            "configs/historical_daily.yaml",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert res1.returncode != 0
+    assert "REFUSED EXECUTION" in res1.stdout
+
+    res2 = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "tactical_engine.research.historical_comparison",
+            "--data-dir",
+            "data/sample_historical",
+            "--config",
+            "configs/historical_daily.yaml",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert res2.returncode != 0
+    assert "REFUSED EXECUTION" in res2.stdout
+
+
 def test_a2_unverified_source_refusal(tmp_path: Path):
     # Directory with no manifest defaults to REAL_HISTORICAL_UNVERIFIED_SOURCE
     manifest = load_dataset_manifest(tmp_path)
@@ -203,6 +273,7 @@ def test_d1_d2_resampling_units_distinguished():
     assert bb.resampling_unit == "benchmark_bar_returns"
     assert bb.diagnostic_name == "Benchmark Return Dependence Diagnostic"
     assert bb.symbol == "SMH"
+    assert bb.period_scope == "FULL"
 
     # D2: Strategy-level return robustness diagnostic
     cfg = EngineConfig()
@@ -212,6 +283,57 @@ def test_d1_d2_resampling_units_distinguished():
     sb = strategy_return_bootstrap(bt_res.trades, initial_cash=100_000.0, num_simulations=100)
     assert sb.resampling_unit == "strategy_daily_returns"
     assert sb.diagnostic_name == "Strategy-Level Return Robustness Diagnostic"
+    assert sb.period_scope == "FULL"
+    assert "Complete daily trading session return" in sb.observation_definition
+
+
+def test_d3_complete_session_axis_preserves_inactive_days():
+    from tactical_engine.backtest.state import TradeRecord
+
+    t0 = datetime(2026, 1, 5, 10, 0, tzinfo=UTC)  # Monday
+    # Create 12 trades on 12 distinct days
+    trades = []
+    trade_dates = []
+    for day_offset in range(12):
+        trade_dt = t0 + timedelta(days=day_offset)
+        trades.append(
+            TradeRecord(
+                symbol="MU",
+                entry_time=trade_dt,
+                entry_price=100.0,
+                exit_time=trade_dt + timedelta(hours=2),
+                exit_price=105.0,
+                quantity=100,
+                gross_pnl=500.0,
+                net_pnl=500.0,
+                exit_reason="TARGET",
+            )
+        )
+        trade_dates.append(trade_dt.strftime("%Y-%m-%d"))
+
+    # Supply an evaluation period of 15 sessions (3 inactive days added)
+    extra_dates = [
+        (t0 + timedelta(days=20)).strftime("%Y-%m-%d"),
+        (t0 + timedelta(days=21)).strftime("%Y-%m-%d"),
+        (t0 + timedelta(days=22)).strftime("%Y-%m-%d"),
+    ]
+    all_sessions = sorted(trade_dates + extra_dates)
+    assert len(all_sessions) == 15
+
+    sb = strategy_return_bootstrap(
+        trades=trades,
+        initial_cash=100_000.0,
+        evaluation_dates=all_sessions,
+        period_scope="TRAIN",
+        num_simulations=100,
+    )
+
+    assert sb.period_scope == "TRAIN"
+    assert sb.sample_size == 15
+    assert sb.active_trading_days == 12
+    assert sb.inactive_sessions == 3
+    assert sb.is_sufficient_sample is True
+    assert sb.prob_positive > 0.90
 
 
 def test_d5_oos_insufficient_sample_handled():
@@ -233,10 +355,19 @@ def test_d5_oos_insufficient_sample_handled():
     assert res.oos_available is True
     assert res.oos_strategy_bootstrap is not None
     assert res.oos_strategy_bootstrap.is_sufficient_sample is False
+    assert res.oos_strategy_bootstrap.period_scope == "TEST_OOS"
+    assert res.strategy_bootstrap.period_scope == "FULL"
+    assert res.benchmark_bootstrap.period_scope == "FULL"
+    assert res.ticker_exclusion.period_scope == "FULL"
+    assert res.strongest_day_exclusion.period_scope == "FULL"
     assert "INSUFFICIENT_SAMPLE" in (res.oos_strategy_bootstrap.insufficient_reason or "")
 
     report = render_comparison_report(res, cfg)
     assert "INSUFFICIENT_SAMPLE" in report
+    assert "FULL SAMPLE" in report or "FULL" in report
+    assert "TEST_OOS" in report
+    assert "Observation Definition" in report
+
 
 
 # ==============================================================================

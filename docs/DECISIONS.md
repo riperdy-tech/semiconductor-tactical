@@ -86,3 +86,13 @@
 
 **Reason:** Resolves Gate D from `docs/execution_plan/PLAN.md` to prevent conflating benchmark return properties with strategy execution robustness.
 
+## 2026-10-02 — Final integrity gate fixes: CLI non-zero refusal, complete daily bootstrap session axis, and explicit diagnostic scopes
+
+**Decision:**
+1. **CLI Non-Zero Exit Code on Refusal:** Updated CLI `main()` in `tactical_engine.historical_runner` and `tactical_engine.research.historical_comparison` to raise and exit with status code 1 upon `DatasetVerificationError`. Verified that `.\run.ps1 historical` and `.\run.ps1 comparison-historical` fail and exit with non-zero `$LASTEXITCODE` on unverified/synthetic data.
+2. **Complete Daily Session Time Axis:** Refined `strategy_return_bootstrap` to preserve the complete daily trading session axis (active realized P&L + zero-return inactive sessions) over the evaluation period rather than omitting non-trading sessions. Added explicit observation definition and active/inactive session counting.
+3. **Explicit Diagnostic Scopes:** Tagged all robustness diagnostics with explicit period scopes (`FULL`, `TRAIN`, `VALIDATION`, `TEST_OOS`) in data models and reports, and documented that leave-one-out ticker exclusion and strongest-day exclusion tests are intentionally full-sample diagnostics.
+
+**Reason:** Resolves all requirements in `docs/execution_plan/FINAL_GATE_FIX.md` and fulfills the handoff contract in `docs/execution_plan/GEMINI_FINAL_HANDOFF.md`.
+
+

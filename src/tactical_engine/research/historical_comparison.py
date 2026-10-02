@@ -163,8 +163,14 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    run_historical_comparison(config_path=args.config, data_dir=args.data_dir)
+    try:
+        run_historical_comparison(
+            config_path=args.config, data_dir=args.data_dir, raise_on_refusal=True
+        )
+    except DatasetVerificationError:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
     main()
+

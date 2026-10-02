@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import timedelta
 
 import numpy as np
 from pydantic import BaseModel, Field
@@ -13,6 +14,7 @@ from tactical_engine.reports.metrics import PerformanceMetrics, calculate_metric
 class BlockBootstrapResult(BaseModel):
     diagnostic_name: str = "Benchmark Return Dependence Diagnostic"
     resampling_unit: str = "benchmark_bar_returns"
+    period_scope: str = "FULL"
     symbol: str = "SMH"
     mean_return_pct: float
     median_return_pct: float
@@ -25,12 +27,19 @@ class BlockBootstrapResult(BaseModel):
 class StrategyRobustnessResult(BaseModel):
     diagnostic_name: str = "Strategy-Level Return Robustness Diagnostic"
     resampling_unit: str = "strategy_daily_returns"
+    period_scope: str = "FULL"
+    observation_definition: str = (
+        "Complete daily trading session return (% of initial equity); "
+        "inactive sessions receive 0.0% return"
+    )
     mean_return_pct: float = 0.0
     median_return_pct: float = 0.0
     ci_lower_pct: float = 0.0
     ci_upper_pct: float = 0.0
     prob_positive: float = 0.0
     sample_size: int = 0
+    active_trading_days: int = 0
+    inactive_sessions: int = 0
     is_sufficient_sample: bool = True
     insufficient_reason: str | None = None
     simulated_returns: list[float] = Field(default_factory=list)
@@ -43,37 +52,85 @@ def strategy_return_bootstrap(
     num_simulations: int = 500,
     confidence_level: float = 0.95,
     seed: int = 42,
+    evaluation_dates: list[str] | None = None,
+    period_scope: str = "FULL",
 ) -> StrategyRobustnessResult:
-    """Politis & Romano (1994) stationary block bootstrap on strategy daily returns.
+    """Politis & Romano (1994) stationary block bootstrap on complete daily strategy returns.
 
-    Resamples blocks of consecutive daily net returns to preserve autocorrelation
-    and volatility clustering in realized strategy outcomes.
+    Resamples blocks of consecutive daily session returns over the evaluation period
+    (including zero-return inactive sessions) to preserve autocorrelation and
+    volatility clustering in realized strategy outcomes.
     """
-    if not trades:
+    # 1. Map realized trade net P&L by exit calendar date (YYYY-MM-DD)
+    day_pnls: dict[str, float] = defaultdict(float)
+    active_days_set: set[str] = set()
+    for t in trades:
+        day_str = t.exit_time.strftime("%Y-%m-%d")
+        day_pnls[day_str] += t.net_pnl
+        active_days_set.add(day_str)
+
+    # 2. Build complete session/day axis
+    if evaluation_dates:
+        # Retain explicit session dates, union with any trade exit dates
+        all_sessions = sorted(list(set(evaluation_dates).union(day_pnls.keys())))
+    elif trades:
+        # Reconstruct weekday sessions between earliest entry and latest exit
+        min_date = min(t.entry_time.date() for t in trades)
+        max_date = max(t.exit_time.date() for t in trades)
+        sessions: list[str] = []
+        cur = min_date
+        while cur <= max_date:
+            if cur.weekday() < 5:  # Mon-Fri
+                sessions.append(cur.strftime("%Y-%m-%d"))
+            cur += timedelta(days=1)
+        all_sessions = sorted(list(set(sessions).union(day_pnls.keys())))
+    else:
+        all_sessions = []
+
+    n_sessions = len(all_sessions)
+    n_active = len(active_days_set)
+    n_inactive = n_sessions - n_active
+
+    # 3. Sample sufficiency check
+    if not trades or n_active == 0:
         return StrategyRobustnessResult(
+            period_scope=period_scope,
+            sample_size=n_sessions,
+            active_trading_days=0,
+            inactive_sessions=n_sessions,
             is_sufficient_sample=False,
             insufficient_reason="INSUFFICIENT_SAMPLE: zero trades executed in evaluation period",
         )
 
-    # Group net P&L by calendar date of exit
-    day_pnls: dict[str, float] = defaultdict(float)
-    for t in trades:
-        day_str = t.exit_time.strftime("%Y-%m-%d")
-        day_pnls[day_str] += t.net_pnl
-
-    sorted_days = sorted(day_pnls.keys())
-    n_days = len(sorted_days)
-
-    if n_days < 10:
+    if n_sessions < 10:
         return StrategyRobustnessResult(
-            sample_size=n_days,
+            period_scope=period_scope,
+            sample_size=n_sessions,
+            active_trading_days=n_active,
+            inactive_sessions=n_inactive,
             is_sufficient_sample=False,
             insufficient_reason=(
-                f"INSUFFICIENT_SAMPLE: only {n_days} active trading days (minimum 10 required)"
+                f"INSUFFICIENT_SAMPLE: only {n_sessions} complete sessions (minimum 10 required)"
             ),
         )
 
-    daily_returns = np.array([day_pnls[d] / initial_cash for d in sorted_days], dtype=float)
+    if n_active < 10:
+        return StrategyRobustnessResult(
+            period_scope=period_scope,
+            sample_size=n_sessions,
+            active_trading_days=n_active,
+            inactive_sessions=n_inactive,
+            is_sufficient_sample=False,
+            insufficient_reason=(
+                f"INSUFFICIENT_SAMPLE: only {n_active} active trading days (minimum 10 required)"
+            ),
+        )
+
+
+    # 4. Construct complete daily return array (inactive sessions receive 0.0)
+    daily_returns = np.array(
+        [day_pnls.get(s, 0.0) / initial_cash for s in all_sessions], dtype=float
+    )
     n = len(daily_returns)
 
     p = 1.0 / max(1, expected_block_size)
@@ -105,12 +162,15 @@ def strategy_return_bootstrap(
     prob_pos = float(np.mean(sorted_rets > 0))
 
     return StrategyRobustnessResult(
+        period_scope=period_scope,
         mean_return_pct=round(mean_ret, 2),
         median_return_pct=round(median_ret, 2),
         ci_lower_pct=round(ci_lower, 2),
         ci_upper_pct=round(ci_upper, 2),
         prob_positive=round(prob_pos, 4),
         sample_size=n,
+        active_trading_days=n_active,
+        inactive_sessions=n_inactive,
         is_sufficient_sample=True,
         simulated_returns=sim_cumulative_returns[:50],
     )
@@ -123,6 +183,7 @@ def stationary_block_bootstrap(
     confidence_level: float = 0.95,
     seed: int = 42,
     symbol: str = "SMH",
+    period_scope: str = "FULL",
 ) -> BlockBootstrapResult:
     """Politis & Romano (1994) stationary block bootstrap for autocorrelated return series.
 
@@ -130,6 +191,7 @@ def stationary_block_bootstrap(
     """
     if len(bars) < expected_block_size + 2:
         return BlockBootstrapResult(
+            period_scope=period_scope,
             symbol=symbol,
             mean_return_pct=0.0,
             median_return_pct=0.0,
@@ -137,6 +199,7 @@ def stationary_block_bootstrap(
             ci_upper_pct=0.0,
             prob_positive=0.0,
         )
+
 
     closes = np.array([b.close for b in bars], dtype=float)
     log_returns = np.diff(np.log(closes))
@@ -172,6 +235,8 @@ def stationary_block_bootstrap(
     prob_pos = float(np.mean(sorted_rets > 0))
 
     return BlockBootstrapResult(
+        period_scope=period_scope,
+        symbol=symbol,
         mean_return_pct=round(mean_ret, 2),
         median_return_pct=round(median_ret, 2),
         ci_lower_pct=round(ci_lower, 2),
@@ -182,6 +247,10 @@ def stationary_block_bootstrap(
 
 
 class TickerExclusionResult(BaseModel):
+    period_scope: str = "FULL"
+    scope_note: str = (
+        "Full-sample diagnostic only (evaluates ticker concentration across entire dataset)"
+    )
     baseline_metrics: PerformanceMetrics
     results_by_excluded_ticker: dict[str, PerformanceMetrics] = Field(default_factory=dict)
     dominant_ticker: str | None = None
@@ -234,6 +303,7 @@ def run_ticker_exclusion_test(
             is_fragile = True
 
     return TickerExclusionResult(
+        period_scope="FULL",
         baseline_metrics=baseline_metrics,
         results_by_excluded_ticker=results,
         dominant_ticker=dominant_sym,
@@ -242,6 +312,11 @@ def run_ticker_exclusion_test(
 
 
 class StrongestDayExclusionResult(BaseModel):
+    period_scope: str = "FULL"
+    scope_note: str = (
+        "Full-sample diagnostic only (evaluates single-day outlier "
+        "dependency across entire dataset)"
+    )
     baseline_net_pnl: float
     total_trading_days: int
     top_day_dates: list[str]
@@ -261,6 +336,7 @@ def run_strongest_day_exclusion_test(
     """Excludes top 1, 3, and 5 strongest P&L days to test return dependency on single outliers."""
     if not trades:
         return StrongestDayExclusionResult(
+            period_scope="FULL",
             baseline_net_pnl=0.0,
             total_trading_days=0,
             top_day_dates=[],

@@ -129,7 +129,8 @@ def render_comparison_report(
         lines.extend(
             [
                 "### 5.1 Benchmark Return Dependence Diagnostic (Politis & Romano 1994)",
-                f"> **Resampling Unit:** `{bb.resampling_unit}` (`{bb.symbol}`) | "
+                f"> **Diagnostic Scope:** `{bb.period_scope}` (Full Sample) | "
+                f"**Resampling Unit:** `{bb.resampling_unit}` (`{bb.symbol}`) | "
                 f"**Simulations:** 500 | "
                 f"**Prob(Positive Return):** {bb.prob_positive * 100:.1f}%\n",
                 "| Metric | Bootstrap Estimate |",
@@ -148,9 +149,12 @@ def render_comparison_report(
             lines.extend(
                 [
                     "### 5.2 Strategy-Level Return Robustness Diagnostic (Politis & Romano 1994)",
-                    f"> **Resampling Unit:** `{sb.resampling_unit}` | "
-                    f"**Sample Days:** {sb.sample_size} | "
+                    f"> **Diagnostic Scope:** `{sb.period_scope}` (Full Sample) | "
+                    f"**Resampling Unit:** `{sb.resampling_unit}` | "
+                    f"**Total Sessions:** {sb.sample_size} ({sb.active_trading_days} active, "
+                    f"{sb.inactive_sessions} inactive) | "
                     f"**Prob(Positive Return):** {sb.prob_positive * 100:.1f}%\n",
+                    f"> *Observation Definition: {sb.observation_definition}*\n",
                     "| Metric | Bootstrap Estimate |",
                     "|---|---|",
                     f"| Median Return | {sb.median_return_pct:.2f}% |",
@@ -164,8 +168,10 @@ def render_comparison_report(
             lines.extend(
                 [
                     "### 5.2 Strategy-Level Return Robustness Diagnostic (Politis & Romano 1994)",
-                    f"> **Resampling Unit:** `{sb.resampling_unit}` | "
+                    f"> **Diagnostic Scope:** `{sb.period_scope}` (Full Sample) | "
+                    f"**Resampling Unit:** `{sb.resampling_unit}` | "
                     f"**Sample Status:** `INSUFFICIENT_SAMPLE` ({sb.insufficient_reason})",
+                    f"> *Observation Definition: {sb.observation_definition}*",
                     "> *Diagnostic estimates withheld to prevent misleading numeric conclusions "
                     "on undersized sample.*",
                     "",
@@ -179,9 +185,12 @@ def render_comparison_report(
         if osb.is_sufficient_sample:
             lines.extend(
                 [
-                    f"> **Resampling Unit:** `{osb.resampling_unit}` | "
-                    f"**OOS Sample Days:** {osb.sample_size} | "
+                    f"> **Diagnostic Scope:** `{osb.period_scope}` (Untouched Test Partition) | "
+                    f"**Resampling Unit:** `{osb.resampling_unit}` | "
+                    f"**OOS Sessions:** {osb.sample_size} ({osb.active_trading_days} active, "
+                    f"{osb.inactive_sessions} inactive) | "
                     f"**Prob(Positive Return):** {osb.prob_positive * 100:.1f}%\n",
+                    f"> *Observation Definition: {osb.observation_definition}*\n",
                     "| Metric | Bootstrap Estimate |",
                     "|---|---|",
                     f"| Median Return | {osb.median_return_pct:.2f}% |",
@@ -194,8 +203,10 @@ def render_comparison_report(
         else:
             lines.extend(
                 [
+                    f"> **Diagnostic Scope:** `{osb.period_scope}` (Untouched Test Partition) | "
                     f"> **OOS Robustness Status:** `INSUFFICIENT_SAMPLE` "
                     f"({osb.insufficient_reason})",
+                    f"> *Observation Definition: {osb.observation_definition}*",
                     "> *Diagnostic estimates withheld to prevent misleading numeric conclusions "
                     "on undersized OOS sample.*",
                     "",
@@ -215,7 +226,8 @@ def render_comparison_report(
         lines.extend(
             [
                 "### 5.4 Leave-One-Out Ticker Exclusion Test (Baseline: `risk_controlled`)",
-                f"> **Dominant Ticker:** `{te.dominant_ticker or 'None'}` | "
+                f"> **Diagnostic Scope:** `{te.period_scope}` ({te.scope_note}) | "
+                f"**Dominant Ticker:** `{te.dominant_ticker or 'None'}` | "
                 f"**Single-Ticker Fragile (>80% P&L):** "
                 f"{'YES (Fragile)' if te.is_fragile_to_single_ticker else 'NO (Robust)'}\n",
                 "| Excluded Ticker | Return % | Max DD % | Trades | Net P&L |",
@@ -238,6 +250,7 @@ def render_comparison_report(
         lines.extend(
             [
                 "### 5.5 Strongest-Day Exclusion Diagnostic (Attribution Test)",
+                f"> **Diagnostic Scope:** `{sd.period_scope}` ({sd.scope_note})",
                 "> *Note: This is an attribution diagnostic measuring whether positive expectancy "
                 "relies entirely on a tiny handful of outlier days. It is NOT a strategy rerun.*\n",
                 "| Scenario | Net P&L | Expectancy Positive? |",
