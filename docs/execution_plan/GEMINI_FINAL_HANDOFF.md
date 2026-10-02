@@ -67,3 +67,16 @@ Do not include synthetic performance as evidence.
 - documentation is synchronized.
 
 After that, wait for genuine market data rather than inventing a substitute.
+
+
+## Next phase — Massive data ingestion
+
+Once the final gate fix is complete, continue with:
+
+- `docs/execution_plan/GEMINI_MASSIVE_INGESTION_HANDOFF.md`
+- `docs/execution_plan/MASSIVE_DATA_INGESTION.md`
+- `docs/execution_plan/MASSIVE_DATA_MANIFEST_SCHEMA.md`
+
+The human may provide `MASSIVE_API_KEY` at runtime. Never request that the key be committed to the repository.
+
+The Massive phase is strictly data acquisition, normalization, provenance, and verification. Do not optimize the strategy or interpret performance during this phase.
