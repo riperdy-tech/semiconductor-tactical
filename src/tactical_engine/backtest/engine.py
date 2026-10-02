@@ -85,6 +85,15 @@ def run_backtest(
             )
 
     all_timestamps = sorted(list(set(b.timestamp for bars in data.values() for b in bars)))
+    bars_by_sym_ts = {sym: {b.timestamp: b for b in bars} for sym, bars in data.items()}
+    atr_by_sym = {
+        sym: df["atr"].to_dict() if "atr" in df.columns else {}
+        for sym, df in features_by_sym.items()
+    }
+    entry_signals_by_sym_ts = {
+        sym: {s.timestamp: s for s in sigs if s.action == "ENTER_LONG"}
+        for sym, sigs in signals_by_sym.items()
+    }
 
     tracker = PortfolioTracker(initial_cash=config.portfolio.initial_cash)
     simulator = ExecutionSimulator(cost_config=config.costs)
@@ -97,12 +106,11 @@ def run_backtest(
         current_prices = {}
         bars_at_ts = {}
 
-        for sym, bars in data.items():
-            for b in bars:
-                if b.timestamp == ts:
-                    current_prices[sym] = b.close
-                    bars_at_ts[sym] = b
-                    break
+        for sym, b_map in bars_by_sym_ts.items():
+            b = b_map.get(ts)
+            if b is not None:
+                current_prices[sym] = b.close
+                bars_at_ts[sym] = b
 
         # Margin interest accrual
         if last_ts is not None and config.costs.margin_rate_annual > 0:
@@ -239,8 +247,7 @@ def run_backtest(
             if not bar:
                 continue
             entry_time = tracker.entry_times.get(sym, ts)
-            df_sym = features_by_sym[sym]
-            atr = float(df_sym.loc[ts, "atr"]) if ts in df_sym.index else 1.0
+            atr = atr_by_sym.get(sym, {}).get(ts, 1.0)
             should_exit, reason = check_exit_condition(
                 entry_price=pos.avg_price,
                 entry_time=entry_time,
@@ -297,7 +304,7 @@ def run_backtest(
                         )
 
         # F. Generate equity entry orders for next bar
-        for sym, sigs in signals_by_sym.items():
+        for sym, sig_map in entry_signals_by_sym_ts.items():
             existing_pos = tracker.positions.get(sym, None)
             existing_layers = len(tracker.layers_by_symbol.get(sym, []))
             if existing_pos and existing_layers >= config.portfolio.max_layers:
@@ -307,16 +314,14 @@ def run_backtest(
             if not bar:
                 continue
 
-            matching_sigs = [s for s in sigs if s.timestamp == ts and s.action == "ENTER_LONG"]
-            if matching_sigs:
-                sig = matching_sigs[0]
+            sig = sig_map.get(ts)
+            if sig:
                 # If layering into existing position, only enter if price
                 # pulled back below avg_price
                 if existing_pos and bar.close > existing_pos.avg_price:
                     continue
 
-                df_sym = features_by_sym[sym]
-                atr = float(df_sym.loc[ts, "atr"]) if ts in df_sym.index else 1.0
+                atr = atr_by_sym.get(sym, {}).get(ts, 1.0)
                 stop_p = bar.close - (config.exits.stop_atr * atr)
                 qty = calculate_position_size(
                     symbol=sym,
