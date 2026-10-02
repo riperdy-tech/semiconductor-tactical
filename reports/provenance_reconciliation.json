@@ -1,0 +1,94 @@
+{
+  "reconciliation_version": "1.0.0",
+  "reconciled_at_utc": "2026-10-02T22:00:00Z",
+  "dataset_provenance": {
+    "dataset_id": "massive_stocks_1m_51e9b529de55",
+    "provider": "Massive",
+    "resolution": "1m",
+    "time_range": {
+      "start": "2026-07-01",
+      "end": "2026-09-30"
+    },
+    "symbols": [
+      "MU",
+      "SNDK",
+      "SKHY",
+      "AMD",
+      "USD",
+      "SMH",
+      "SPY"
+    ],
+    "file_hashes_sha256": {
+      "MU": "c892d23f2409e0eed334002ff42808e24ba55921b2bbcea25cd50481c7e0e2b9",
+      "SNDK": "1b12a84413b53f5e4975337824d1b3838445b6a521ff741ed81dd10be48469f8",
+      "SKHY": "15e29cf2799da5c10b7e5305133734a1b105152da564438d7cbb0f4ecf2cae73",
+      "AMD": "408727b882374e5521eafab52a3002e97f1aa9bc40326b3f129c5d91001d9b6f",
+      "USD": "0b7d72fa0da169494227611f80f61557be33deade8c1901f8a4678c85d992cf6",
+      "SMH": "6797bd10d2ff4c4cd414bee2b1319e5e13701ab4e7bf68086436e6d7b303ff55",
+      "SPY": "45f37cabcd98b6b531083422f507b677c2bb16382030fa3fa3cc48d912dafa3b"
+    },
+    "aggregate_data_hash_canonical": "51e9b529de5556002bc3a0e1bc4fd1ee7eef06061b54c11457703d9af39b13e8",
+    "aggregate_data_hash_legacy_engine": "e0287562eeffad85be361051568548e566ae1e6a01757547dd9ae6c4ad8dc4eb",
+    "aggregate_hash_reconciliation_note": "The CSV data files in data/processed were never modified. The discrepancy between 51e9b529de55... and e0287562eeff... arose because massive.py computed SHA-256 over sorted {sym}:{sha256}, whereas historical.py computed SHA-256 over {sym}:{sha256}:{row_count}. The canonical dataset hash is 51e9b529de5556002bc3a0e1bc4fd1ee7eef06061b54c11457703d9af39b13e8."
+  },
+  "runs": [
+    {
+      "run_id": "fad5c527-803f-49b7-98cc-4564b467df09",
+      "description": "First real historical run (pre-audit)",
+      "git_commit": "8b92171d88a2e302c0ff80f9d5f26b46a8003878",
+      "config_path": "configs/historical_1m.yaml",
+      "config_hash": "4e8773950b4e2f89",
+      "dataset_id": "massive_stocks_1m_51e9b529de55",
+      "scope_classification": "FULL_SAMPLE",
+      "economic_assumptions": {
+        "equity_commission_bps": 0.0,
+        "equity_slippage_bps": 5.0,
+        "margin_rate_annual": 0.05
+      },
+      "research_boundaries": {
+        "start": "2026-07-01T00:00:00Z",
+        "train_end": null,
+        "validation_end": null,
+        "test_start": null,
+        "end": "2026-09-30T23:59:59Z"
+      },
+      "results_summary": {
+        "literal_clone_return_pct": -98.7,
+        "risk_controlled_return_pct": -95.27,
+        "regime_adapted_return_pct": -40.16
+      }
+    },
+    {
+      "run_id": "2e9f108d-768c-4194-a4cf-cd9fa5ecc0eb",
+      "description": "Post-first-run audit run (fixed ATR exit geometry, trade diagnostics, tri-partition holdout)",
+      "git_commit": "0d2adbcbc8cd4612342005610ac35e0c36c32886",
+      "config_path": "configs/historical_1m.yaml",
+      "config_hash": "0d34835d97140803",
+      "dataset_id": "massive_stocks_1m_51e9b529de55",
+      "scope_classification": "POST_HOC_HOLDOUT",
+      "pristine_oos_status": "PRISTINE_OOS_UNAVAILABLE",
+      "scope_reconciliation_note": "September 2026 was part of the original full July-September run and was inspected prior to freezing the 2026-09-01 boundary. It is classified strictly as POST_HOC_HOLDOUT, not untouched/pristine OOS.",
+      "economic_assumptions": {
+        "equity_commission_bps": 0.0,
+        "actual_commission_paid": 0.0,
+        "equity_slippage_bps": 5.0,
+        "actual_slippage_paid": 84998.08,
+        "margin_rate_annual": 0.05,
+        "actual_margin_interest_paid": 0.04,
+        "chat_reporting_note": "A previous assistant summary misstated costs as $0.005/share and 8% margin by quoting older base.yaml notes. The actual run used 0.0 bps commission and 5% margin rate, matching config hash 0d34835d97140803 and comparison_metrics.json exactly."
+      },
+      "research_boundaries": {
+        "start": "2026-07-01T00:00:00Z",
+        "train_end": "2026-08-15T00:00:00Z",
+        "validation_end": "2026-09-01T00:00:00Z",
+        "test_start": "2026-09-01T00:00:00Z",
+        "end": "2026-09-30T23:59:59Z"
+      },
+      "results_summary": {
+        "literal_clone_return_pct": -98.7,
+        "risk_controlled_return_pct": -92.89,
+        "regime_adapted_return_pct": -34.88
+      }
+    }
+  ]
+}

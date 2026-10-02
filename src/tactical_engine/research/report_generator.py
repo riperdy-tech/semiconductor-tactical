@@ -114,10 +114,20 @@ def render_comparison_report(
 
     # 4. Out-of-Sample Period Evaluation
     lines.append("")
-    lines.append("## 4. Train / Validation / Test Out-of-Sample (OOS) Generalization Analysis")
+    lines.append(
+        "## 4. Train / Validation / Test Out-of-Sample (OOS) Generalization Analysis "
+        "(Post-Hoc Holdout)"
+    )
     if comparison.oos_available:
         lines.extend(
             [
+                "> **OOS Scope Classification:** `POST_HOC_HOLDOUT / NOT_PRISTINE_OOS`",
+                "> **Pristine OOS Status:** `PRISTINE_OOS_UNAVAILABLE`",
+                "> *Notice: The full 2026-07-01 to 2026-09-30 period was previously inspected in "
+                "earlier full-sample runs before the 2026-09-01 boundary was frozen. Therefore, "
+                "the September partition serves as a post-hoc confirmatory holdout, not a "
+                "pristine, previously unseen OOS test.*",
+                "",
                 (
                     "| Strategy Variant | Split Partition | Return % | Max DD % | Trades | "
                     "Win Rate | Profit Factor | Net P&L |"
@@ -145,17 +155,17 @@ def render_comparison_report(
                 )
             if te_m:
                 lines.append(
-                    f"| `{variant_key}` | **Test (OOS)** | {te_m.total_return_pct:.2f}% | "
-                    f"{te_m.max_drawdown_pct:.2f}% | {te_m.total_trades} | "
-                    f"{te_m.win_rate * 100:.1f}% | {te_m.profit_factor:.2f} | "
-                    f"${te_m.net_pnl:,.2f} |"
+                    f"| `{variant_key}` | **Post-Hoc Holdout (TEST_OOS)** | "
+                    f"{te_m.total_return_pct:.2f}% | {te_m.max_drawdown_pct:.2f}% | "
+                    f"{te_m.total_trades} | {te_m.win_rate * 100:.1f}% | "
+                    f"{te_m.profit_factor:.2f} | ${te_m.net_pnl:,.2f} |"
                 )
     else:
         lines.extend(
             [
                 "> **STATUS: UNAVAILABLE**",
                 f"> {comparison.oos_status_reason or 'No OOS date boundaries provided.'}",
-                "> *Untouched test evaluation requires explicit 'train_end', 'validation_end', "
+                "> *Holdout evaluation requires explicit 'train_end', 'validation_end', "
                 "and 'test_start' date boundaries.*",
             ]
         )
@@ -224,17 +234,20 @@ def render_comparison_report(
             )
 
     # 5.3 Final Out-of-Sample Strategy Robustness Diagnostic
-    lines.append("### 5.3 Out-of-Sample Strategy Robustness (Untouched Test Period)")
+    lines.append("### 5.3 Post-Hoc Holdout Strategy Robustness (September Test Partition)")
     if comparison.oos_strategy_bootstrap:
         osb = comparison.oos_strategy_bootstrap
         if osb.is_sufficient_sample:
             lines.extend(
                 [
-                    f"> **Diagnostic Scope:** `{osb.period_scope}` (Untouched Test Partition) | "
+                    f"> **Diagnostic Scope:** `{osb.period_scope}` "
+                    "(POST_HOC_HOLDOUT / NOT_PRISTINE_OOS) | "
                     f"**Resampling Unit:** `{osb.resampling_unit}` | "
-                    f"**OOS Sessions:** {osb.sample_size} ({osb.active_trading_days} active, "
+                    f"**Holdout Sessions:** {osb.sample_size} ({osb.active_trading_days} active, "
                     f"{osb.inactive_sessions} inactive) | "
                     f"**Prob(Positive Return):** {osb.prob_positive * 100:.1f}%\n",
+                    "> *Pristine OOS Availability: `PRISTINE_OOS_UNAVAILABLE` "
+                    "(no uninspected historical period available beyond 2026-09-30)*\n",
                     f"> *Observation Definition: {osb.observation_definition}*\n",
                     "| Metric | Bootstrap Estimate |",
                     "|---|---|",
@@ -248,12 +261,15 @@ def render_comparison_report(
         else:
             lines.extend(
                 [
-                    f"> **Diagnostic Scope:** `{osb.period_scope}` (Untouched Test Partition) | "
-                    f"> **OOS Robustness Status:** `INSUFFICIENT_SAMPLE` "
+                    f"> **Diagnostic Scope:** `{osb.period_scope}` "
+                    "(POST_HOC_HOLDOUT / NOT_PRISTINE_OOS) | "
+                    f"> **Holdout Robustness Status:** `INSUFFICIENT_SAMPLE` "
                     f"({osb.insufficient_reason})",
+                    "> *Pristine OOS Availability: `PRISTINE_OOS_UNAVAILABLE` "
+                    "(no uninspected historical period available beyond 2026-09-30)*",
                     f"> *Observation Definition: {osb.observation_definition}*",
                     "> *Diagnostic estimates withheld to prevent misleading numeric conclusions "
-                    "on undersized OOS sample.*",
+                    "on undersized holdout sample.*",
                     "",
                 ]
             )

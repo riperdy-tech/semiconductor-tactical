@@ -131,4 +131,18 @@
 
 **Reason:** Fulfills all requirements from `docs/execution_plan/POST_FIRST_REAL_RUN_AUDIT.md`, `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`, and `docs/execution_plan/POST_FIRST_RUN_ACCEPTANCE_TESTS.md`.
 
+## 2026-10-02 — OOS and provenance reconciliation
+
+**Decision:**
+1. **Holdout Scope Classification:** Classified the September 2026 test segment as `POST_HOC_HOLDOUT / NOT_PRISTINE_OOS`. Because the complete July–September dataset was evaluated in the initial historical run (`fad5c527`) before partition boundaries were defined, September was exposed to the research process and cannot be described as an untouched or pristine OOS dataset.
+2. **Pristine OOS Availability Status:** Explicitly set `pristine_oos_status = "PRISTINE_OOS_UNAVAILABLE"` in the manifest and research report, affirming that a pristine OOS test requires an uninspected subsequent period beyond 2026-09-30.
+3. **Reconciliation of Aggregate Data Hash Discrepancy:** Proved that all 7 CSV files in `data/processed/` are byte-for-byte identical to the original Massive download. The discrepancy between `51e9b529de55...` (in the Massive manifest) and `e0287562eeff...` (in the historical comparison report) arose solely from different hashing algorithms (`massive.py` hashed sorted `{sym}:{sha256}`, while `historical.py` hashed `{sym}:{sha256}:{row_count}`). Reconciled `load_historical_universe` to use the authoritative manifest aggregate hash `51e9b529de5556002bc3a0e1bc4fd1ee7eef06061b54c11457703d9af39b13e8`.
+4. **Reconciliation of Run Economics:** Verified via Git commit `0d2adbc`, `run_manifest.json` (`config_hash: 0d34835d97140803`), and `comparison_metrics.json` that the post-audit run `2e9f108d` was executed strictly with `equity_commission_bps: 0.0` ($0.00 commission paid), `equity_slippage_bps: 5.0`, and `margin_rate_annual: 0.05` ($0.04 margin interest paid). Documented that the $0.005/share commission and 8% margin mentioned in the previous chat response were an assistant documentation error misquoting older `configs/base.yaml` notes, rather than the actual configuration of the run.
+5. **Run Manifest Schema Extension:** Extended `RunManifest` and `create_manifest` with `dataset_id`, `aggregate_data_hash`, explicit research boundaries (`research_start`, `train_end`, `validation_end`, `test_start`, `research_end`), `oos_scope_classification`, and `pristine_oos_status`.
+6. **Machine-Readable Reconciliation Artifact:** Generated and committed `reports/data_manifests/provenance_reconciliation.json` (and `reports/provenance_reconciliation.json`) documenting all dataset hashes, run IDs, Git commits, config hashes, economic settings, and scope classifications.
+7. **Stop Software Changes:** Enforced stop condition upon completion of reconciliation gate without altering strategy parameters, thresholds, leverage, or costs.
+
+**Reason:** Fulfills all requirements from `docs/execution_plan/OOS_PROVENANCE_RECONCILIATION.md` and Phase G of `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`.
+
+
 

@@ -89,6 +89,14 @@ def run_historical_comparison(
         config=config,
         data_hashes=data_hashes,
         data_status=data_status,
+        dataset_id=(
+            universe_dataset.dataset_manifest.dataset_id
+            if universe_dataset.dataset_manifest
+            else None
+        ),
+        aggregate_data_hash=universe_dataset.aggregate_data_hash,
+        oos_scope_classification="POST_HOC_HOLDOUT",
+        pristine_oos_status="PRISTINE_OOS_UNAVAILABLE",
     )
 
     # Setup isolated run output directory

@@ -308,7 +308,6 @@ def load_historical_universe(
 
     bars_by_symbol: dict[str, list[Bar]] = {}
     provenance_by_symbol: dict[str, DataProvenance] = {}
-    hash_agg = hashlib.sha256()
 
     for sym in symbols:
         sym_upper = sym.upper()
@@ -324,14 +323,21 @@ def load_historical_universe(
         bars_by_symbol[sym_upper] = bars
         prov = provider.get_provenance(sym_upper)
         provenance_by_symbol[sym_upper] = prov
-        hash_agg.update(f"{sym_upper}:{prov.file_sha256}:{prov.row_count}".encode())
 
     manifest = load_dataset_manifest(data_dir)
+    if manifest and manifest.aggregate_data_hash:
+        canonical_agg_hash = manifest.aggregate_data_hash
+    else:
+        hash_agg = hashlib.sha256()
+        for s in sorted(provenance_by_symbol.keys()):
+            prov = provenance_by_symbol[s]
+            hash_agg.update(f"{s}:{prov.file_sha256}".encode())
+        canonical_agg_hash = hash_agg.hexdigest()
 
     return UniverseHistoricalDataset(
         bars_by_symbol=bars_by_symbol,
         provenance_by_symbol=provenance_by_symbol,
-        aggregate_data_hash=hash_agg.hexdigest(),
+        aggregate_data_hash=canonical_agg_hash,
         symbols=[s.upper() for s in symbols],
         dataset_manifest=manifest,
     )
