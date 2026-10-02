@@ -19,12 +19,15 @@ def generate_pullback_signals(
         # 1. Pullback condition: zscore <= configured threshold
         is_pullback = row["zscore"] <= config.pullback_zscore
 
-        # 2. Sector / Regime filter
-        if regime_provider is not None:
-            regime_state = regime_provider.get_regime_state(timestamp)  # type: ignore
-            regime_allows = regime_state.regime_allows_trade
+        # 2. Sector / Regime filter (active only if config.sector_filter is True)
+        if config.sector_filter:
+            if regime_provider is not None:
+                regime_state = regime_provider.get_regime_state(timestamp)  # type: ignore
+                regime_allows = regime_state.regime_allows_trade
+            else:
+                regime_allows = bool(row["trend_ok"])
         else:
-            regime_allows = row["trend_ok"] if config.sector_filter else True
+            regime_allows = True
 
         # 3. Relative volume filter: check volume participation
         rel_vol_ok = True

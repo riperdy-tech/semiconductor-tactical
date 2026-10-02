@@ -5,7 +5,7 @@ from tactical_engine.research.historical_comparison import run_historical_compar
 
 def test_historical_comparison_generates_outputs(tmp_path: Path):
     # Setup dummy daily CSV data
-    symbols = ["MU", "SNDK", "SKHY", "AMD", "USD"]
+    symbols = ["MU", "SNDK", "SKHY", "AMD", "USD", "SMH", "SPY"]
     for sym in symbols:
         rows = [
             "date,open,high,low,close,volume\n",

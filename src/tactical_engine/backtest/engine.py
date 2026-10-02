@@ -65,15 +65,24 @@ def run_backtest(
                 filter_mode=config.signals.regime_filter_mode,
             )
 
-    # 3. Feature & Signal generation per symbol
+    # 3. Feature & Signal generation for TRADABLE symbols only
+    configured_universe = set(
+        s.upper() for s in config.strategy.universe + (config.strategy.two_x_etfs or [])
+    )
+    if configured_universe:
+        tradable_symbols = configured_universe
+    else:
+        tradable_symbols = set(k.upper() for k in data.keys() if k.upper() not in ("SMH", "SPY"))
+
     features_by_sym = {}
     signals_by_sym = {}
     for sym, bars in data.items():
-        df_feat = compute_bar_features(bars, trend_window=config.signals.trend_window)
-        features_by_sym[sym] = df_feat
-        signals_by_sym[sym] = generate_pullback_signals(
-            df_feat, config.signals, regime_provider=regime_provider
-        )
+        if sym.upper() in tradable_symbols:
+            df_feat = compute_bar_features(bars, trend_window=config.signals.trend_window)
+            features_by_sym[sym] = df_feat
+            signals_by_sym[sym] = generate_pullback_signals(
+                df_feat, config.signals, regime_provider=regime_provider
+            )
 
     all_timestamps = sorted(list(set(b.timestamp for bars in data.values() for b in bars)))
 

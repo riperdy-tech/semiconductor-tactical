@@ -67,10 +67,102 @@ def render_comparison_report(
             f"${m.peak_margin_debt:,.2f} | ${m.margin_interest_paid:,.2f} |"
         )
 
+    # 4. Out-of-Sample Period Evaluation
+    if comparison.oos_comparison:
+        lines.extend(
+            [
+                "",
+                "## 4. Out-of-Sample (OOS) Generalization Analysis",
+                "| Period | Return % | Max DD % | Trades | Win Rate | Profit Factor | Net P&L |",
+                "|---|---|---|---|---|---|---|",
+            ]
+        )
+        for period_name, m in comparison.oos_comparison.items():
+            lines.append(
+                f"| `{period_name}` | {m.total_return_pct:.2f}% | {m.max_drawdown_pct:.2f}% | "
+                f"{m.total_trades} | {m.win_rate * 100:.1f}% | {m.profit_factor:.2f} | "
+                f"${m.net_pnl:,.2f} |"
+            )
+
+    # 5. Falsification & Robustness Diagnostics
     lines.extend(
         [
             "",
-            "## 4. Evidence Classification & Governance",
+            "## 5. Falsification & Robustness Suite",
+        ]
+    )
+
+    # 5.1 Stationary Block Bootstrap
+    if comparison.block_bootstrap:
+        bb = comparison.block_bootstrap
+        lines.extend(
+            [
+                "### 5.1 Stationary Block Bootstrap (Autocorrelation-Preserving)",
+                f"> **Expected Block Length:** 20 bars | **Simulations:** 500 | "
+                f"**Prob(Positive Return):** {bb.prob_positive * 100:.1f}%\n",
+                "| Metric | Bootstrap Estimate |",
+                "|---|---|",
+                f"| Median Return | {bb.median_return_pct:.2f}% |",
+                f"| Mean Return | {bb.mean_return_pct:.2f}% |",
+                f"| 95% Confidence Interval | [{bb.ci_lower_pct:.2f}%, {bb.ci_upper_pct:.2f}%] |",
+                "",
+            ]
+        )
+
+    # 5.2 Leave-One-Out Ticker Exclusion
+    if comparison.ticker_exclusion:
+        te = comparison.ticker_exclusion
+        lines.extend(
+            [
+                "### 5.2 Leave-One-Out Ticker Exclusion Test",
+                f"> **Dominant Ticker:** `{te.dominant_ticker or 'None'}` | "
+                f"**Single-Ticker Fragile (>80% P&L):** "
+                f"{'YES (Fragile)' if te.is_fragile_to_single_ticker else 'NO (Robust)'}\n",
+                "| Excluded Ticker | Return % | Max DD % | Trades | Net P&L |",
+                "|---|---|---|---|---|",
+                f"| `None (Baseline)` | {te.baseline_metrics.total_return_pct:.2f}% | "
+                f"{te.baseline_metrics.max_drawdown_pct:.2f}% | "
+                f"{te.baseline_metrics.total_trades} | ${te.baseline_metrics.net_pnl:,.2f} |",
+            ]
+        )
+        for sym, m in te.results_by_excluded_ticker.items():
+            lines.append(
+                f"| `Excluding {sym}` | {m.total_return_pct:.2f}% | {m.max_drawdown_pct:.2f}% | "
+                f"{m.total_trades} | ${m.net_pnl:,.2f} |"
+            )
+        lines.append("")
+
+    # 5.3 Strongest-Day Exclusion Diagnostic
+    if comparison.strongest_day_exclusion:
+        sd = comparison.strongest_day_exclusion
+        lines.extend(
+            [
+                "### 5.3 Strongest-Day Exclusion Diagnostic (Attribution Test)",
+                "> *Note: This is an attribution diagnostic measuring whether positive expectancy "
+                "relies entirely on a tiny handful of outlier days.*\n",
+                "| Scenario | Net P&L | Expectancy Positive? |",
+                "|---|---|---|",
+                f"| Full Baseline ({sd.total_trading_days} days) | ${sd.baseline_net_pnl:,.2f} | "
+                f"{'YES' if sd.baseline_net_pnl > 0 else 'NO'} |",
+                f"| Exclude Top 1 Day | ${sd.pnl_excluding_top_1:,.2f} | "
+                f"{'YES' if sd.remains_positive_top_1 else 'NO'} |",
+                f"| Exclude Top 3 Days | ${sd.pnl_excluding_top_3:,.2f} | "
+                f"{'YES' if sd.remains_positive_top_3 else 'NO'} |",
+                f"| Exclude Top 5 Days | ${sd.pnl_excluding_top_5:,.2f} | "
+                f"{'YES' if sd.remains_positive_top_5 else 'NO'} |",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## 6. Options & Event Data Status",
+            "- **Covered Calls:** `UNVALIDATED` (no tick-level historical option chains supplied).",
+            "- **Event Blackouts:** `PARTIAL / UNVALIDATED` "
+            "(no verified earnings calendar feed connected).",
+            "",
+            "## 7. Evidence Classification & Governance",
+
             "- `OBSERVED`: Reddit author reported $550k P&L on high-beta semi tickers with "
             "margin and covered calls.",
             "- `DERIVED`: High trade frequency and volatile names make transaction costs and "

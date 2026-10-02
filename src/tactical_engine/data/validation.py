@@ -71,16 +71,12 @@ def detect_price_anomalies(
 def validate_resolution_cadence(
     bars: list[Bar], declared_interval: str | None = None
 ) -> tuple[bool, str]:
-    """Validate that the observed timestamp cadence matches the declared resolution."""
+    """Validate that the observed timestamp cadence matches the declared resolution,
+
+    distinguishing regular session spacing from legitimate overnight/weekend gaps.
+    """
     if not declared_interval or len(bars) < 2:
         return True, ""
-
-    deltas = [
-        (bars[i].timestamp - bars[i - 1].timestamp).total_seconds()
-        for i in range(1, min(len(bars), 1000))
-    ]
-    deltas.sort()
-    median_delta = deltas[len(deltas) // 2]
 
     interval_clean = declared_interval.lower().strip()
     expected_map = {
@@ -96,22 +92,60 @@ def validate_resolution_cadence(
     if expected_sec is None:
         return True, ""
 
+    # Separate intrasession transitions (same calendar day) from intersession transitions
+    intrasession_deltas: list[float] = []
+    intersession_deltas: list[float] = []
+
+    for i in range(1, len(bars)):
+        prev_dt = bars[i - 1].timestamp
+        curr_dt = bars[i].timestamp
+        delta_sec = (curr_dt - prev_dt).total_seconds()
+
+        if prev_dt.date() == curr_dt.date():
+            intrasession_deltas.append(delta_sec)
+        else:
+            intersession_deltas.append(delta_sec)
+
+    # 1. Validation for Intraday intervals (1m, 5m, 15m, 1h)
     if interval_clean in ("1m", "5m", "15m", "1h"):
-        if median_delta > expected_sec * 3:
-            return False, (
-                f"Resolution cadence mismatch: declared '{declared_interval}' "
-                f"(expected ~{expected_sec}s), but observed median bar spacing is "
-                f"{median_delta:.0f}s. Data appears to be higher timeframe (e.g. daily)."
+        # If there are no intrasession deltas at all, all bars are on separate calendar days
+        if not intrasession_deltas:
+            all_deltas = sorted(
+                (bars[i].timestamp - bars[i - 1].timestamp).total_seconds()
+                for i in range(1, len(bars))
             )
-    elif interval_clean in ("1d", "daily"):
-        if median_delta < 3600 * 12:
+            med_all = all_deltas[len(all_deltas) // 2]
             return False, (
                 f"Resolution cadence mismatch: declared '{declared_interval}' "
-                f"(expected daily ~86400s), but observed median bar spacing is {median_delta:.0f}s "
-                f"(intraday data)."
+                f"(expected ~{expected_sec}s), but all bars occur on separate calendar "
+                f"dates with median spacing {med_all:.0f}s. Data is daily, not intraday."
             )
 
+        intrasession_deltas.sort()
+        median_intrasession = intrasession_deltas[len(intrasession_deltas) // 2]
+
+        if median_intrasession > expected_sec * 3:
+            return False, (
+                f"Resolution cadence mismatch: declared '{declared_interval}' "
+                f"(expected ~{expected_sec}s), but observed median intrasession spacing is "
+                f"{median_intrasession:.0f}s."
+            )
+
+    # 2. Validation for Daily intervals (1d, daily)
+    elif interval_clean in ("1d", "daily"):
+        # Daily data must have at most 1 bar per calendar day during regular trading
+        if intrasession_deltas:
+            intrasession_deltas.sort()
+            median_intrasession = intrasession_deltas[len(intrasession_deltas) // 2]
+            if median_intrasession < 3600 * 12:
+                return False, (
+                    f"Resolution cadence mismatch: declared '{declared_interval}' "
+                    f"(expected daily bars), but found multiple intraday bars on the same date "
+                    f"with median spacing {median_intrasession:.0f}s."
+                )
+
     return True, ""
+
 
 
 def validate_symbol_bars(

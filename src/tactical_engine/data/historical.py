@@ -1,7 +1,8 @@
 import hashlib
+import json
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -14,6 +15,39 @@ class HistoricalDataMissingError(Exception):
     """Raised when required historical data files or symbols are missing."""
 
     pass
+
+
+class DatasetManifest(BaseModel):
+    dataset_id: str
+    data_status: Literal[
+        "SYNTHETIC_SAMPLE_FIXTURE",
+        "REAL_HISTORICAL_UNVERIFIED_SOURCE",
+        "REAL_HISTORICAL_VERIFIED",
+    ]
+    provider: str
+    is_verified_market_data: bool = False
+    source_description: str = ""
+    license_or_citation: str = ""
+    bar_resolution: str = "1d"
+
+
+def load_dataset_manifest(data_dir: Path | str) -> DatasetManifest:
+    manifest_path = Path(data_dir) / "dataset_manifest.json"
+    if manifest_path.is_file():
+        with open(manifest_path, encoding="utf-8") as f:
+            data = json.load(f)
+        return DatasetManifest.model_validate(data)
+
+    return DatasetManifest(
+        dataset_id=Path(data_dir).name,
+        data_status="REAL_HISTORICAL_UNVERIFIED_SOURCE",
+        provider="unverified_local_files",
+        is_verified_market_data=False,
+        source_description=(
+            "No dataset_manifest.json found; unverified local CSV files "
+            "without cryptographic source proof."
+        ),
+    )
 
 
 class DataProvenance(BaseModel, frozen=True):
@@ -34,6 +68,13 @@ class UniverseHistoricalDataset(BaseModel):
     provenance_by_symbol: dict[str, DataProvenance]
     aggregate_data_hash: str
     symbols: list[str] = Field(default_factory=list)
+    dataset_manifest: DatasetManifest = Field(
+        default_factory=lambda: DatasetManifest(
+            dataset_id="unspecified",
+            data_status="REAL_HISTORICAL_UNVERIFIED_SOURCE",
+            provider="unverified_local_files",
+        )
+    )
 
 
 def compute_file_sha256(path: Path) -> str:
@@ -206,9 +247,12 @@ def load_historical_universe(
         provenance_by_symbol[sym_upper] = prov
         hash_agg.update(f"{sym_upper}:{prov.file_sha256}:{prov.row_count}".encode())
 
+    manifest = load_dataset_manifest(data_dir)
+
     return UniverseHistoricalDataset(
         bars_by_symbol=bars_by_symbol,
         provenance_by_symbol=provenance_by_symbol,
         aggregate_data_hash=hash_agg.hexdigest(),
         symbols=[s.upper() for s in symbols],
+        dataset_manifest=manifest,
     )

@@ -44,3 +44,27 @@
 
 **Reason:** Resolves audit finding C7 by accurately modeling the observed Reddit trader behavior (harvesting premium on strength and buying back on pullbacks) while upholding data integrity rules in `AGENTS.md`.
 
+## 2026-10-02 — Benchmark decoupling and regime-adapted wiring
+
+**Decision:** Automatically load sector (`SMH`) and broad-market (`SPY`) benchmarks in the historical comparison engine to feed `BenchmarkRegimeProvider`, while explicitly filtering `tradable_symbols` during portfolio execution. In `pullback.py`, `regime_allows` is strictly bypassed unless `config.sector_filter` is enabled.
+
+**Reason:** Resolves requirement in `INSTRUCTIONS.md`. Guarantees that `regime_adapted` operates with genuine benchmark market inputs, while ensuring the engine never erroneously trades benchmark ETFs and ensuring `literal_clone` and `risk_controlled` remain unaffected by benchmark regime state.
+
+## 2026-10-02 — Explicit dataset manifest provenance contract
+
+**Decision:** Implement `dataset_manifest.json` (`DatasetManifest` model) with strict status enumeration (`SYNTHETIC_SAMPLE_FIXTURE`, `REAL_HISTORICAL_UNVERIFIED_SOURCE`, `REAL_HISTORICAL_VERIFIED`). Never infer real historical research status from directory names alone.
+
+**Reason:** Resolves requirement in `INSTRUCTIONS.md` preventing accidental or spoofed promotion of synthetic fixtures to real historical research.
+
+## 2026-10-02 — Session-aware bar cadence validation
+
+**Decision:** Compute bar timestamp deltas exclusively between consecutive bars sharing the same calendar date (`prev.date == curr.date`).
+
+**Reason:** Resolves requirement in `INSTRUCTIONS.md` to prevent legitimate overnight, weekend, and holiday gaps from failing 1-minute intraday cadence checks, while preserving strict rejection of mismatched data (e.g. daily data supplied to a 1-minute engine).
+
+## 2026-10-02 — Integration of falsification suite into canonical report
+
+**Decision:** Execute stationary block bootstrap (500 iterations), leave-one-out ticker exclusion, and strongest-day exclusion diagnostics directly in `run_strategy_comparison` and render them in the canonical Markdown/JSON output.
+
+**Reason:** Resolves requirement in `INSTRUCTIONS.md` ensuring falsification tests are part of the canonical research workflow rather than uninvoked helper utilities.
+

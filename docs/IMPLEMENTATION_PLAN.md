@@ -192,16 +192,26 @@ Do not declare research-ready while any of these remain:
 9. If required data is unavailable, mark the phase BLOCKED or UNVALIDATED rather than fabricating data.
 10. Never present a fixture result as evidence about the real strategy.
 
-# Current status & Required Next Sequence (Audited 2026-10-02)
+# Current status & Implementation Audit (Updated 2026-10-02 Post-Audit Pass)
 
-Reference: `docs/AUDIT_20261002_POST_GEMINI.md`
+Reference: `INSTRUCTIONS.md` and `docs/AUDIT_20261002_POST_GEMINI.md`
 
-Engine machinery is substantially complete; historical research validation remains blocked/partial on real data:
+**Status:**
+- **ENGINE IMPLEMENTATION:** Substantially complete.
+- **HISTORICAL STRATEGY RESEARCH:** Not complete (remains blocked on ingest of genuine historical market data).
+- **OPTIONS RESEARCH:** Unvalidated (no historical tick-level option chains provided).
+- **EVENT FILTERING:** Partial / Unvalidated (blackout logic active, but no historical earnings calendar feed connected).
 
-1. **Bar Resolution Cadence Validation**: Enforce expected bar timestamp intervals in validation (1m vs 1d).
-2. **Dedicated Configurations**: Distinct configs for 1m intraday tactical vs daily research.
-3. **Canonical Historical 3-Variant Comparison Runner**: Evaluate `literal_clone`, `risk_controlled`, `regime_adapted` on actual market data.
-4. **Falsification Suite Completion**: Add block bootstrap, ticker exclusion, and strongest-day exclusion.
-5. **Real Historical Data Acquisition**: Ingest genuine historical intraday/daily market data.
-6. **Options Status**: Kept explicitly `UNVALIDATED` until verified historical chains are provided.
-7. **Reddit-Period Reproduction**: Run final historical evaluation only after gates 1–6 pass.
+### Closed Research Gates:
+1. [x] **Benchmark Decoupling & Regime Wiring**: `SMH` and `SPY` automatically loaded into `regime_adapted` while tradable universe execution is restricted to tradable symbols. `literal_clone` and `risk_controlled` remain unaffected when `sector_filter` is disabled.
+2. [x] **Session-Aware Cadence Validation**: Distinguishes intraday 1m spacing from legitimate overnight/weekend/holiday gaps while strictly rejecting cadence mismatches.
+3. [x] **Explicit Dataset Manifest Contract**: Data provenance governed by `dataset_manifest.json` (`SYNTHETIC_SAMPLE_FIXTURE`, `REAL_HISTORICAL_UNVERIFIED_SOURCE`, `REAL_HISTORICAL_VERIFIED`) preventing provenance spoofing.
+4. [x] **Integrated Falsification Suite**: Stationary block bootstrap (500 iterations), leave-one-out ticker exclusion, and strongest-day exclusion integrated into canonical research runner and report.
+5. [x] **Reconciled Experiment Grids**: Leverage sensitivities tested at `[1.0, 1.25, 1.5, 2.0, 3.0]` and cost sensitivities at `[0.0, 5.0, 10.0, 15.0]` bps.
+6. [x] **Out-of-Sample Date Handling**: `split_data_by_research_dates` supports train/validation/test date segmenting without lookahead leakage.
+
+### Remaining Research Blockers:
+1. [ ] **Genuine Market Data Ingestion**: Provide primary historical CSV datasets for `MU`, `SNDK`, `SKHY`, `AMD`, `USD`, `SMH`, and `SPY`.
+2. [ ] **Genuine Option Chain Ingestion**: Ingest historical tick-level option quotes before removing `UNVALIDATED` flag from covered-call experiments.
+3. [ ] **Final Reddit-Period Historical Reproduction**: Execute reproduction run on verified historical market data across Reddit period.
+

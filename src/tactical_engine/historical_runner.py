@@ -18,21 +18,24 @@ from tactical_engine.reports.renderer import render_markdown_report
 
 def run_historical_backtest(config_path: str, data_dir: str) -> None:
     config = load_config(config_path)
-    symbols = config.strategy.universe
-    if config.strategy.two_x_etfs:
-        symbols = symbols + config.strategy.two_x_etfs
+    tradable_symbols = list(
+        dict.fromkeys(config.strategy.universe + (config.strategy.two_x_etfs or []))
+    )
+    # Always load benchmark inputs SMH and SPY for regime evaluation
+    symbols_to_load = list(dict.fromkeys(tradable_symbols + ["SMH", "SPY"]))
 
     data_path = Path(data_dir)
     print("=" * 80)
     print("HISTORICAL MARKET DATA RESEARCH ENGINE")
     print(f"Data directory: {data_path.resolve()}")
-    print(f"Universe: {symbols}")
+    print(f"Tradable Universe: {tradable_symbols}")
+    print("Benchmark Inputs: ['SMH', 'SPY']")
     print("=" * 80)
 
     try:
         universe_dataset = load_historical_universe(
             data_dir=data_path,
-            symbols=symbols,
+            symbols=symbols_to_load,
             resolution=config.strategy.bar_interval,
         )
     except (HistoricalDataMissingError, ValueError, FileNotFoundError) as e:
@@ -47,14 +50,21 @@ def run_historical_backtest(config_path: str, data_dir: str) -> None:
     print(f"Loaded {len(universe_dataset.bars_by_symbol)} symbols successfully.")
     print(f"Aggregate Data SHA256: {universe_dataset.aggregate_data_hash}")
 
-    # Check if data directory is synthetic fixture vs real market data
-    is_fixture = "sample_historical" in str(data_path.resolve())
-    data_status = "SYNTHETIC_SAMPLE_FIXTURE" if is_fixture else "REAL_HISTORICAL"
+    # Use explicit dataset manifest contract rather than inferring from directory name
+    dataset_manifest = universe_dataset.dataset_manifest
+    data_status = dataset_manifest.data_status
+    is_fixture = data_status == "SYNTHETIC_SAMPLE_FIXTURE"
 
     if is_fixture:
         print("\n" + "=" * 80)
-        print("NOTICE: RUNNING ON SYNTHETIC SAMPLE FIXTURES ('data/sample_historical').")
+        print("NOTICE: RUNNING ON SYNTHETIC SAMPLE FIXTURES.")
+        print(f"Dataset: {dataset_manifest.dataset_id} (Provider: {dataset_manifest.provider})")
         print("This run validates software mechanics only. It is NOT real historical research.")
+        print("=" * 80 + "\n")
+    elif data_status == "REAL_HISTORICAL_UNVERIFIED_SOURCE":
+        print("\n" + "=" * 80)
+        print("NOTICE: RUNNING ON UNVERIFIED LOCAL HISTORICAL CSV DATA.")
+        print("Source files have no cryptographically verified provider manifest.")
         print("=" * 80 + "\n")
 
     # Prepare data hashes for manifest

@@ -16,22 +16,25 @@ from tactical_engine.research.report_generator import render_comparison_report
 
 def run_historical_comparison(config_path: str, data_dir: str) -> None:
     config = load_config(config_path)
-    symbols = config.strategy.universe
-    if config.strategy.two_x_etfs:
-        symbols = symbols + config.strategy.two_x_etfs
+    tradable_symbols = list(
+        dict.fromkeys(config.strategy.universe + (config.strategy.two_x_etfs or []))
+    )
+    # Always load benchmark inputs SMH and SPY for regime evaluation
+    symbols_to_load = list(dict.fromkeys(tradable_symbols + ["SMH", "SPY"]))
 
     data_path = Path(data_dir)
     print("=" * 80)
     print("HISTORICAL 3-VARIANT STRATEGY COMPARISON RUNNER")
     print(f"Data directory: {data_path.resolve()}")
-    print(f"Universe: {symbols}")
+    print(f"Tradable Universe: {tradable_symbols}")
+    print("Benchmark Inputs: ['SMH', 'SPY']")
     print(f"Declared resolution: {config.strategy.bar_interval}")
     print("=" * 80)
 
     try:
         universe_dataset = load_historical_universe(
             data_dir=data_path,
-            symbols=symbols,
+            symbols=symbols_to_load,
             resolution=config.strategy.bar_interval,
         )
     except (HistoricalDataMissingError, ValueError, FileNotFoundError) as e:
@@ -43,13 +46,20 @@ def run_historical_comparison(config_path: str, data_dir: str) -> None:
         print("!" * 80)
         sys.exit(1)
 
-    is_fixture = "sample_historical" in str(data_path.resolve())
-    data_status = "SYNTHETIC_SAMPLE_FIXTURE" if is_fixture else "REAL_HISTORICAL"
+    dataset_manifest = universe_dataset.dataset_manifest
+    data_status = dataset_manifest.data_status
+    is_fixture = data_status == "SYNTHETIC_SAMPLE_FIXTURE"
 
     if is_fixture:
         print("\n" + "=" * 80)
-        print("NOTICE: RUNNING ON SYNTHETIC SAMPLE FIXTURES ('data/sample_historical').")
+        print("NOTICE: RUNNING ON SYNTHETIC SAMPLE FIXTURES.")
+        print(f"Dataset: {dataset_manifest.dataset_id} (Provider: {dataset_manifest.provider})")
         print("This run validates software mechanics only. It is NOT real historical research.")
+        print("=" * 80 + "\n")
+    elif data_status == "REAL_HISTORICAL_UNVERIFIED_SOURCE":
+        print("\n" + "=" * 80)
+        print("NOTICE: RUNNING ON UNVERIFIED LOCAL HISTORICAL CSV DATA.")
+        print("Source files have no cryptographically verified provider manifest.")
         print("=" * 80 + "\n")
 
     print(f"Loaded {len(universe_dataset.bars_by_symbol)} symbols successfully.")
