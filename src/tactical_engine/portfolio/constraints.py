@@ -7,9 +7,7 @@ def check_portfolio_constraints(
     additional_gross_exposure: float,
     config: PortfolioConfig,
 ) -> bool:
-    current_gross = sum(
-        pos.quantity * pos.avg_price for pos in account_state.positions.values()
-    )
+    current_gross = sum(pos.quantity * pos.avg_price for pos in account_state.positions.values())
     new_gross = current_gross + additional_gross_exposure
     if account_state.equity <= 0:
         return False

@@ -1,4 +1,5 @@
 import pandas as pd
+
 from tactical_engine.config import SignalConfig
 from tactical_engine.data.models import SignalIntent
 

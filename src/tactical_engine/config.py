@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Literal
+
 import yaml
 from pydantic import BaseModel, Field
 
@@ -83,6 +84,6 @@ class EngineConfig(BaseModel):
 
 
 def load_config(path: str | Path) -> EngineConfig:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
     return EngineConfig.model_validate(data)

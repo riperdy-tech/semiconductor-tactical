@@ -1,5 +1,7 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 import numpy as np
+
 from tactical_engine.data.models import Bar
 
 
@@ -13,7 +15,7 @@ def generate_synthetic_bars(
 ) -> list[Bar]:
     rng = np.random.default_rng(seed)
     if start_time is None:
-        start_time = datetime(2026, 1, 5, 14, 30, tzinfo=timezone.utc)
+        start_time = datetime(2026, 1, 5, 14, 30, tzinfo=UTC)
 
     # Random walk with slight drift and occasional pullbacks
     returns = rng.normal(loc=0.0001, scale=0.002, size=num_bars)

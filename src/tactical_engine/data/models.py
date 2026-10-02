@@ -1,6 +1,7 @@
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -36,12 +37,12 @@ class Quote(BaseModel, frozen=True):
     ask_size: float = 0.0
 
 
-class OrderSide(str, Enum):
+class OrderSide(StrEnum):
     BUY = "BUY"
     SELL = "SELL"
 
 
-class OrderType(str, Enum):
+class OrderType(StrEnum):
     MARKET = "MARKET"
     LIMIT = "LIMIT"
     STOP = "STOP"

@@ -1,12 +1,14 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import pytest
 from pydantic import ValidationError
-from tactical_engine.data.models import Bar, Order, OrderSide, OrderType, SignalIntent
+
+from tactical_engine.data.models import Bar
 from tactical_engine.data.validation import validate_bar_sequence
 
 
 def test_bar_validation_success():
-    t0 = datetime(2026, 1, 5, 14, 30, tzinfo=timezone.utc)
+    t0 = datetime(2026, 1, 5, 14, 30, tzinfo=UTC)
     bar = Bar(
         symbol="MU",
         timestamp=t0,
@@ -22,7 +24,7 @@ def test_bar_validation_success():
 
 
 def test_bar_validation_invalid_high_low():
-    t0 = datetime(2026, 1, 5, 14, 30, tzinfo=timezone.utc)
+    t0 = datetime(2026, 1, 5, 14, 30, tzinfo=UTC)
     with pytest.raises(ValidationError):
         Bar(
             symbol="MU",
@@ -36,8 +38,8 @@ def test_bar_validation_invalid_high_low():
 
 
 def test_validate_bar_sequence_order():
-    t0 = datetime(2026, 1, 5, 14, 30, tzinfo=timezone.utc)
-    t1 = datetime(2026, 1, 5, 14, 31, tzinfo=timezone.utc)
+    t0 = datetime(2026, 1, 5, 14, 30, tzinfo=UTC)
+    t1 = datetime(2026, 1, 5, 14, 31, tzinfo=UTC)
     b1 = Bar(symbol="MU", timestamp=t1, open=10, high=11, low=9, close=10, volume=10)
     b0 = Bar(symbol="MU", timestamp=t0, open=10, high=11, low=9, close=10, volume=10)
     with pytest.raises(ValueError, match="Monotonic"):

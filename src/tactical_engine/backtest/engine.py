@@ -1,5 +1,7 @@
 import uuid
+
 from pydantic import BaseModel
+
 from tactical_engine.backtest.state import PortfolioTracker, TradeRecord
 from tactical_engine.config import EngineConfig
 from tactical_engine.data.models import Bar, Order, OrderSide, OrderType
@@ -29,9 +31,7 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
         signals_by_sym[sym] = generate_pullback_signals(df_feat, config.signals)
 
     # 2. Synchronized bar simulation loop
-    all_timestamps = sorted(
-        list(set(b.timestamp for bars in data.values() for b in bars))
-    )
+    all_timestamps = sorted(list(set(b.timestamp for bars in data.values() for b in bars)))
 
     tracker = PortfolioTracker(initial_cash=config.portfolio.initial_cash)
     simulator = ExecutionSimulator(cost_config=config.costs)
@@ -129,9 +129,7 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
                         )
                     )
 
-    final_prices = {
-        sym: bars[-1].close for sym, bars in data.items() if bars
-    }
+    final_prices = {sym: bars[-1].close for sym, bars in data.items() if bars}
     final_state = tracker.get_account_state(all_timestamps[-1], final_prices)
 
     return BacktestResult(

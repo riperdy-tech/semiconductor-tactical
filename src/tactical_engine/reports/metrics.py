@@ -1,5 +1,6 @@
 import numpy as np
 from pydantic import BaseModel
+
 from tactical_engine.backtest.engine import BacktestResult
 
 

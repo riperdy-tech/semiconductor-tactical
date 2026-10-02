@@ -1,8 +1,10 @@
 import hashlib
 import subprocess
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from pydantic import BaseModel, Field
+
 from tactical_engine.config import EngineConfig
 
 
@@ -16,9 +18,7 @@ def get_git_commit_hash() -> str:
 
 class RunManifest(BaseModel):
     run_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    created_at_utc: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at_utc: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     git_commit: str = Field(default_factory=get_git_commit_hash)
     config_hash: str
     data_hashes: dict[str, str] = Field(default_factory=dict)

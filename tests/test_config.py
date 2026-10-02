@@ -1,5 +1,8 @@
 from pathlib import Path
+
 import pytest
+from pydantic import ValidationError
+
 from tactical_engine.config import EngineConfig, load_config
 
 
@@ -19,5 +22,5 @@ def test_load_base_config():
 def test_config_validation_error(tmp_path):
     bad_yaml = tmp_path / "bad.yaml"
     bad_yaml.write_text("strategy:\n  variant: unknown_variant\n", encoding="utf-8")
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         load_config(bad_yaml)

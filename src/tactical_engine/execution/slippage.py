@@ -15,7 +15,9 @@ def calculate_fill_price(
     impact_rate = 0.0
     if bar_volume > 0:
         participation = quantity / bar_volume
-        impact_rate = (participation * 100.0) * (cost_config.market_impact_bps_per_1pct_volume / 10_000.0)
+        impact_rate = (participation * 100.0) * (
+            cost_config.market_impact_bps_per_1pct_volume / 10_000.0
+        )
 
     total_slip = base_price * (slip_rate + impact_rate)
     fill_price = base_price + total_slip if side == OrderSide.BUY else base_price - total_slip

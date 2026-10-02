@@ -1,11 +1,12 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 from tactical_engine.config import ExitConfig
 from tactical_engine.data.models import Bar
 from tactical_engine.signals.exits import check_exit_condition
 
 
 def test_atr_exit_stop_hit():
-    t0 = datetime(2026, 1, 5, 14, 30, tzinfo=timezone.utc)
+    t0 = datetime(2026, 1, 5, 14, 30, tzinfo=UTC)
     cfg = ExitConfig(family="atr", stop_atr=1.0, target_atr=1.5)
     # Entry at 100 with ATR = 2.0 -> stop at 98.0
     bar = Bar(symbol="MU", timestamp=t0, open=99.0, high=99.5, low=97.5, close=98.0, volume=100)
@@ -21,7 +22,7 @@ def test_atr_exit_stop_hit():
 
 
 def test_time_exit():
-    t0 = datetime(2026, 1, 5, 14, 30, tzinfo=timezone.utc)
+    t0 = datetime(2026, 1, 5, 14, 30, tzinfo=UTC)
     t1 = t0 + timedelta(minutes=130)
     cfg = ExitConfig(family="time", max_hold_minutes=120)
     bar = Bar(symbol="MU", timestamp=t1, open=100, high=101, low=99, close=100, volume=100)

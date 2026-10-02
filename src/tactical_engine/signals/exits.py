@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from tactical_engine.config import ExitConfig
 from tactical_engine.data.models import Bar
 

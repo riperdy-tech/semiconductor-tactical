@@ -1,5 +1,7 @@
 from datetime import datetime
+
 from pydantic import BaseModel
+
 from tactical_engine.data.models import AccountState, Fill, OrderSide, Position
 
 
@@ -67,7 +69,9 @@ class PortfolioTracker:
                     realized_pnl=pos.realized_pnl + net_pnl,
                 )
 
-    def get_account_state(self, timestamp: datetime, current_prices: dict[str, float]) -> AccountState:
+    def get_account_state(
+        self, timestamp: datetime, current_prices: dict[str, float]
+    ) -> AccountState:
         equity = self.cash
         for sym, pos in self.positions.items():
             price = current_prices.get(sym, pos.avg_price)

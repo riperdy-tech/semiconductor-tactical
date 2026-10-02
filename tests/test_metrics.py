@@ -1,12 +1,13 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from tactical_engine.backtest.engine import BacktestResult
 from tactical_engine.backtest.state import TradeRecord
 from tactical_engine.reports.metrics import calculate_metrics
 
 
 def test_performance_metrics_calculation():
-    t0 = datetime(2026, 1, 5, 14, 30, tzinfo=timezone.utc)
-    t1 = datetime(2026, 1, 5, 15, 30, tzinfo=timezone.utc)
+    t0 = datetime(2026, 1, 5, 14, 30, tzinfo=UTC)
+    t1 = datetime(2026, 1, 5, 15, 30, tzinfo=UTC)
     result = BacktestResult(
         initial_cash=100_000.0,
         final_equity=105_000.0,
@@ -36,7 +37,12 @@ def test_performance_metrics_calculation():
             ),
         ],
         equity_curve=[100_000.0, 102_000.0, 99_000.0, 105_000.0],
-        timestamps=["2026-01-05T14:30:00Z", "2026-01-05T14:31:00Z", "2026-01-05T14:32:00Z", "2026-01-05T14:33:00Z"],
+        timestamps=[
+            "2026-01-05T14:30:00Z",
+            "2026-01-05T14:31:00Z",
+            "2026-01-05T14:32:00Z",
+            "2026-01-05T14:33:00Z",
+        ],
     )
     metrics = calculate_metrics(result)
     assert metrics.total_return_pct == 5.0
