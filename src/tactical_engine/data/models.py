@@ -14,6 +14,8 @@ class Bar(BaseModel, frozen=True):
     close: float
     volume: float = 0.0
     vwap: float | None = None
+    provider: str = "synthetic"
+    adjustment_status: str = "unadjusted"
 
     @model_validator(mode="after")
     def check_ohlc(self) -> "Bar":

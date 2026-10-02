@@ -1,7 +1,9 @@
 param(
-    [ValidateSet("full","test","backtest","research","comparison","doctor")]
+    [ValidateSet("full","test","backtest","research","comparison","doctor","doctor-data","historical")]
     [string]$Mode = "full",
-    [int]$Bars = 200
+    [int]$Bars = 200,
+    [string]$DataDir = "data/processed",
+    [string]$Config = "configs/base.yaml"
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,6 +48,18 @@ switch ($Mode) {
         Write-Step "Environment and import smoke test"
         Invoke-Python -c "import sys, tactical_engine; print('Python:', sys.version.split()[0]); print('tactical_engine:', tactical_engine.__version__)"
         Invoke-Python -m pytest --collect-only
+        break
+    }
+
+    "doctor-data" {
+        Write-Step "Historical data integrity check and diagnostics"
+        Invoke-Python -m tactical_engine.data.doctor --config $Config --data-dir $DataDir
+        break
+    }
+
+    "historical" {
+        Write-Step "Historical market-data research run (REFUSES if required real data missing)"
+        Invoke-Python -m tactical_engine.historical_runner --config $Config --data-dir $DataDir
         break
     }
 

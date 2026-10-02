@@ -1,7 +1,24 @@
+from datetime import datetime
+
+from pydantic import BaseModel, Field
+
 from tactical_engine.data.models import Bar
 
 
+class DatasetValidationResult(BaseModel):
+    symbol: str
+    row_count: int
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    is_valid: bool = True
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    gaps_count: int = 0
+    duplicates_count: int = 0
+
+
 def validate_bar_sequence(bars: list[Bar]) -> None:
+    """Ensure bars are non-empty and strictly monotonically increasing in timestamp."""
     if not bars:
         return
     for i in range(1, len(bars)):
@@ -9,3 +26,111 @@ def validate_bar_sequence(bars: list[Bar]) -> None:
             raise ValueError(
                 f"Monotonic timestamp violation: {bars[i].timestamp} <= {bars[i - 1].timestamp}"
             )
+
+
+def detect_duplicates(bars: list[Bar]) -> list[datetime]:
+    """Find timestamps that occur more than once in the bar series."""
+    seen: set[datetime] = set()
+    dupes: list[datetime] = []
+    for bar in bars:
+        if bar.timestamp in seen:
+            dupes.append(bar.timestamp)
+        else:
+            seen.add(bar.timestamp)
+    return dupes
+
+
+def detect_time_gaps(
+    bars: list[Bar], max_gap_seconds: float = 86400 * 5
+) -> list[tuple[datetime, datetime]]:
+    """Detect time gaps between consecutive bars exceeding the threshold
+    (e.g. 5 days for daily bars)."""
+    gaps: list[tuple[datetime, datetime]] = []
+    for i in range(1, len(bars)):
+        dt_diff = (bars[i].timestamp - bars[i - 1].timestamp).total_seconds()
+        if dt_diff > max_gap_seconds:
+            gaps.append((bars[i - 1].timestamp, bars[i].timestamp))
+    return gaps
+
+
+def detect_price_anomalies(
+    bars: list[Bar], max_pct_move: float = 0.5
+) -> list[tuple[datetime, float]]:
+    """Detect single-bar close-to-close jumps exceeding max_pct_move (potential split artifact)."""
+    anomalies: list[tuple[datetime, float]] = []
+    for i in range(1, len(bars)):
+        prev_close = bars[i - 1].close
+        if prev_close <= 0:
+            continue
+        pct_change = abs(bars[i].close - prev_close) / prev_close
+        if pct_change >= max_pct_move:
+            anomalies.append((bars[i].timestamp, pct_change))
+    return anomalies
+
+
+def validate_symbol_bars(
+    symbol: str, bars: list[Bar], max_gap_seconds: float = 86400 * 5
+) -> DatasetValidationResult:
+    """Comprehensive validation of a symbol's historical bar series."""
+    if not bars:
+        return DatasetValidationResult(
+            symbol=symbol,
+            row_count=0,
+            is_valid=False,
+            errors=["No bars provided for symbol"],
+        )
+
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    # Check duplicates
+    dupes = detect_duplicates(bars)
+    if dupes:
+        errors.append(f"Found {len(dupes)} duplicate timestamps (first: {dupes[0]})")
+
+    # Check monotonicity
+    try:
+        validate_bar_sequence(bars)
+    except ValueError as e:
+        if not dupes:
+            errors.append(str(e))
+
+    # Check OHLC relations and volume
+    for bar in bars:
+        if bar.open <= 0 or bar.high <= 0 or bar.low <= 0 or bar.close <= 0:
+            errors.append(f"Non-positive price detected at {bar.timestamp}")
+            break
+        if bar.volume < 0:
+            errors.append(f"Negative volume detected at {bar.timestamp}")
+            break
+        if bar.high < bar.low or bar.open > bar.high or bar.close > bar.high:
+            errors.append(f"OHLC violation at {bar.timestamp}")
+            break
+
+    # Check gaps
+    gaps = detect_time_gaps(bars, max_gap_seconds=max_gap_seconds)
+    if gaps:
+        warnings.append(
+            f"Detected {len(gaps)} calendar gaps > {max_gap_seconds / 86400:.1f} days "
+            f"(first: {gaps[0][0]} -> {gaps[0][1]})"
+        )
+
+    # Check price jumps / potential splits
+    anomalies = detect_price_anomalies(bars)
+    if anomalies:
+        warnings.append(
+            f"Detected {len(anomalies)} large price jumps >= 50% "
+            f"(first: {anomalies[0][0]} {anomalies[0][1] * 100:.1f}%)"
+        )
+
+    return DatasetValidationResult(
+        symbol=symbol,
+        row_count=len(bars),
+        start_time=bars[0].timestamp,
+        end_time=bars[-1].timestamp,
+        is_valid=len(errors) == 0,
+        errors=errors,
+        warnings=warnings,
+        gaps_count=len(gaps),
+        duplicates_count=len(dupes),
+    )

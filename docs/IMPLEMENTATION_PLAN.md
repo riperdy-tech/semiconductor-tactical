@@ -10,68 +10,58 @@ Determine whether a deterministic approximation of the Reddit trader's observabl
 
 Always distinguish fixture validation from historical research. Synthetic fixtures prove that software works; they do not prove that the strategy works.
 
-# Phase 0 — Stabilize the current scaffold
+# Phase 0 — Stabilize the current scaffold [COMPLETED]
 
 Build:
-- Keep run.ps1 as the canonical Windows entry point.
-- Keep run.bat as the double-click launcher.
-- Keep GitHub Actions CI as the automatic validation layer.
-- Ensure every user-facing CLI path has a smoke test.
-- Keep deterministic synthetic fixtures.
+- [x] Keep run.ps1 as the canonical Windows entry point.
+- [x] Keep run.bat as the double-click launcher.
+- [x] Keep GitHub Actions CI as the automatic validation layer.
+- [x] Ensure every user-facing CLI path has a smoke test.
+- [x] Keep deterministic synthetic fixtures.
 
 Tests:
-- deterministic fixture generation;
-- deterministic repeated backtests;
-- next-bar execution;
-- no-lookahead;
-- cost/slippage reconciliation;
-- multiple-symbol behavior.
+- [x] deterministic fixture generation;
+- [x] deterministic repeated backtests;
+- [x] next-bar execution;
+- [x] no-lookahead;
+- [x] cost/slippage reconciliation;
+- [x] multiple-symbol behavior.
 
-Gate: pytest, fixture backtest, robustness smoke test, comparison smoke test, and CI must all pass.
+Gate: pytest, fixture backtest, robustness smoke test, comparison smoke test, and CI must all pass. (PASSED)
 
-# Phase 1 — Real historical equity-data ingestion
-
-This is the highest-priority missing capability. The current CLI generates synthetic bars and therefore cannot answer the original research question.
+# Phase 1 — Real historical equity-data ingestion [COMPLETED]
 
 Build a provider-independent data layer under src/tactical_engine/data/ for:
-- loading historical bars;
-- normalization;
-- OHLCV validation;
-- provenance;
-- source-data hashing.
+- [x] loading historical bars (CSV provider);
+- [x] normalization and timezone handling;
+- [x] OHLCV validation (monotonicity, duplicates, gaps, price anomalies);
+- [x] provenance tracking;
+- [x] source-data hashing (SHA-256 per file and aggregate universe digest).
 
 Initial configurable universe:
-- MU
-- SNDK
-- SKHY
-- AMD
-- semiconductor benchmark
-- broad-market benchmark such as SPY or QQQ
-- verified 2× semiconductor ETF candidates
+- [x] MU
+- [x] SNDK
+- [x] SKHY
+- [x] AMD
+- [x] semiconductor benchmark (SMH)
+- [x] broad-market benchmark (SPY)
+- [x] verified 2× semiconductor ETF candidate (USD)
 
 Required bar fields:
-- symbol;
-- timestamp;
-- OHLC;
-- volume;
-- source/provider;
-- adjustment status.
+- [x] symbol;
+- [x] timestamp;
+- [x] OHLC;
+- [x] volume;
+- [x] source/provider;
+- [x] adjustment status.
 
 Explicitly handle and document splits, ticker changes, adjusted/unadjusted data, volume treatment, and delistings where relevant.
 
-Add:
-    .\run.ps1 doctor-data
+- [x] Add `.\run.ps1 doctor-data`: reports provider, symbols, date range, resolution, row counts, gaps, duplicates, timezone, OHLC/volume checks, corporate-action status, and data hash.
+- [x] Add `.\run.ps1 historical`: refuses to run if required real-data inputs are missing. Persists provider/source, data hash, symbols, dates, resolution, timezone, adjustment policy, config hash, and git commit in `run_manifest.json`.
 
-It must report provider, symbols, date range, resolution, row counts, gaps, duplicates, timezone, OHLC/volume checks, corporate-action status, and data hash.
+Gate: a real historical dataset passes validation and produces a reproducible equity-only backtest. (PASSED)
 
-Add a separate:
-    .\run.ps1 historical
-
-Historical mode must refuse to run if required real-data inputs are missing.
-
-Every historical run must persist provider/source, data hash, symbols, dates, resolution, timezone, adjustment policy, config hash, and git commit.
-
-Gate: a real historical dataset passes validation and produces a reproducible equity-only backtest.
 
 # Phase 2 — Correct execution, accounting, and position mechanics
 
