@@ -1,0 +1,42 @@
+name: research-engine-ci
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  test-and-smoke:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.12"]
+    runs-on: \${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: \${{ matrix.python }}
+          cache: pip
+
+      - name: Install project
+        run: python -m pip install -e ".[dev]"
+
+      - name: Unit and integration tests
+        run: python -m pytest
+
+      - name: Fixture backtest smoke test
+        run: python -m tactical_engine --config configs/base.yaml --bars 120
+
+      - name: Robustness smoke test
+        run: python -m tactical_engine.research.cli --config configs/base.yaml --bars 120
+
+      - name: Strategy comparison smoke test
+        run: python -m tactical_engine.research.report_generator --config configs/base.yaml --bars 120
+
+      - name: Check no uncommitted files were generated
+        shell: bash
+        run: |
+          git status --short
+          test -z "$(git status --short)"
