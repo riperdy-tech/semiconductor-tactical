@@ -108,3 +108,29 @@ def test_load_historical_universe_missing_symbol_fails(tmp_path: Path):
     )
     with pytest.raises(HistoricalDataMissingError, match="AMD"):
         load_historical_universe(data_dir=tmp_path, symbols=["MU", "AMD"])
+
+
+def test_cadence_mismatch_detected_for_1m_when_daily_provided(tmp_path: Path):
+    content = (
+        "date,open,high,low,close,volume\n"
+        "2024-01-02,50.0,52.0,49.0,51.0,100000\n"
+        "2024-01-03,51.0,53.0,50.0,52.0,120000\n"
+    )
+    (tmp_path / "MU.csv").write_text(content, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Resolution cadence mismatch"):
+        load_historical_universe(
+            data_dir=tmp_path, symbols=["MU"], resolution="1m"
+        )
+
+
+def test_cadence_mismatch_detected_for_1d_when_intraday_provided():
+    t1 = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
+    t2 = datetime(2024, 1, 2, 14, 31, tzinfo=UTC)  # 60s
+    b1 = Bar(symbol="TEST", timestamp=t1, open=10, high=11, low=9, close=10.5)
+    b2 = Bar(symbol="TEST", timestamp=t2, open=10.5, high=11.2, low=10.1, close=10.8)
+
+    val = validate_symbol_bars("TEST", [b1, b2], expected_interval="1d")
+    assert val.is_valid is False
+    assert any("Resolution cadence mismatch" in e for e in val.errors)
+

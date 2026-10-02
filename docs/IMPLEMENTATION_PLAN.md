@@ -29,23 +29,25 @@ Tests:
 
 Gate: pytest, fixture backtest, robustness smoke test, comparison smoke test, and CI must all pass. (PASSED)
 
-# Phase 1 — Real historical equity-data ingestion [COMPLETED]
+# Phase 1 — Real historical equity-data ingestion [PARTIAL - BLOCKED ON REAL DATA]
 
 Build a provider-independent data layer under src/tactical_engine/data/ for:
 - [x] loading historical bars (CSV provider);
 - [x] normalization and timezone handling;
 - [x] OHLCV validation (monotonicity, duplicates, gaps, price anomalies);
 - [x] provenance tracking;
-- [x] source-data hashing (SHA-256 per file and aggregate universe digest).
+- [x] source-data hashing (SHA-256 per file and aggregate universe digest);
+- [x] validate declared bar resolution cadence (1m vs 1d spacing checks);
+- [ ] ingest actual historical market data for MU, SNDK, SKHY, AMD, SMH, SPY, USD (currently uses synthetic sample data).
 
 Initial configurable universe:
-- [x] MU
-- [x] SNDK
-- [x] SKHY
-- [x] AMD
-- [x] semiconductor benchmark (SMH)
-- [x] broad-market benchmark (SPY)
-- [x] verified 2× semiconductor ETF candidate (USD)
+- [ ] MU (real market data)
+- [ ] SNDK (real market data)
+- [ ] SKHY (real market data)
+- [ ] AMD (real market data)
+- [ ] semiconductor benchmark (SMH)
+- [ ] broad-market benchmark (SPY)
+- [ ] verified 2× semiconductor ETF candidate (USD)
 
 Required bar fields:
 - [x] symbol;
@@ -60,7 +62,7 @@ Explicitly handle and document splits, ticker changes, adjusted/unadjusted data,
 - [x] Add `.\run.ps1 doctor-data`: reports provider, symbols, date range, resolution, row counts, gaps, duplicates, timezone, OHLC/volume checks, corporate-action status, and data hash.
 - [x] Add `.\run.ps1 historical`: refuses to run if required real-data inputs are missing. Persists provider/source, data hash, symbols, dates, resolution, timezone, adjustment policy, config hash, and git commit in `run_manifest.json`.
 
-Gate: a real historical dataset passes validation and produces a reproducible equity-only backtest. (PASSED)
+Gate: a real historical dataset passes validation and produces a reproducible equity-only backtest. (PENDING REAL DATASET)
 
 
 # Phase 2 — Correct execution, accounting, and position mechanics [COMPLETED]
@@ -111,7 +113,7 @@ Replaced single-symbol trend substitution with actual benchmark inputs and Regim
 - [x] Repository operates independently without requiring RS2.
 - [x] Verified in `tests/test_regime_filtering.py`.
 
-# Phase 6 — Historical options and covered-call engine [COMPLETED]
+# Phase 6 — Historical options and covered-call engine [MECHANICALLY IMPLEMENTED / HISTORICALLY UNVALIDATED]
 
 - [x] OptionQuote model retaining underlying, contract ID, strike, expiration, timestamp, bid, ask, volume, open interest, and underlying price.
 - [x] Do not substitute theoretical Black-Scholes prices for historical executable quotes. If real historical chains are unavailable, options experiment = UNVALIDATED.
@@ -119,6 +121,7 @@ Replaced single-symbol trend substitution with actual benchmark inputs and Regim
 - [x] Implemented covered call repurchase variants: strength entry + pullback repurchase, strength entry + profit-based repurchase, hold to expiration.
 - [x] Report option contribution separately from directional equity P&L (`options_premium_collected`, `options_realized_pnl`).
 - [x] Verified in `tests/test_repurchase_covered_calls.py` and `tests/test_options_backtest.py`.
+- [ ] Ingest real historical option-chain dataset (currently UNVALIDATED due to absence of historical option chains).
 
 # Phase 7 — Realistic margin engine [COMPLETED]
 
@@ -126,7 +129,7 @@ Replaced single-symbol trend substitution with actual benchmark inputs and Regim
 - [x] Record peak gross exposure, peak debt, peak margin utilization, margin calls, forced liquidations, and worst liquidation event.
 - [x] Added deterministic tests for buying power, margin calls, multi-position liquidation ordering, and residual debt in `tests/test_margin_risk.py`.
 
-# Phase 8 — Canonical historical research runner [COMPLETED]
+# Phase 8 — Canonical historical research runner [COMPLETED ENGINE LAYER]
 
 - [x] Created `.\run.ps1 historical` Windows entry point.
 - [x] Validates historical data and refuses execution if required real-data inputs are missing.
@@ -135,8 +138,10 @@ Replaced single-symbol trend substitution with actual benchmark inputs and Regim
 - [x] Generates Markdown reports with historical market data provenance banner.
 - [x] Persists full run manifest (data hashes, config hash, git commit, symbols, timeframe).
 - [x] Creates isolated result directory `reports/historical_<run_id>_<timestamp>/` that never overwrites prior runs.
+- [x] Verify bar resolution cadence matching config resolution (1m vs 1d spacing checks).
+- [x] Ensure default historical data directory exists on clean checkouts or defaults transparently to validated historical location.
 
-# Phase 9 — Experiment matrix and anti-overfitting [COMPLETED]
+# Phase 9 — Experiment matrix and anti-overfitting [COMPLETED ENGINE LAYER]
 
 - [x] Strategy variants evaluated: `literal_clone`, `risk_controlled`, `regime_adapted`.
 - [x] Leverage sensitivity tested: 1.0×, 1.25×, 1.5×, 2.0×, 3.0×.
@@ -144,20 +149,24 @@ Replaced single-symbol trend substitution with actual benchmark inputs and Regim
 - [x] Exit families: fixed percentage, ATR, VWAP reversion, time-based.
 - [x] Cost sensitivity: 0 bps, 5 bps, 10 bps, 15 bps.
 - [x] Robustness diagnostics: parameter perturbation sweeps, random-entry control, bootstrap resampling, and parameter stability scoring (0.0 to 1.0).
+- [x] Implement stationary block bootstrap for autocorrelated intraday returns (`stationary_block_bootstrap`).
+- [x] Implement ticker exclusion test (`run_ticker_exclusion_test`).
+- [x] Implement strongest-day exclusion test (`run_strongest_day_exclusion_test`).
 
-# Phase 10 — Historical reproduction of the Reddit-period behavior [COMPLETED]
+# Phase 10 — Historical reproduction of the Reddit-period behavior [ENGINE COMPLETE / RESEARCH BLOCKED ON REAL DATA]
 
-- [x] Multi-variant comparison runner evaluates `literal_clone`, `risk_controlled`, and `regime_adapted` on identical data with identical reporting metrics.
-- [x] Produces both machine-readable results and human-readable Markdown reports (`reports/strategy_comparison.md`).
-- [x] Reports starting capital, final equity, return, max drawdown, trade count, win rate, profit factor, cost drag, margin interest, and margin calls.
-- [x] Distinguishes synthetic software validation from real market data results.
+- [x] Multi-variant comparison runner evaluates `literal_clone`, `risk_controlled`, and `regime_adapted` on identical fixture data.
+- [x] Implemented canonical historical 3-variant comparison runner (`historical_comparison.py` and `.\run.ps1 comparison-historical`) operating on historical dataset.
+- [ ] Execute reproduction on verified historical market data across Reddit period.
+- [ ] Produce final historical comparison report (`reports/strategy_comparison_historical.md`).
 - [x] Labels evidence strictly with `OBSERVED`, `DERIVED`, `HYPOTHESIS`, `ASSUMPTION`, and `UNVERIFIED`.
-- [x] Enforces falsification criteria: no edge declared without persistent out-of-sample positive expectancy after fees and financing.
+- [ ] Enforces falsification criteria: no edge declared without persistent out-of-sample positive expectancy after fees and financing.
 
 # Hard blockers
 
 Do not declare research-ready while any of these remain:
 - only synthetic data is available;
+- bar resolution cadence does not match declared configuration resolution;
 - leverage is configuration-only;
 - layering is configuration-only;
 - 2× ETF support is configuration-only;
@@ -183,7 +192,16 @@ Do not declare research-ready while any of these remain:
 9. If required data is unavailable, mark the phase BLOCKED or UNVALIDATED rather than fabricating data.
 10. Never present a fixture result as evidence about the real strategy.
 
-# Current status
+# Current status & Required Next Sequence (Audited 2026-10-02)
 
-All implementation phases (Phase 0 through Phase 10) are complete and validated by 62 unit and integration tests.
-Both canonical runners (`run.ps1 full` for synthetic software validation, `run.ps1 historical` for real historical market research) pass completely with data provenance and manifest tracking.
+Reference: `docs/AUDIT_20261002_POST_GEMINI.md`
+
+Engine machinery is substantially complete; historical research validation remains blocked/partial on real data:
+
+1. **Bar Resolution Cadence Validation**: Enforce expected bar timestamp intervals in validation (1m vs 1d).
+2. **Dedicated Configurations**: Distinct configs for 1m intraday tactical vs daily research.
+3. **Canonical Historical 3-Variant Comparison Runner**: Evaluate `literal_clone`, `risk_controlled`, `regime_adapted` on actual market data.
+4. **Falsification Suite Completion**: Add block bootstrap, ticker exclusion, and strongest-day exclusion.
+5. **Real Historical Data Acquisition**: Ingest genuine historical intraday/daily market data.
+6. **Options Status**: Kept explicitly `UNVALIDATED` until verified historical chains are provided.
+7. **Reddit-Period Reproduction**: Run final historical evaluation only after gates 1–6 pass.

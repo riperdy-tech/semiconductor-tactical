@@ -4,19 +4,17 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-from tactical_engine.backtest.engine import run_backtest
 from tactical_engine.backtest.manifest import create_manifest
 from tactical_engine.config import load_config
 from tactical_engine.data.historical import (
     HistoricalDataMissingError,
     load_historical_universe,
 )
-from tactical_engine.reports.attribution import attribute_pnl_by_ticker
-from tactical_engine.reports.metrics import calculate_metrics
-from tactical_engine.reports.renderer import render_markdown_report
+from tactical_engine.research.comparison import run_strategy_comparison
+from tactical_engine.research.report_generator import render_comparison_report
 
 
-def run_historical_backtest(config_path: str, data_dir: str) -> None:
+def run_historical_comparison(config_path: str, data_dir: str) -> None:
     config = load_config(config_path)
     symbols = config.strategy.universe
     if config.strategy.two_x_etfs:
@@ -24,9 +22,10 @@ def run_historical_backtest(config_path: str, data_dir: str) -> None:
 
     data_path = Path(data_dir)
     print("=" * 80)
-    print("HISTORICAL MARKET DATA RESEARCH ENGINE")
+    print("HISTORICAL 3-VARIANT STRATEGY COMPARISON RUNNER")
     print(f"Data directory: {data_path.resolve()}")
     print(f"Universe: {symbols}")
+    print(f"Declared resolution: {config.strategy.bar_interval}")
     print("=" * 80)
 
     try:
@@ -37,17 +36,13 @@ def run_historical_backtest(config_path: str, data_dir: str) -> None:
         )
     except (HistoricalDataMissingError, ValueError, FileNotFoundError) as e:
         print("\n" + "!" * 80)
-        print("HISTORICAL RUNNER REFUSED EXECUTION:")
+        print("HISTORICAL COMPARISON RUNNER REFUSED EXECUTION:")
         print(f"Required historical data inputs are missing or invalid: {e}")
-        print("Historical research cannot run without verified real historical data.")
-        print("Run '.\\run.ps1 doctor-data' to check dataset completeness.")
+        print("Historical comparison cannot run without verified real historical data.")
+        print("Run '.\\run.ps1 doctor-data' to inspect dataset integrity.")
         print("!" * 80)
         sys.exit(1)
 
-    print(f"Loaded {len(universe_dataset.bars_by_symbol)} symbols successfully.")
-    print(f"Aggregate Data SHA256: {universe_dataset.aggregate_data_hash}")
-
-    # Check if data directory is synthetic fixture vs real market data
     is_fixture = "sample_historical" in str(data_path.resolve())
     data_status = "SYNTHETIC_SAMPLE_FIXTURE" if is_fixture else "REAL_HISTORICAL"
 
@@ -57,29 +52,38 @@ def run_historical_backtest(config_path: str, data_dir: str) -> None:
         print("This run validates software mechanics only. It is NOT real historical research.")
         print("=" * 80 + "\n")
 
+    print(f"Loaded {len(universe_dataset.bars_by_symbol)} symbols successfully.")
+    print(f"Aggregate Data SHA256: {universe_dataset.aggregate_data_hash}")
+
     # Prepare data hashes for manifest
     data_hashes = {
         sym: prov.file_sha256 for sym, prov in universe_dataset.provenance_by_symbol.items()
     }
 
-    # Execute backtest
-    result = run_backtest(data=universe_dataset.bars_by_symbol, config=config)
-    metrics = calculate_metrics(result)
-    attribution = attribute_pnl_by_ticker(result)
+    # Run 3-variant comparison + sensitivities
+    print("\nRunning 3-variant backtests on identical dataset...")
+    comparison_res = run_strategy_comparison(
+        data=universe_dataset.bars_by_symbol,
+        base_config=config,
+    )
 
-    # Create run manifest
+    # Manifest
     manifest = create_manifest(
-        config=config, data_hashes=data_hashes, data_status=data_status
+        config=config,
+        data_hashes=data_hashes,
+        data_status=data_status,
     )
 
     # Setup isolated run output directory
     timestamp_str = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-    run_dir = Path(config.outputs.root) / f"historical_{manifest.run_id[:8]}_{timestamp_str}"
+    run_dir = (
+        Path(config.outputs.root)
+        / f"historical_comparison_{manifest.run_id[:8]}_{timestamp_str}"
+    )
     run_dir.mkdir(parents=True, exist_ok=True)
     manifest.output_artifacts = [
-        str(run_dir / "metrics.json"),
+        str(run_dir / "comparison_metrics.json"),
         str(run_dir / "report.md"),
-        str(run_dir / "trades.json"),
         str(run_dir / "run_manifest.json"),
     ]
 
@@ -88,22 +92,16 @@ def run_historical_backtest(config_path: str, data_dir: str) -> None:
         json.dump(manifest.model_dump(), f, indent=2)
 
     # Save metrics
-    with open(run_dir / "metrics.json", "w", encoding="utf-8") as f:
-        json.dump(metrics.model_dump(), f, indent=2)
-
-    # Save trades
-    with open(run_dir / "trades.json", "w", encoding="utf-8") as f:
-        trades_data = [t.model_dump(mode="json") for t in result.trades]
-        json.dump(trades_data, f, indent=2)
+    with open(run_dir / "comparison_metrics.json", "w", encoding="utf-8") as f:
+        json.dump(comparison_res.model_dump(), f, indent=2)
 
     # Render report
-    report_md = render_markdown_report(
-        metrics=metrics, manifest=manifest, ticker_attribution=attribution
-    )
-    # Prepend Historical Market Data Banner with clear fixture vs real status
+    report_md = render_comparison_report(comparison=comparison_res, config=config)
+
+    # Header banner
     if is_fixture:
-        historical_header = (
-            f"# HISTORICAL RUNNER REPORT (SYNTHETIC FIXTURE RUN)\n\n"
+        banner = (
+            f"# HISTORICAL COMPARISON REPORT (SYNTHETIC FIXTURE RUN)\n\n"
             f"> [!WARNING]\n"
             f"> **DATA STATUS:** SYNTHETIC SAMPLE FIXTURE DATA (`{data_path.resolve()}`)\n"
             f"> This run used generated sample data fixtures. It validates software mechanics "
@@ -111,35 +109,44 @@ def run_historical_backtest(config_path: str, data_dir: str) -> None:
             f"> **AGGREGATE DATA SHA256:** `{universe_dataset.aggregate_data_hash}`\n\n---\n\n"
         )
     else:
-        historical_header = (
-            f"# HISTORICAL MARKET DATA RESEARCH REPORT\n\n"
+        banner = (
+            f"# HISTORICAL 3-VARIANT STRATEGY COMPARISON REPORT\n\n"
             f"> **DATA STATUS:** REAL HISTORICAL MARKET DATA (CSV Ingestion)\n"
             f"> **DATA DIRECTORY:** `{data_path.resolve()}`\n"
             f"> **AGGREGATE DATA SHA256:** `{universe_dataset.aggregate_data_hash}`\n\n---\n\n"
         )
-    full_report = historical_header + report_md
+
+    full_report = banner + report_md
     report_file = run_dir / "report.md"
     report_file.write_text(full_report, encoding="utf-8")
 
-    print("\nHISTORICAL RESEARCH RUN COMPLETE")
+    # Also write canonical comparison report to default location if needed
+    (Path(config.outputs.root) / "strategy_comparison_historical.md").write_text(
+        full_report, encoding="utf-8"
+    )
+
+    print("\nHISTORICAL COMPARISON COMPLETE")
     print(f"Run ID: {manifest.run_id}")
-    print(f"Trades Executed: {len(result.trades)}")
-    print(f"Final Equity: ${result.final_equity:,.2f} ({metrics.total_return_pct:+.2f}%)")
-    print(f"Max Drawdown: {metrics.max_drawdown_pct:.2f}%")
+    print(f"Literal Clone Return: {comparison_res.literal_clone.total_return_pct:+.2f}%")
+    print(f"Risk Controlled Return: {comparison_res.risk_controlled.total_return_pct:+.2f}%")
+    print(f"Regime Adapted Return: {comparison_res.regime_adapted.total_return_pct:+.2f}%")
     print(f"Artifacts saved to: {run_dir.resolve()}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run historical market data backtest")
+    parser = argparse.ArgumentParser(description="Historical Strategy Comparison Runner")
     parser.add_argument(
-        "--config", type=str, default="configs/base.yaml", help="Path to config YAML"
+        "--config", type=str, default="configs/historical_daily.yaml", help="Path to config YAML"
     )
     parser.add_argument(
-        "--data-dir", type=str, default="data/processed", help="Path to historical data directory"
+        "--data-dir",
+        type=str,
+        default="data/processed",
+        help="Directory containing historical CSVs",
     )
     args = parser.parse_args()
 
-    run_historical_backtest(config_path=args.config, data_dir=args.data_dir)
+    run_historical_comparison(config_path=args.config, data_dir=args.data_dir)
 
 
 if __name__ == "__main__":

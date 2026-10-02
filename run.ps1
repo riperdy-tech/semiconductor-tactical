@@ -1,5 +1,5 @@
 param(
-    [ValidateSet("full","test","backtest","research","comparison","doctor","doctor-data","historical")]
+    [ValidateSet("full","test","backtest","research","comparison","comparison-historical","doctor","doctor-data","historical")]
     [string]$Mode = "full",
     [int]$Bars = 200,
     [string]$DataDir = "data/processed",
@@ -11,6 +11,19 @@ Set-StrictMode -Version Latest
 
 $Root = $PSScriptRoot
 $Python = Join-Path $Root ".venv\Scripts\python.exe"
+
+# If data/processed is not present on clean clone, transparently use bundled sample fixtures
+if ($DataDir -eq "data/processed" -and -not (Test-Path (Join-Path $Root $DataDir)) -and (Test-Path (Join-Path $Root "data/sample_historical"))) {
+    $DataDir = "data/sample_historical"
+}
+
+# If Config is base.yaml and running historical commands, default to historical_daily.yaml for daily datasets
+if ($Config -eq "configs/base.yaml" -and ($Mode -in "historical", "doctor-data", "comparison-historical")) {
+    if (Test-Path (Join-Path $Root "configs/historical_daily.yaml")) {
+        $Config = "configs/historical_daily.yaml"
+    }
+}
+
 
 function Write-Step([string]$Message) {
     Write-Host ""
@@ -63,6 +76,12 @@ switch ($Mode) {
         break
     }
 
+    "comparison-historical" {
+        Write-Step "Historical 3-variant strategy comparison (REFUSES if required data missing)"
+        Invoke-Python -m tactical_engine.research.historical_comparison --config $Config --data-dir $DataDir
+        break
+    }
+
     "test" {
         Write-Step "Full pytest suite"
         Invoke-Python -m pytest
@@ -86,6 +105,7 @@ switch ($Mode) {
         Invoke-Python -m tactical_engine.research.report_generator --config configs/base.yaml --bars $Bars
         break
     }
+
 
     "full" {
         Write-Step "1/4 — Tests"

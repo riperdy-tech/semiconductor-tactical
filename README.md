@@ -47,12 +47,14 @@ Useful modes:
 .\run.ps1 test
 .\run.ps1 backtest
 .\run.ps1 historical
+.\run.ps1 comparison-historical
 .\run.ps1 research
 .\run.ps1 comparison
 .\run.ps1 full
 ```
 
-`doctor` checks the Python environment and pytest collection. `doctor-data` validates historical CSV datasets (row counts, date ranges, gaps, duplicates, adjustment status, and SHA-256 hashes). `historical` runs a backtest on real market data (refuses execution if data is missing or incomplete). `test` runs only tests.
+`doctor` checks the Python environment and pytest collection. `doctor-data` validates historical CSV datasets (row counts, date ranges, gaps, duplicates, adjustment status, declared cadence, and SHA-256 hashes). `historical` runs a backtest on real market data (refuses execution if data is missing or cadence mismatches). `comparison-historical` runs the 3-variant comparison (`literal_clone`, `risk_controlled`, `regime_adapted`) on the loaded historical dataset. `test` runs only tests.
+
 
 ### Important: current commands are fixture validation
 

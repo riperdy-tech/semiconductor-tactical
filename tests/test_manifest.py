@@ -9,3 +9,12 @@ def test_create_run_manifest():
     assert manifest.config_hash is not None
     assert manifest.strategy_variant == "risk_controlled"
     assert manifest.symbols == ["MU", "SNDK", "SKHY", "AMD"]
+    assert manifest.data_status == "REAL_HISTORICAL"
+
+    fixture_manifest = create_manifest(
+        config=cfg,
+        data_hashes={"MU": "dummy_hash"},
+        data_status="SYNTHETIC_SAMPLE_FIXTURE",
+    )
+    assert fixture_manifest.data_status == "SYNTHETIC_SAMPLE_FIXTURE"
+

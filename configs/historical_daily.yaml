@@ -1,0 +1,58 @@
+project:
+  name: high-beta-tactical-daily
+  timezone_report: America/New_York
+  random_seed: 42
+
+strategy:
+  variant: risk_controlled
+  universe:
+    - MU
+    - SNDK
+    - SKHY
+    - AMD
+  two_x_etfs:
+    - USD
+  bar_interval: 1d
+
+signals:
+  pullback_zscore: -1.5
+  trend_window: 20
+  sector_filter: true
+  relative_volume_filter: true
+  event_filter: false
+
+exits:
+  family: atr
+  target_atr: 1.5
+  stop_atr: 1.0
+  max_hold_minutes: 28800
+
+portfolio:
+  max_symbol_weight: 0.25
+  max_gross_leverage: 1.5
+  max_layers: 2
+  risk_per_trade_pct: 0.50
+
+costs:
+  equity_commission_bps: 0.0
+  equity_slippage_bps: 5.0
+  option_slippage_bps: 10.0
+  market_impact_bps_per_1pct_volume: 5.0
+  margin_rate_annual: 0.05
+
+options:
+  enabled: false
+  max_dte: 14
+  min_dte: 1
+  moneyness: otm
+  repurchase_rule: pullback
+
+research:
+  start: null
+  end: null
+  train_end: null
+  validation_end: null
+  test_start: null
+
+outputs:
+  root: reports

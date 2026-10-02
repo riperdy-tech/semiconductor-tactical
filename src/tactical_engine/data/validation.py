@@ -68,8 +68,57 @@ def detect_price_anomalies(
     return anomalies
 
 
+def validate_resolution_cadence(
+    bars: list[Bar], declared_interval: str | None = None
+) -> tuple[bool, str]:
+    """Validate that the observed timestamp cadence matches the declared resolution."""
+    if not declared_interval or len(bars) < 2:
+        return True, ""
+
+    deltas = [
+        (bars[i].timestamp - bars[i - 1].timestamp).total_seconds()
+        for i in range(1, min(len(bars), 1000))
+    ]
+    deltas.sort()
+    median_delta = deltas[len(deltas) // 2]
+
+    interval_clean = declared_interval.lower().strip()
+    expected_map = {
+        "1m": 60,
+        "5m": 300,
+        "15m": 900,
+        "1h": 3600,
+        "1d": 86400,
+        "daily": 86400,
+    }
+
+    expected_sec = expected_map.get(interval_clean)
+    if expected_sec is None:
+        return True, ""
+
+    if interval_clean in ("1m", "5m", "15m", "1h"):
+        if median_delta > expected_sec * 3:
+            return False, (
+                f"Resolution cadence mismatch: declared '{declared_interval}' "
+                f"(expected ~{expected_sec}s), but observed median bar spacing is "
+                f"{median_delta:.0f}s. Data appears to be higher timeframe (e.g. daily)."
+            )
+    elif interval_clean in ("1d", "daily"):
+        if median_delta < 3600 * 12:
+            return False, (
+                f"Resolution cadence mismatch: declared '{declared_interval}' "
+                f"(expected daily ~86400s), but observed median bar spacing is {median_delta:.0f}s "
+                f"(intraday data)."
+            )
+
+    return True, ""
+
+
 def validate_symbol_bars(
-    symbol: str, bars: list[Bar], max_gap_seconds: float = 86400 * 5
+    symbol: str,
+    bars: list[Bar],
+    max_gap_seconds: float = 86400 * 5,
+    expected_interval: str | None = None,
 ) -> DatasetValidationResult:
     """Comprehensive validation of a symbol's historical bar series."""
     if not bars:
@@ -94,6 +143,12 @@ def validate_symbol_bars(
     except ValueError as e:
         if not dupes:
             errors.append(str(e))
+
+    # Check resolution cadence if declared
+    if expected_interval:
+        cadence_ok, cadence_err = validate_resolution_cadence(bars, expected_interval)
+        if not cadence_ok:
+            errors.append(cadence_err)
 
     # Check OHLC relations and volume
     for bar in bars:
@@ -134,3 +189,4 @@ def validate_symbol_bars(
         gaps_count=len(gaps),
         duplicates_count=len(dupes),
     )
+
