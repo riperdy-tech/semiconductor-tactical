@@ -27,12 +27,12 @@ Exit criterion: can reproduce the same fixture result twice byte-for-byte except
 
 ## Phase 2 — Robustness framework
 
-- [ ] walk-forward splits
-- [ ] parameter sweeps
-- [ ] regime partitioning
-- [ ] bootstrap/randomization
-- [ ] result comparison tables
-- [ ] parameter stability diagnostics
+- [x] walk-forward splits
+- [x] parameter sweeps
+- [x] regime partitioning
+- [x] bootstrap/randomization
+- [x] result comparison tables
+- [x] parameter stability diagnostics
 
 Exit criterion: one command can generate the full equity-only experiment matrix.
 
