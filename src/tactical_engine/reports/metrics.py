@@ -16,6 +16,10 @@ class PerformanceMetrics(BaseModel):
     gross_pnl: float
     net_pnl: float
     cost_drag_pct: float
+    margin_interest_paid: float = 0.0
+    peak_margin_debt: float = 0.0
+    margin_call_count: int = 0
+    forced_liquidation_count: int = 0
 
 
 def calculate_metrics(result: BacktestResult) -> PerformanceMetrics:
@@ -66,4 +70,8 @@ def calculate_metrics(result: BacktestResult) -> PerformanceMetrics:
         gross_pnl=round(gross_pnl, 2),
         net_pnl=round(net_pnl, 2),
         cost_drag_pct=round(cost_drag, 2),
+        margin_interest_paid=round(result.margin_interest_paid, 2),
+        peak_margin_debt=round(result.peak_margin_debt, 2),
+        margin_call_count=result.margin_call_count,
+        forced_liquidation_count=result.forced_liquidation_count,
     )

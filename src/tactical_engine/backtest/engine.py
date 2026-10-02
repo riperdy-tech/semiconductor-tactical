@@ -6,6 +6,11 @@ from tactical_engine.backtest.state import PortfolioTracker, TradeRecord
 from tactical_engine.config import EngineConfig
 from tactical_engine.data.models import Bar, Order, OrderSide, OrderType
 from tactical_engine.execution.simulator import ExecutionSimulator
+from tactical_engine.portfolio.margin import (
+    calculate_maintenance_requirement,
+    generate_forced_liquidation_orders,
+    is_margin_call,
+)
 from tactical_engine.portfolio.sizing import calculate_position_size
 from tactical_engine.signals.exits import check_exit_condition
 from tactical_engine.signals.features import compute_bar_features
@@ -19,6 +24,10 @@ class BacktestResult(BaseModel):
     trades: list[TradeRecord]
     equity_curve: list[float]
     timestamps: list[str]
+    margin_interest_paid: float = 0.0
+    peak_margin_debt: float = 0.0
+    margin_call_count: int = 0
+    forced_liquidation_count: int = 0
 
 
 def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestResult:
@@ -39,17 +48,26 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
     equity_curve: list[float] = []
     time_index: list[str] = []
 
+    last_ts = None
     for ts in all_timestamps:
         current_prices = {}
         bars_at_ts = {}
 
-        # Collect current bars
         for sym, bars in data.items():
             for b in bars:
                 if b.timestamp == ts:
                     current_prices[sym] = b.close
                     bars_at_ts[sym] = b
                     break
+
+        # Accrue margin interest from previous step
+        if last_ts is not None and config.costs.margin_rate_annual > 0:
+            elapsed = (ts - last_ts).total_seconds()
+            tracker.accrue_margin_interest(
+                rate_annual=config.costs.margin_rate_annual,
+                elapsed_seconds=elapsed,
+            )
+        last_ts = ts
 
         account_state = tracker.get_account_state(ts, current_prices)
         equity_curve.append(account_state.equity)
@@ -67,7 +85,18 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
                     unfilled_orders.append(ord)
         pending_orders = unfilled_orders
 
-        # B. Check exits on active positions
+        # B. Check margin call and generate forced liquidation orders if in deficit
+        maint_req = calculate_maintenance_requirement(tracker.positions, current_prices)
+        current_account_state = tracker.get_account_state(ts, current_prices)
+        if is_margin_call(current_account_state.equity, maint_req):
+            tracker.margin_call_count += 1
+            liquidation_orders = generate_forced_liquidation_orders(
+                current_account_state, current_prices
+            )
+            for liq_ord in liquidation_orders:
+                pending_orders.append(liq_ord)
+
+        # C. Check normal exits on active positions
         for sym, pos in list(tracker.positions.items()):
             bar = bars_at_ts.get(sym)
             if not bar:
@@ -95,14 +124,13 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
                     )
                 )
 
-        # C. Generate entry orders for next bar
+        # D. Generate entry orders for next bar
         for sym, sigs in signals_by_sym.items():
             if sym in tracker.positions:
                 continue  # Single layer for base test
             bar = bars_at_ts.get(sym)
             if not bar:
                 continue
-            # Look for signal confirmed at ts
             matching_sigs = [s for s in sigs if s.timestamp == ts and s.action == "ENTER_LONG"]
             if matching_sigs:
                 sig = matching_sigs[0]
@@ -113,7 +141,7 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
                     symbol=sym,
                     price=bar.close,
                     stop_price=stop_p,
-                    account_state=account_state,
+                    account_state=current_account_state,
                     config=config.portfolio,
                 )
                 if qty > 0:
@@ -139,4 +167,8 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
         trades=tracker.closed_trades,
         equity_curve=equity_curve,
         timestamps=time_index,
+        margin_interest_paid=round(tracker.margin_interest_paid, 2),
+        peak_margin_debt=round(tracker.peak_margin_debt, 2),
+        margin_call_count=tracker.margin_call_count,
+        forced_liquidation_count=tracker.forced_liquidation_count,
     )

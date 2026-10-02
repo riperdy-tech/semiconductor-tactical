@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from tactical_engine.data.models import AccountState, Fill, OrderSide, Position
+from tactical_engine.portfolio.margin import calculate_margin_debt, calculate_margin_interest
 
 
 class TradeRecord(BaseModel):
@@ -23,8 +24,26 @@ class PortfolioTracker:
         self.positions: dict[str, Position] = {}
         self.closed_trades: list[TradeRecord] = []
         self.entry_times: dict[str, datetime] = {}
+        self.margin_interest_paid: float = 0.0
+        self.peak_margin_debt: float = 0.0
+        self.margin_call_count: int = 0
+        self.forced_liquidation_count: int = 0
+
+    def accrue_margin_interest(self, rate_annual: float, elapsed_seconds: float) -> float:
+        debt = calculate_margin_debt(self.cash)
+        if debt > self.peak_margin_debt:
+            self.peak_margin_debt = debt
+        if debt > 0 and rate_annual > 0:
+            interest = calculate_margin_interest(debt, rate_annual, elapsed_seconds)
+            self.cash -= interest
+            self.margin_interest_paid += interest
+            return interest
+        return 0.0
 
     def apply_fill(self, fill: Fill, exit_reason: str = "") -> None:
+        if "forced_liquidation" in exit_reason:
+            self.forced_liquidation_count += 1
+
         pos = self.positions.get(fill.symbol, Position(symbol=fill.symbol))
         if fill.side == OrderSide.BUY:
             total_qty = pos.quantity + fill.quantity
@@ -37,6 +56,9 @@ class PortfolioTracker:
                 realized_pnl=pos.realized_pnl,
             )
             self.cash -= (fill.quantity * fill.price) + fill.commission
+            debt = calculate_margin_debt(self.cash)
+            if debt > self.peak_margin_debt:
+                self.peak_margin_debt = debt
             if fill.symbol not in self.entry_times:
                 self.entry_times[fill.symbol] = fill.timestamp
         else:
@@ -76,9 +98,11 @@ class PortfolioTracker:
         for sym, pos in self.positions.items():
             price = current_prices.get(sym, pos.avg_price)
             equity += pos.quantity * price
+        debt = calculate_margin_debt(self.cash)
         return AccountState(
             timestamp=timestamp,
             cash=round(self.cash, 2),
             positions=self.positions.copy(),
+            margin_debt=round(debt, 2),
             equity=round(equity, 2),
         )
