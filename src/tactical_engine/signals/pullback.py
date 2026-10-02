@@ -2,9 +2,14 @@ import pandas as pd
 
 from tactical_engine.config import SignalConfig
 from tactical_engine.data.models import SignalIntent
+from tactical_engine.signals.regime import RegimeProvider
 
 
-def generate_pullback_signals(df: pd.DataFrame, config: SignalConfig) -> list[SignalIntent]:
+def generate_pullback_signals(
+    df: pd.DataFrame,
+    config: SignalConfig,
+    regime_provider: RegimeProvider | None = None,
+) -> list[SignalIntent]:
     signals = []
     if df.empty:
         return signals
@@ -14,8 +19,12 @@ def generate_pullback_signals(df: pd.DataFrame, config: SignalConfig) -> list[Si
         # 1. Pullback condition: zscore <= configured threshold
         is_pullback = row["zscore"] <= config.pullback_zscore
 
-        # 2. Trend filter
-        trend_intact = row["trend_ok"] if config.sector_filter else True
+        # 2. Sector / Regime filter
+        if regime_provider is not None:
+            regime_state = regime_provider.get_regime_state(timestamp)  # type: ignore
+            regime_allows = regime_state.regime_allows_trade
+        else:
+            regime_allows = row["trend_ok"] if config.sector_filter else True
 
         # 3. Relative volume filter: check volume participation
         rel_vol_ok = True
@@ -27,7 +36,7 @@ def generate_pullback_signals(df: pd.DataFrame, config: SignalConfig) -> list[Si
         if config.event_filter and "is_event_blackout" in row:
             event_ok = not bool(row["is_event_blackout"])
 
-        if is_pullback and trend_intact and rel_vol_ok and event_ok:
+        if is_pullback and regime_allows and rel_vol_ok and event_ok:
             signals.append(
                 SignalIntent(
                     symbol=symbol,

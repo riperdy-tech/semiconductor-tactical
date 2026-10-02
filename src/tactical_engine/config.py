@@ -24,6 +24,7 @@ class SignalConfig(BaseModel):
     sector_filter: bool = True
     relative_volume_filter: bool = True
     event_filter: bool = True
+    regime_filter_mode: Literal["none", "sector", "broad", "combined"] = "sector"
 
 
 class ExitConfig(BaseModel):

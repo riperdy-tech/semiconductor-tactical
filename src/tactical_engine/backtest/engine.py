@@ -19,6 +19,7 @@ from tactical_engine.portfolio.sizing import calculate_position_size
 from tactical_engine.signals.exits import check_exit_condition
 from tactical_engine.signals.features import compute_bar_features
 from tactical_engine.signals.pullback import generate_pullback_signals
+from tactical_engine.signals.regime import BenchmarkRegimeProvider, RegimeProvider
 
 
 class BacktestResult(BaseModel):
@@ -41,6 +42,7 @@ def run_backtest(
     data: dict[str, list[Bar]],
     config: EngineConfig,
     option_chain_provider: OptionChainProvider | None = None,
+    regime_provider: RegimeProvider | None = None,
 ) -> BacktestResult:
     # 1. Validation status per AGENTS.md rule 5
     if not config.options.enabled:
@@ -50,13 +52,27 @@ def run_backtest(
     else:
         validation_status = "VALIDATED"
 
-    # 2. Feature & Signal generation per symbol
+    # 2. Setup regime provider if benchmarks are present in data
+    if regime_provider is None:
+        sec_bars = data.get("SMH", [])
+        brd_bars = data.get("SPY", [])
+        if sec_bars or brd_bars:
+            regime_provider = BenchmarkRegimeProvider(
+                sector_bars=sec_bars,
+                broad_bars=brd_bars,
+                trend_window=config.signals.trend_window,
+                filter_mode=config.signals.regime_filter_mode,
+            )
+
+    # 3. Feature & Signal generation per symbol
     features_by_sym = {}
     signals_by_sym = {}
     for sym, bars in data.items():
         df_feat = compute_bar_features(bars, trend_window=config.signals.trend_window)
         features_by_sym[sym] = df_feat
-        signals_by_sym[sym] = generate_pullback_signals(df_feat, config.signals)
+        signals_by_sym[sym] = generate_pullback_signals(
+            df_feat, config.signals, regime_provider=regime_provider
+        )
 
     all_timestamps = sorted(list(set(b.timestamp for bars in data.values() for b in bars)))
 

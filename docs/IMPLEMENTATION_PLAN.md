@@ -99,28 +99,17 @@ Implement and test:
 - [x] Maintain strict separation: raw bars -> features -> signal intent -> portfolio sizing -> order -> execution simulator. Signals do not mutate cash or positions.
 - [x] Implemented and tested previously unused switches: `relative_volume_filter` (volume confirmation on pullbacks) and `event_filter` (suppressing entries during blackout periods) in `src/tactical_engine/signals/pullback.py` and `tests/test_features_and_filters.py`.
 
-# Phase 5 — Real semiconductor sector/regime layer
+# Phase 5 — Real semiconductor sector/regime layer [COMPLETED]
 
-The current regime_adapted implementation substitutes a symbol's own trend for a sector regime. Replace that with actual configurable benchmark inputs.
-
-Minimum inputs:
-- semiconductor sector benchmark;
-- broad market benchmark;
-- volatility/risk proxy where available.
-
-Compute:
-- sector return;
-- broad-market return;
-- sector relative strength;
-- sector trend;
-- broad-market trend;
-- volatility regime.
-
-Create an optional RegimeProvider interface with neutral/default, CSV/JSON, and optional RS2/MRI adapters.
-
-This repository must remain runnable without RS2.
-
-Compare no filter, sector filter, broad-market filter, and combined filter. Do not claim superiority from one in-sample result.
+Replaced single-symbol trend substitution with actual benchmark inputs and RegimeProvider architecture:
+- [x] Configurable benchmark inputs: semiconductor sector benchmark (`SMH`) and broad-market benchmark (`SPY`).
+- [x] Computed features: sector return, broad-market return, sector relative strength, sector trend, broad-market trend, and volatility regime.
+- [x] Implemented `RegimeProvider` interface with:
+  - `DefaultRegimeProvider`: Neutral baseline.
+  - `BenchmarkRegimeProvider`: Genuine dual-benchmark tracking with configurable modes (`none`, `sector`, `broad`, `combined`).
+  - `ExternalRegimeProvider`: Standalone CSV/JSON adapter compatible with optional RS2 / MRI / Macro Regime Identifier outputs.
+- [x] Repository operates independently without requiring RS2.
+- [x] Verified in `tests/test_regime_filtering.py`.
 
 # Phase 6 — Historical options and covered-call engine
 
