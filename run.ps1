@@ -1,9 +1,12 @@
 param(
-    [ValidateSet("full","test","backtest","research","comparison","comparison-historical","doctor","doctor-data","historical")]
+    [ValidateSet("full","test","backtest","research","comparison","comparison-historical","doctor","doctor-data","historical","ingest-massive")]
     [string]$Mode = "full",
     [int]$Bars = 200,
     [string]$DataDir = "data/processed",
-    [string]$Config = "configs/base.yaml"
+    [string]$Config = "configs/base.yaml",
+    [string]$Start = "2026-06-01",
+    [string]$End = "2026-09-30",
+    [string]$RawDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,11 +16,12 @@ $Root = $PSScriptRoot
 $Python = Join-Path $Root ".venv\Scripts\python.exe"
 
 # Never silently fall back to sample fixtures for historical research commands
-if ($Mode -notin @("historical", "comparison-historical", "doctor-data")) {
+if ($Mode -notin @("historical", "comparison-historical", "doctor-data", "ingest-massive")) {
     if ($DataDir -eq "data/processed" -and -not (Test-Path (Join-Path $Root $DataDir)) -and (Test-Path (Join-Path $Root "data/sample_historical"))) {
         $DataDir = "data/sample_historical"
     }
 }
+
 
 # If Config is base.yaml and running historical commands, default to historical_daily.yaml for daily datasets
 if ($Config -eq "configs/base.yaml" -and ($Mode -in "historical", "doctor-data", "comparison-historical")) {
@@ -83,6 +87,17 @@ switch ($Mode) {
         Invoke-Python -m tactical_engine.research.historical_comparison --config $Config --data-dir $DataDir
         break
     }
+
+    "ingest-massive" {
+        Write-Step "Ingesting historical market data from Massive Stocks REST API"
+        $cmdArgs = @("-m", "tactical_engine.data.massive", "--data-dir", $DataDir, "--start", $Start, "--end", $End)
+        if ($RawDir) {
+            $cmdArgs += @("--raw-dir", $RawDir)
+        }
+        Invoke-Python @cmdArgs
+        break
+    }
+
 
     "test" {
         Write-Step "Full pytest suite"

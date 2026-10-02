@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Literal, Protocol
 
 import pandas as pd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from tactical_engine.data.models import Bar
 from tactical_engine.data.validation import validate_symbol_bars
@@ -24,6 +24,8 @@ class DatasetVerificationError(ValueError):
 
 
 class DatasetManifest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     dataset_id: str
     data_status: Literal[
         "SYNTHETIC_SAMPLE_FIXTURE",
@@ -35,6 +37,22 @@ class DatasetManifest(BaseModel):
     source_description: str = ""
     license_or_citation: str = ""
     bar_resolution: str = "1d"
+    source_timezone: str = "UTC"
+    output_timezone: str = "UTC"
+    adjustment_status: str = "split_adjusted"
+    regular_session_only: bool = True
+    symbols: list[str] = Field(default_factory=list)
+    requested_start: str | None = None
+    requested_end: str | None = None
+    acquired_at_utc: str | None = None
+    importer_git_sha: str | None = None
+    endpoint: str | None = None
+    aggregate_data_hash: str | None = None
+    symbol_metadata: dict[str, dict] = Field(default_factory=dict)
+    request_parameters: dict = Field(default_factory=dict)
+    instrument_history_caveats: dict[str, str] = Field(default_factory=dict)
+    verification: dict = Field(default_factory=dict)
+
 
 
 def assert_research_dataset_verified(
@@ -157,9 +175,17 @@ class CsvEquityDataProvider:
     ):
         self.data_dir = Path(data_dir)
         self.resolution = resolution
-        self.adjustment_status = adjustment_status
         self.default_timezone = default_timezone
         self._provenance_cache: dict[str, DataProvenance] = {}
+        manifest = load_dataset_manifest(self.data_dir)
+        self.provider_name = (
+            manifest.provider if manifest.data_status == "REAL_HISTORICAL_VERIFIED" else "csv"
+        )
+        self.adjustment_status = (
+            manifest.adjustment_status
+            if manifest.data_status == "REAL_HISTORICAL_VERIFIED"
+            else adjustment_status
+        )
 
     def _find_symbol_file(self, symbol: str) -> Path:
         candidates = [
@@ -243,7 +269,7 @@ class CsvEquityDataProvider:
         file_sha = compute_file_sha256(file_path)
         prov = DataProvenance(
             symbol=symbol.upper(),
-            provider="csv",
+            provider=self.provider_name,
             file_path=str(file_path),
             file_sha256=file_sha,
             row_count=len(bars),
