@@ -112,4 +112,23 @@
 
 **Reason:** Running 16 backtests over 175,000+ 1-minute bars previously incurred over 4 billion loop iterations per backtest (~40 minutes total). Pre-indexing reduced single-backtest latency from ~150 seconds to 1.12 seconds (~130x speedup), allowing the full 3-variant comparison and bootstrap suite to complete in under 2 minutes.
 
+## 2026-10-02 — Post-first-real-run audit: ATR exit geometry freeze, diagnostics, and OOS boundaries
+
+**Decision:**
+1. **First-Run Evidence Preservation:** Preserved run ID `fad5c527-803f-49b7-98cc-4564b467df09` under `reports/historical_comparison_fad5c527_20261002_141140/` along with dataset manifest `reports/data_manifests/massive_stocks_1m_51e9b529de55.json` (aggregate SHA: `51e9b529de5556002bc3a0e1bc4fd1ee7eef06061b54c11457703d9af39b13e8`).
+2. **Fixed ATR Exit Geometry at Entry:** Fixed an exit geometry inconsistency where stops/targets were dynamically recomputed against current bar ATR rather than entry ATR. Stored `stop_price`, `target_price`, and `entry_atr` in `PortfolioTracker` upon entry fill, ensuring trade exits are completely immutable to subsequent volatility expansion (preventing stop widening) or contraction (preventing premature exit). Added 5 regression tests in `tests/test_atr_exit_geometry.py`.
+3. **Trade-Frequency & Market Exposure Diagnostics:** Added full diagnostic telemetry in `BacktestResult`, `PerformanceMetrics`, and reports: trades/day, trades/sym/day, median holding time (minutes), fills vs signals ratio, maximum simultaneous positions, re-entries, and time in market (%).
+4. **Execution Cost & Financing Decomposition:** Separated gross P&L from transaction costs (commissions, slippage, margin interest financing) and reported cost drag as a percentage of gross P&L.
+5. **Frozen Chronological OOS Partitions:** Frozen in `configs/historical_1m.yaml`:
+   - Start: `2026-07-01T00:00:00Z`
+   - Train End: `2026-08-15T00:00:00Z` (32 trading sessions)
+   - Validation End: `2026-09-01T00:00:00Z` (11 trading sessions)
+   - Test Start: `2026-09-01T00:00:00Z`
+   - End: `2026-09-30T23:59:59Z` (21 trading sessions)
+   Partitions are strictly pairwise-disjoint and chronologically ordered. Test period remains completely untouched.
+6. **Explicit Documentation of Signal Semantics:** Added Section 6 and Section 8 in canonical reports documenting exact rules for `literal_clone`, `risk_controlled`, and `regime_adapted` with strict `OBSERVED`, `DERIVED`, `HYPOTHESIS`, `ASSUMPTION`, and `UNVERIFIED` tags without silent strategy substitution.
+7. **No Parameter Optimization:** Confirmed that no strategy parameters (pullback z-score, volume threshold, leverage, stop/target multiples) were adjusted to improve the negative returns.
+
+**Reason:** Fulfills all requirements from `docs/execution_plan/POST_FIRST_REAL_RUN_AUDIT.md`, `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`, and `docs/execution_plan/POST_FIRST_RUN_ACCEPTANCE_TESTS.md`.
+
 

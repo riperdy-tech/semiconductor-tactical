@@ -211,10 +211,11 @@ Reference: `docs/execution_plan/PLAN.md`, `INSTRUCTIONS.md`, and `docs/AUDIT_202
 6. [x] **Reconciled Experiment Grids**: Leverage sensitivities tested at `[1.0, 1.25, 1.5, 2.0, 3.0]` and cost sensitivities at `[0.0, 5.0, 10.0, 15.0]` bps.
 7. [x] **Genuine Market Data Ingestion Pipeline**: Ingested 1-minute historical aggregate bars for `MU`, `SNDK`, `SKHY`, `AMD`, `USD`, `SMH`, and `SPY` via Massive Stocks REST API for the 2026-07-01 to 2026-09-30 observation window. Filtered strictly to U.S. regular trading hours, validated via `doctor-data`, and generated authoritative manifest `massive_stocks_1m_51e9b529de55.json`.
 8. [x] **Canonical 3-Variant Historical Comparison Execution**: Executed `run.ps1 comparison-historical` on verified 1-minute data across 175,000+ bars with $O(1)$ event loop optimizations, generating machine-readable JSON metrics and Markdown reports.
+9. [x] **Post-First-Real-Run Audit & ATR Exit Geometry Freeze**: Stored stop/target/entry ATR at entry to prevent volatility expansion/contraction exit drift; added full trade-frequency and cost decomposition diagnostics; froze explicit chronological train/val/test partitions (`2026-07-01` -> `2026-08-15` -> `2026-09-01` -> `2026-09-30`) in `configs/historical_1m.yaml`; verified full test suite passes with clean Git hash.
 
 ### Remaining Research Blockers:
 1. [ ] **Genuine Option Chain Ingestion**: Ingest historical tick-level option quotes before removing `UNVALIDATED` flag from covered-call experiments.
-2. [ ] **Untouched Out-of-Sample Partition Execution**: Run final train/validation/test comparison once explicit OOS dates are designated in configuration.
+2. [ ] **Event Calendar Data**: Connect verified historical earnings calendar feed to validate event blackout mechanisms.
 
 
 
