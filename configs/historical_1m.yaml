@@ -48,11 +48,11 @@ options:
   repurchase_rule: pullback
 
 research:
-  start: null
-  end: null
-  train_end: null
-  validation_end: null
-  test_start: null
+  start: "2026-07-01T00:00:00Z"
+  end: "2026-09-30T23:59:59Z"
+  train_end: "2026-08-15T00:00:00Z"
+  validation_end: "2026-09-01T00:00:00Z"
+  test_start: "2026-09-01T00:00:00Z"
 
 outputs:
   root: reports

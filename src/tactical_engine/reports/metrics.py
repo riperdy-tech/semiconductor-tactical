@@ -23,6 +23,20 @@ class PerformanceMetrics(BaseModel):
     options_premium_collected: float = 0.0
     options_realized_pnl: float = 0.0
     options_validation_status: str = "NONE"
+    # Trade-frequency diagnostics
+    total_signals_generated: int = 0
+    filled_entries_count: int = 0
+    max_simultaneous_positions: int = 0
+    reentry_count: int = 0
+    time_in_market_pct: float = 0.0
+    trades_per_day: float = 0.0
+    trades_per_symbol_per_day: float = 0.0
+    median_holding_time_minutes: float = 0.0
+    # Cost decomposition
+    commission_paid: float = 0.0
+    slippage_paid: float = 0.0
+    total_cost_paid: float = 0.0
+    costs_as_pct_of_gross_pnl: float = 0.0
 
 
 def calculate_metrics(result: BacktestResult) -> PerformanceMetrics:
@@ -80,4 +94,16 @@ def calculate_metrics(result: BacktestResult) -> PerformanceMetrics:
         options_premium_collected=round(result.options_premium_collected, 2),
         options_realized_pnl=round(result.options_realized_pnl, 2),
         options_validation_status=result.options_validation_status,
+        total_signals_generated=result.total_signals_generated,
+        filled_entries_count=result.filled_entries_count,
+        max_simultaneous_positions=result.max_simultaneous_positions,
+        reentry_count=result.reentry_count,
+        time_in_market_pct=round(result.time_in_market_pct, 2),
+        trades_per_day=round(result.trades_per_day, 2),
+        trades_per_symbol_per_day=round(result.trades_per_symbol_per_day, 2),
+        median_holding_time_minutes=round(result.median_holding_time_minutes, 1),
+        commission_paid=round(result.commission_paid, 2),
+        slippage_paid=round(result.slippage_paid, 2),
+        total_cost_paid=round(result.total_cost_paid, 2),
+        costs_as_pct_of_gross_pnl=round(result.costs_as_pct_of_gross_pnl, 2),
     )

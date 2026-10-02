@@ -1,5 +1,8 @@
 import uuid
+from collections import defaultdict
+from datetime import date
 
+import numpy as np
 from pydantic import BaseModel
 
 from tactical_engine.backtest.state import PortfolioTracker, TradeRecord
@@ -37,6 +40,20 @@ class BacktestResult(BaseModel):
     options_premium_collected: float = 0.0
     options_realized_pnl: float = 0.0
     options_validation_status: str = "NONE"
+    # Trade-frequency diagnostics
+    total_signals_generated: int = 0
+    filled_entries_count: int = 0
+    max_simultaneous_positions: int = 0
+    reentry_count: int = 0
+    time_in_market_pct: float = 0.0
+    trades_per_day: float = 0.0
+    trades_per_symbol_per_day: float = 0.0
+    median_holding_time_minutes: float = 0.0
+    # Cost decomposition
+    commission_paid: float = 0.0
+    slippage_paid: float = 0.0
+    total_cost_paid: float = 0.0
+    costs_as_pct_of_gross_pnl: float = 0.0
 
 
 def run_backtest(
@@ -101,6 +118,12 @@ def run_backtest(
     equity_curve: list[float] = []
     time_index: list[str] = []
 
+    filled_entries_count = 0
+    max_simultaneous_positions = 0
+    time_in_market_bars = 0
+    reentry_count = 0
+    entries_by_sym_date: dict[tuple[str, date], int] = defaultdict(int)
+
     last_ts = None
     for ts in all_timestamps:
         current_prices = {}
@@ -132,10 +155,29 @@ def run_backtest(
             if bar:
                 fill = simulator.execute_order(ord, bar)
                 if fill:
-                    tracker.apply_fill(fill, exit_reason=ord.tag)
+                    tracker.apply_fill(
+                        fill,
+                        exit_reason=ord.tag,
+                        stop_price=ord.stop_price,
+                        target_price=ord.target_price,
+                        entry_atr=ord.entry_atr,
+                    )
+                    if fill.side == OrderSide.BUY:
+                        filled_entries_count += 1
+                        d = fill.timestamp.date()
+                        if entries_by_sym_date[(fill.symbol, d)] > 0:
+                            reentry_count += 1
+                        entries_by_sym_date[(fill.symbol, d)] += 1
                 else:
                     unfilled_orders.append(ord)
         pending_orders = unfilled_orders
+
+        # Track simultaneous positions & time in market
+        curr_num_pos = len(tracker.positions)
+        if curr_num_pos > max_simultaneous_positions:
+            max_simultaneous_positions = curr_num_pos
+        if curr_num_pos > 0:
+            time_in_market_bars += 1
 
         # B. Check margin call & forced liquidations
         maint_req = calculate_maintenance_requirement(tracker.positions, current_prices)
@@ -241,19 +283,23 @@ def run_backtest(
                     )
                     tracker.covered_calls.pop(sym, None)
 
-        # D. Check exits on active positions
+        # D. Check exits on active positions using stored exit geometry
         for sym, pos in list(tracker.positions.items()):
             bar = bars_at_ts.get(sym)
             if not bar:
                 continue
             entry_time = tracker.entry_times.get(sym, ts)
-            atr = atr_by_sym.get(sym, {}).get(ts, 1.0)
+            stored_stop = tracker.stop_prices.get(sym)
+            stored_target = tracker.target_prices.get(sym)
+            stored_atr = tracker.entry_atrs.get(sym, 1.0)
             should_exit, reason = check_exit_condition(
                 entry_price=pos.avg_price,
                 entry_time=entry_time,
                 current_bar=bar,
-                atr=atr,
+                atr=stored_atr,
                 config=config.exits,
+                stop_price=stored_stop,
+                target_price=stored_target,
             )
             if should_exit:
                 pending_orders.append(
@@ -321,8 +367,17 @@ def run_backtest(
                 if existing_pos and bar.close > existing_pos.avg_price:
                     continue
 
-                atr = atr_by_sym.get(sym, {}).get(ts, 1.0)
-                stop_p = bar.close - (config.exits.stop_atr * atr)
+                entry_atr = atr_by_sym.get(sym, {}).get(ts, 1.0)
+                if config.exits.family == "atr":
+                    stop_p = bar.close - (config.exits.stop_atr * entry_atr)
+                    target_p = bar.close + (config.exits.target_atr * entry_atr)
+                elif config.exits.family == "fixed_pct":
+                    stop_p = bar.close * (1.0 - config.exits.stop_pct)
+                    target_p = bar.close * (1.0 + config.exits.target_pct)
+                else:
+                    stop_p = bar.close - (1.0 * entry_atr)
+                    target_p = bar.close + (1.5 * entry_atr)
+
                 qty = calculate_position_size(
                     symbol=sym,
                     price=bar.close,
@@ -341,12 +396,44 @@ def run_backtest(
                             side=OrderSide.BUY,
                             order_type=OrderType.MARKET,
                             quantity=qty,
+                            stop_price=round(stop_p, 4),
+                            target_price=round(target_p, 4),
+                            entry_atr=entry_atr,
                             tag=f"layer_{layer_num}:{sig.reason}",
                         )
                     )
 
     final_prices = {sym: bars[-1].close for sym, bars in data.items() if bars}
     final_state = tracker.get_account_state(all_timestamps[-1], final_prices)
+
+    unique_dates = {ts.date() for ts in all_timestamps}
+    n_days = max(1, len(unique_dates))
+    n_symbols = max(1, len(tradable_symbols))
+    trades_per_day = round(len(tracker.closed_trades) / n_days, 2)
+    trades_per_symbol_per_day = round(trades_per_day / n_symbols, 2)
+
+    durations = [
+        (t.exit_time - t.entry_time).total_seconds() / 60.0 for t in tracker.closed_trades
+    ]
+    median_holding = round(float(np.median(durations)), 1) if durations else 0.0
+
+    time_in_market_pct = (
+        round((time_in_market_bars / len(all_timestamps)) * 100.0, 2) if all_timestamps else 0.0
+    )
+
+    commission_paid = round(sum(t.commission_paid for t in tracker.closed_trades), 2)
+    slippage_paid = round(sum(t.slippage_paid for t in tracker.closed_trades), 2)
+    margin_interest = round(tracker.margin_interest_paid, 2)
+    total_cost_paid = round(commission_paid + slippage_paid + margin_interest, 2)
+
+    gross_pnl_total = sum(t.gross_pnl for t in tracker.closed_trades)
+    costs_pct_gross = (
+        round((total_cost_paid / abs(gross_pnl_total)) * 100.0, 2)
+        if gross_pnl_total != 0
+        else 0.0
+    )
+
+    total_signals = sum(len(sigs) for sigs in signals_by_sym.values())
 
     return BacktestResult(
         initial_cash=config.portfolio.initial_cash,
@@ -355,11 +442,23 @@ def run_backtest(
         trades=tracker.closed_trades,
         equity_curve=equity_curve,
         timestamps=time_index,
-        margin_interest_paid=round(tracker.margin_interest_paid, 2),
+        margin_interest_paid=margin_interest,
         peak_margin_debt=round(tracker.peak_margin_debt, 2),
         margin_call_count=tracker.margin_call_count,
         forced_liquidation_count=tracker.forced_liquidation_count,
         options_premium_collected=round(tracker.options_premium_collected, 2),
         options_realized_pnl=round(tracker.options_realized_pnl, 2),
         options_validation_status=validation_status,
+        total_signals_generated=total_signals,
+        filled_entries_count=filled_entries_count,
+        max_simultaneous_positions=max_simultaneous_positions,
+        reentry_count=reentry_count,
+        time_in_market_pct=time_in_market_pct,
+        trades_per_day=trades_per_day,
+        trades_per_symbol_per_day=trades_per_symbol_per_day,
+        median_holding_time_minutes=median_holding,
+        commission_paid=commission_paid,
+        slippage_paid=slippage_paid,
+        total_cost_paid=total_cost_paid,
+        costs_as_pct_of_gross_pnl=costs_pct_gross,
     )

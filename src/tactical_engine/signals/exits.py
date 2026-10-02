@@ -10,23 +10,28 @@ def check_exit_condition(
     current_bar: Bar,
     atr: float,
     config: ExitConfig,
+    stop_price: float | None = None,
+    target_price: float | None = None,
 ) -> tuple[bool, str]:
     # 1. Time-based exit check
     hold_duration = (current_bar.timestamp - entry_time).total_seconds() / 60.0
     if hold_duration >= config.max_hold_minutes:
         return True, f"time_stop ({hold_duration:.0f}m >= {config.max_hold_minutes}m)"
 
-    # 2. Price-based targets & stops
-    if config.family == "atr":
-        stop_price = entry_price - (config.stop_atr * atr)
-        target_price = entry_price + (config.target_atr * atr)
-    elif config.family == "fixed_pct":
-        stop_price = entry_price * (1.0 - config.stop_pct)
-        target_price = entry_price * (1.0 + config.target_pct)
-    else:
-        # Default fallback
-        stop_price = entry_price - (1.0 * atr)
-        target_price = entry_price + (1.5 * atr)
+    # 2. Price-based targets & stops: use stored values if provided to prevent ATR drift
+    if stop_price is None or target_price is None:
+        if config.family == "atr":
+            calc_stop = entry_price - (config.stop_atr * atr)
+            calc_target = entry_price + (config.target_atr * atr)
+        elif config.family == "fixed_pct":
+            calc_stop = entry_price * (1.0 - config.stop_pct)
+            calc_target = entry_price * (1.0 + config.target_pct)
+        else:
+            # Default fallback
+            calc_stop = entry_price - (1.0 * atr)
+            calc_target = entry_price + (1.5 * atr)
+        stop_price = stop_price if stop_price is not None else calc_stop
+        target_price = target_price if target_price is not None else calc_target
 
     # Intrabar ambiguity rule (BACKTEST_PROTOCOL.md §3):
     # If both stop and target touched in the same bar, assume stop hit first (conservative).

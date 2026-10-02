@@ -42,6 +42,9 @@ class PortfolioTracker:
         self.entry_commissions: dict[str, float] = {}
         self.entry_slippage: dict[str, float] = {}
         self.layers_by_symbol: dict[str, list[LayerRecord]] = {}
+        self.stop_prices: dict[str, float] = {}
+        self.target_prices: dict[str, float] = {}
+        self.entry_atrs: dict[str, float] = {}
         self.margin_interest_paid: float = 0.0
         self.peak_margin_debt: float = 0.0
         self.margin_call_count: int = 0
@@ -64,7 +67,12 @@ class PortfolioTracker:
         return 0.0
 
     def apply_fill(
-        self, fill: Fill, exit_reason: str = "", stop_price: float | None = None
+        self,
+        fill: Fill,
+        exit_reason: str = "",
+        stop_price: float | None = None,
+        target_price: float | None = None,
+        entry_atr: float | None = None,
     ) -> None:
         if "forced_liquidation" in exit_reason:
             self.forced_liquidation_count += 1
@@ -92,6 +100,14 @@ class PortfolioTracker:
             self.entry_slippage[fill.symbol] = (
                 self.entry_slippage.get(fill.symbol, 0.0) + fill.slippage
             )
+
+            # Store exit geometry at entry if not already set for this position
+            if fill.symbol not in self.stop_prices and stop_price is not None:
+                self.stop_prices[fill.symbol] = stop_price
+            if fill.symbol not in self.target_prices and target_price is not None:
+                self.target_prices[fill.symbol] = target_price
+            if fill.symbol not in self.entry_atrs and entry_atr is not None:
+                self.entry_atrs[fill.symbol] = entry_atr
 
             # Record Layer State
             existing_layers = self.layers_by_symbol.get(fill.symbol, [])
@@ -152,6 +168,9 @@ class PortfolioTracker:
                 self.entry_commissions.pop(fill.symbol, None)
                 self.entry_slippage.pop(fill.symbol, None)
                 self.layers_by_symbol.pop(fill.symbol, None)
+                self.stop_prices.pop(fill.symbol, None)
+                self.target_prices.pop(fill.symbol, None)
+                self.entry_atrs.pop(fill.symbol, None)
             else:
                 self.entry_commissions[fill.symbol] = (
                     self.entry_commissions.get(fill.symbol, 0.0) - entry_comm

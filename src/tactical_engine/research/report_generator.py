@@ -29,6 +29,7 @@ def render_comparison_report(
         "3. `regime_adapted`: Risk-controlled baseline with sector trend filtering.",
         "",
         "## 1. Strategy Variant Comparison",
+        "### 1.1 Strategy Variant Performance",
         "| Variant | Return % | Max DD % | Trades | Win Rate | Profit Factor | Margin Calls |",
         "|---|---|---|---|---|---|---|",
         f"| `literal_clone` | {c.total_return_pct:.2f}% | {c.max_drawdown_pct:.2f}% | "
@@ -40,6 +41,50 @@ def render_comparison_report(
         f"| `regime_adapted` | {g.total_return_pct:.2f}% | {g.max_drawdown_pct:.2f}% | "
         f"{g.total_trades} | {g.win_rate * 100:.1f}% | {g.profit_factor:.2f} | "
         f"{g.margin_call_count} |",
+        "",
+        "### 1.2 Trade-Frequency & Market Exposure Diagnostics",
+        (
+            "| Variant | Trades/Day | Trades/Sym/Day | Median Hold | "
+            "Fills / Signals | Max Conc Pos | Re-entries | Time in Market % |"
+        ),
+        "|---|---|---|---|---|---|---|---|",
+        (
+            f"| `literal_clone` | {c.trades_per_day:.1f} | {c.trades_per_symbol_per_day:.2f} | "
+            f"{c.median_holding_time_minutes:.1f}m | "
+            f"{c.filled_entries_count} / {c.total_signals_generated} | "
+            f"{c.max_simultaneous_positions} | {c.reentry_count} | {c.time_in_market_pct:.1f}% |"
+        ),
+        (
+            f"| `risk_controlled` | {r.trades_per_day:.1f} | {r.trades_per_symbol_per_day:.2f} | "
+            f"{r.median_holding_time_minutes:.1f}m | "
+            f"{r.filled_entries_count} / {r.total_signals_generated} | "
+            f"{r.max_simultaneous_positions} | {r.reentry_count} | {r.time_in_market_pct:.1f}% |"
+        ),
+        (
+            f"| `regime_adapted` | {g.trades_per_day:.1f} | {g.trades_per_symbol_per_day:.2f} | "
+            f"{g.median_holding_time_minutes:.1f}m | "
+            f"{g.filled_entries_count} / {g.total_signals_generated} | "
+            f"{g.max_simultaneous_positions} | {g.reentry_count} | {g.time_in_market_pct:.1f}% |"
+        ),
+        "",
+        "### 1.3 Execution Cost & Financing Decomposition",
+        "| Variant | Gross P&L | Commission | Slippage | Financing | Net P&L | Cost % of Gross |",
+        "|---|---|---|---|---|---|---|",
+        (
+            f"| `literal_clone` | ${c.gross_pnl:,.2f} | ${c.commission_paid:,.2f} | "
+            f"${c.slippage_paid:,.2f} | ${c.margin_interest_paid:,.2f} | "
+            f"${c.net_pnl:,.2f} | {c.costs_as_pct_of_gross_pnl:.1f}% |"
+        ),
+        (
+            f"| `risk_controlled` | ${r.gross_pnl:,.2f} | ${r.commission_paid:,.2f} | "
+            f"${r.slippage_paid:,.2f} | ${r.margin_interest_paid:,.2f} | "
+            f"${r.net_pnl:,.2f} | {r.costs_as_pct_of_gross_pnl:.1f}% |"
+        ),
+        (
+            f"| `regime_adapted` | ${g.gross_pnl:,.2f} | ${g.commission_paid:,.2f} | "
+            f"${g.slippage_paid:,.2f} | ${g.margin_interest_paid:,.2f} | "
+            f"${g.net_pnl:,.2f} | {g.costs_as_pct_of_gross_pnl:.1f}% |"
+        ),
         "",
         "## 2. Cost Sensitivity Analysis",
         "| Slippage | Return % | Max DD % | Cost Drag % | Net P&L |",
@@ -269,20 +314,35 @@ def render_comparison_report(
 
     lines.extend(
         [
-            "## 6. Options & Event Data Status",
+            "## 6. Strategy Signal Semantics & Hypothesis Documentation",
+            "| Rule / Component | `literal_clone` | `risk_controlled` | `regime_adapted` | "
+            "Classification |",
+            "|---|---|---|---|---|",
+            "| **Sector Filter (`SMH`)** | Disabled | Disabled | Enabled (slope >= 0) | "
+            "`HYPOTHESIS` |",
+            "| **Pullback Trigger** | z <= -1.50 | z <= -1.50 | z <= -1.50 | `HYPOTHESIS` |",
+            "| **Relative Volume Filter** | vol >= 0.70x | vol >= 0.70x | vol >= 0.70x | "
+            "`HYPOTHESIS` |",
+            "| **Exit Geometry** | Stored at entry | Stored at entry | Stored at entry | "
+            "`ASSUMPTION` |",
+            "| **Gross Leverage Limit** | 1.50x | 1.00x | 1.00x | `OBSERVED` / `HYPOTHESIS` |",
+            "| **Layering Limit** | 2 layers max | 1 layer | 1 layer | `OBSERVED` / `HYPOTHESIS` |",
+            "| **Max Symbol Weight** | 50% | 25% | 25% | `ASSUMPTION` |",
+            "",
+            "## 7. Options & Event Data Status",
             "- **Covered Calls:** `UNVALIDATED` (no tick-level historical option chains supplied).",
             "- **Event Blackouts:** `PARTIAL / UNVALIDATED` "
             "(no verified earnings calendar feed connected).",
             "",
-            "## 7. Evidence Classification & Governance",
-
+            "## 8. Evidence Classification & Governance",
             "- `OBSERVED`: Reddit author reported $550k P&L on high-beta semi tickers with "
             "margin and covered calls.",
             "- `DERIVED`: High trade frequency and volatile names make transaction costs and "
             "slippage dominant P&L drivers.",
             "- `HYPOTHESIS`: Statistical pullback entries with ATR targets capture "
             "mean-reversion profits.",
-            "- `ASSUMPTION`: Fixed slippage bps and conservative intrabar stop-first resolution.",
+            "- `ASSUMPTION`: Fixed slippage bps, conservative intrabar stop-first resolution, "
+            "and entry-stored ATR geometry.",
             "- `UNVERIFIED`: Option chain prices when simulated without tick-level historical "
             "option books.",
             "",
