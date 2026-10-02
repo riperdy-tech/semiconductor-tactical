@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.env
+*.secrets
+.secrets.json
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+reports/generated/
+data/raw/*
+data/processed/*
