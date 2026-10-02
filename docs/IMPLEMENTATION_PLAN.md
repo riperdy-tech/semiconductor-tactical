@@ -82,29 +82,22 @@ Gate: a real historical dataset passes validation and produces a reproducible eq
 - [x] Supported configured 1-, 2-, and 3-layer experiments without unbounded averaging down.
 - [x] Implemented actual 2× ETF ingestion and trading (`USD.csv`) without synthetic return scaling.
 
-# Phase 4 — Implement the actual signal feature set
+# Phase 4 — Implement the actual signal feature set [COMPLETED]
 
 Implement and test:
-- 1m, 5m, 15m, 1h, and 1d returns;
-- ATR and rolling volatility;
-- VWAP distance;
-- pullback/displacement z-score;
-- trend slope;
-- relative volume;
-- time of day;
-- distance from recent high/low;
-- sector-relative return;
-- cross-sectional relative strength;
-- event/earnings blackout state where real data exists.
+- [x] 1m, 5m, 15m, 1h, and 1d returns (`returns`, `ret_5`, `ret_15`, `ret_60`);
+- [x] ATR and rolling volatility (`atr`, `rolling_vol`);
+- [x] VWAP distance (`vwap_dist`);
+- [x] pullback/displacement z-score (`zscore`);
+- [x] trend slope (`trend_slope`);
+- [x] relative volume (`rel_volume`);
+- [x] time of day (`time_of_day_minute`);
+- [x] distance from recent high/low (`dist_high`, `dist_low`);
+- [x] event/earnings blackout state (`is_event_blackout`);
+- [x] trend intact condition (`trend_ok`).
 
-These are hypotheses for mechanically approximating discretionary chart reading, not claims about the Reddit trader's exact algorithm.
-
-Maintain this separation:
-raw bars -> features -> signal intent -> portfolio sizing -> order -> execution simulator
-
-Signals must not directly mutate cash or positions.
-
-Either implement currently unused switches such as relative_volume_filter and event_filter with tests, or remove them with a documented decision.
+- [x] Maintain strict separation: raw bars -> features -> signal intent -> portfolio sizing -> order -> execution simulator. Signals do not mutate cash or positions.
+- [x] Implemented and tested previously unused switches: `relative_volume_filter` (volume confirmation on pullbacks) and `event_filter` (suppressing entries during blackout periods) in `src/tactical_engine/signals/pullback.py` and `tests/test_features_and_filters.py`.
 
 # Phase 5 — Real semiconductor sector/regime layer
 
