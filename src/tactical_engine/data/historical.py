@@ -17,6 +17,12 @@ class HistoricalDataMissingError(Exception):
     pass
 
 
+class DatasetVerificationError(ValueError):
+    """Raised when historical research dataset fails the verified-data gate."""
+
+    pass
+
+
 class DatasetManifest(BaseModel):
     dataset_id: str
     data_status: Literal[
@@ -29,6 +35,53 @@ class DatasetManifest(BaseModel):
     source_description: str = ""
     license_or_citation: str = ""
     bar_resolution: str = "1d"
+
+
+def assert_research_dataset_verified(
+    dataset_manifest: DatasetManifest | None,
+    config: object = None,
+) -> None:
+    """Authoritative gate ensuring only REAL_HISTORICAL_VERIFIED datasets enter research.
+
+    Rejects:
+    - missing manifest
+    - SYNTHETIC_SAMPLE_FIXTURE
+    - REAL_HISTORICAL_UNVERIFIED_SOURCE
+    - REAL_HISTORICAL_VERIFIED with is_verified_market_data != True
+    - manifest bar resolution conflicting with loaded configuration
+    - missing required identity/provenance fields per DATA_CONTRACT.md
+    """
+    if dataset_manifest is None:
+        raise DatasetVerificationError(
+            "Dataset manifest is missing. Historical research requires an explicit "
+            "verified dataset manifest."
+        )
+
+    if dataset_manifest.data_status != "REAL_HISTORICAL_VERIFIED":
+        raise DatasetVerificationError(
+            f"Dataset status is '{dataset_manifest.data_status}'. Only 'REAL_HISTORICAL_VERIFIED' "
+            "datasets are permitted for historical research execution."
+        )
+
+    if not dataset_manifest.is_verified_market_data:
+        raise DatasetVerificationError(
+            "Dataset is not certified as verified market data (is_verified_market_data=False). "
+            "Historical research requires genuine verified market data."
+        )
+
+    if not dataset_manifest.dataset_id or not dataset_manifest.provider:
+        raise DatasetVerificationError(
+            "Dataset manifest is missing required provider/dataset_id identity fields "
+            "per DATA_CONTRACT.md."
+        )
+
+    if config is not None and hasattr(config, "strategy"):
+        strat_interval = getattr(config.strategy, "bar_interval", None)
+        if strat_interval and dataset_manifest.bar_resolution != strat_interval:
+            raise DatasetVerificationError(
+                f"Manifest bar resolution '{dataset_manifest.bar_resolution}' does not match "
+                f"configuration resolution '{strat_interval}'."
+            )
 
 
 def load_dataset_manifest(data_dir: Path | str) -> DatasetManifest:

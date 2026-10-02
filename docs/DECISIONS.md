@@ -68,3 +68,21 @@
 
 **Reason:** Resolves requirement in `INSTRUCTIONS.md` ensuring falsification tests are part of the canonical research workflow rather than uninvoked helper utilities.
 
+## 2026-10-02 — Authoritative verified-dataset evidence gate
+
+**Decision:** Implement `assert_research_dataset_verified` to strictly enforce `REAL_HISTORICAL_VERIFIED` with `is_verified_market_data=True` before historical research runners execute. Make `run.ps1 historical` and `run.ps1 comparison-historical` refuse unverified and synthetic datasets with explicit refusal notices, while eliminating silent fallbacks to sample fixtures.
+
+**Reason:** Resolves Gate A from `docs/execution_plan/PLAN.md` preventing unverified local files or synthetic fixtures from entering research-evidence pipelines.
+
+## 2026-10-02 — Tri-partition train / validation / test OOS architecture
+
+**Decision:** Implement `split_data_train_val_test` partitioning data into strictly pairwise-disjoint sets using explicit `train_end`, `validation_end`, and `test_start` boundaries, and evaluate all three canonical variants (`literal_clone`, `risk_controlled`, `regime_adapted`) across all three partitions.
+
+**Reason:** Resolves Gate B from `docs/execution_plan/PLAN.md`, preventing parameter tuning from contaminating the untouched final test segment and avoiding the collapse of validation into training.
+
+## 2026-10-02 — Benchmark vs strategy-level robustness separation
+
+**Decision:** Formally separate market return diagnostics from strategy robustness diagnostics. Stationary block bootstrap on price returns is labeled `Benchmark Return Dependence Diagnostic` (`resampling_unit: benchmark_bar_returns`), while `Strategy-Level Return Robustness Diagnostic` resamples daily realized net returns (`resampling_unit: strategy_daily_returns`). Samples with fewer than 10 observations (including small OOS samples) explicitly withhold estimates and render `INSUFFICIENT_SAMPLE`.
+
+**Reason:** Resolves Gate D from `docs/execution_plan/PLAN.md` to prevent conflating benchmark return properties with strategy execution robustness.
+

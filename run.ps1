@@ -12,9 +12,11 @@ Set-StrictMode -Version Latest
 $Root = $PSScriptRoot
 $Python = Join-Path $Root ".venv\Scripts\python.exe"
 
-# If data/processed is not present on clean clone, transparently use bundled sample fixtures
-if ($DataDir -eq "data/processed" -and -not (Test-Path (Join-Path $Root $DataDir)) -and (Test-Path (Join-Path $Root "data/sample_historical"))) {
-    $DataDir = "data/sample_historical"
+# Never silently fall back to sample fixtures for historical research commands
+if ($Mode -notin @("historical", "comparison-historical", "doctor-data")) {
+    if ($DataDir -eq "data/processed" -and -not (Test-Path (Join-Path $Root $DataDir)) -and (Test-Path (Join-Path $Root "data/sample_historical"))) {
+        $DataDir = "data/sample_historical"
+    }
 }
 
 # If Config is base.yaml and running historical commands, default to historical_daily.yaml for daily datasets

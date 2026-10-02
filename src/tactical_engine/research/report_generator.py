@@ -68,21 +68,52 @@ def render_comparison_report(
         )
 
     # 4. Out-of-Sample Period Evaluation
-    if comparison.oos_comparison:
+    lines.append("")
+    lines.append("## 4. Train / Validation / Test Out-of-Sample (OOS) Generalization Analysis")
+    if comparison.oos_available:
         lines.extend(
             [
-                "",
-                "## 4. Out-of-Sample (OOS) Generalization Analysis",
-                "| Period | Return % | Max DD % | Trades | Win Rate | Profit Factor | Net P&L |",
-                "|---|---|---|---|---|---|---|",
+                (
+                    "| Strategy Variant | Split Partition | Return % | Max DD % | Trades | "
+                    "Win Rate | Profit Factor | Net P&L |"
+                ),
+                "|---|---|---|---|---|---|---|---|",
             ]
         )
-        for period_name, m in comparison.oos_comparison.items():
-            lines.append(
-                f"| `{period_name}` | {m.total_return_pct:.2f}% | {m.max_drawdown_pct:.2f}% | "
-                f"{m.total_trades} | {m.win_rate * 100:.1f}% | {m.profit_factor:.2f} | "
-                f"${m.net_pnl:,.2f} |"
-            )
+        for variant_key in ["literal_clone", "risk_controlled", "regime_adapted"]:
+            tr_m = comparison.train_metrics.get(variant_key)
+            val_m = comparison.validation_metrics.get(variant_key)
+            te_m = comparison.test_metrics.get(variant_key)
+            if tr_m:
+                lines.append(
+                    f"| `{variant_key}` | Train | {tr_m.total_return_pct:.2f}% | "
+                    f"{tr_m.max_drawdown_pct:.2f}% | {tr_m.total_trades} | "
+                    f"{tr_m.win_rate * 100:.1f}% | {tr_m.profit_factor:.2f} | "
+                    f"${tr_m.net_pnl:,.2f} |"
+                )
+            if val_m:
+                lines.append(
+                    f"| `{variant_key}` | Validation | {val_m.total_return_pct:.2f}% | "
+                    f"{val_m.max_drawdown_pct:.2f}% | {val_m.total_trades} | "
+                    f"{val_m.win_rate * 100:.1f}% | {val_m.profit_factor:.2f} | "
+                    f"${val_m.net_pnl:,.2f} |"
+                )
+            if te_m:
+                lines.append(
+                    f"| `{variant_key}` | **Test (OOS)** | {te_m.total_return_pct:.2f}% | "
+                    f"{te_m.max_drawdown_pct:.2f}% | {te_m.total_trades} | "
+                    f"{te_m.win_rate * 100:.1f}% | {te_m.profit_factor:.2f} | "
+                    f"${te_m.net_pnl:,.2f} |"
+                )
+    else:
+        lines.extend(
+            [
+                "> **STATUS: UNAVAILABLE**",
+                f"> {comparison.oos_status_reason or 'No OOS date boundaries provided.'}",
+                "> *Untouched test evaluation requires explicit 'train_end', 'validation_end', "
+                "and 'test_start' date boundaries.*",
+            ]
+        )
 
     # 5. Falsification & Robustness Diagnostics
     lines.extend(
@@ -92,13 +123,14 @@ def render_comparison_report(
         ]
     )
 
-    # 5.1 Stationary Block Bootstrap
-    if comparison.block_bootstrap:
-        bb = comparison.block_bootstrap
+    # 5.1 Benchmark Return Dependence Diagnostic
+    if comparison.benchmark_bootstrap:
+        bb = comparison.benchmark_bootstrap
         lines.extend(
             [
-                "### 5.1 Stationary Block Bootstrap (Autocorrelation-Preserving)",
-                f"> **Expected Block Length:** 20 bars | **Simulations:** 500 | "
+                "### 5.1 Benchmark Return Dependence Diagnostic (Politis & Romano 1994)",
+                f"> **Resampling Unit:** `{bb.resampling_unit}` (`{bb.symbol}`) | "
+                f"**Simulations:** 500 | "
                 f"**Prob(Positive Return):** {bb.prob_positive * 100:.1f}%\n",
                 "| Metric | Bootstrap Estimate |",
                 "|---|---|",
@@ -109,12 +141,80 @@ def render_comparison_report(
             ]
         )
 
-    # 5.2 Leave-One-Out Ticker Exclusion
+    # 5.2 Strategy-Level Return Robustness Diagnostic
+    if comparison.strategy_bootstrap:
+        sb = comparison.strategy_bootstrap
+        if sb.is_sufficient_sample:
+            lines.extend(
+                [
+                    "### 5.2 Strategy-Level Return Robustness Diagnostic (Politis & Romano 1994)",
+                    f"> **Resampling Unit:** `{sb.resampling_unit}` | "
+                    f"**Sample Days:** {sb.sample_size} | "
+                    f"**Prob(Positive Return):** {sb.prob_positive * 100:.1f}%\n",
+                    "| Metric | Bootstrap Estimate |",
+                    "|---|---|",
+                    f"| Median Return | {sb.median_return_pct:.2f}% |",
+                    f"| Mean Return | {sb.mean_return_pct:.2f}% |",
+                    f"| 95% Confidence Interval | "
+                    f"[{sb.ci_lower_pct:.2f}%, {sb.ci_upper_pct:.2f}%] |",
+                    "",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "### 5.2 Strategy-Level Return Robustness Diagnostic (Politis & Romano 1994)",
+                    f"> **Resampling Unit:** `{sb.resampling_unit}` | "
+                    f"**Sample Status:** `INSUFFICIENT_SAMPLE` ({sb.insufficient_reason})",
+                    "> *Diagnostic estimates withheld to prevent misleading numeric conclusions "
+                    "on undersized sample.*",
+                    "",
+                ]
+            )
+
+    # 5.3 Final Out-of-Sample Strategy Robustness Diagnostic
+    lines.append("### 5.3 Out-of-Sample Strategy Robustness (Untouched Test Period)")
+    if comparison.oos_strategy_bootstrap:
+        osb = comparison.oos_strategy_bootstrap
+        if osb.is_sufficient_sample:
+            lines.extend(
+                [
+                    f"> **Resampling Unit:** `{osb.resampling_unit}` | "
+                    f"**OOS Sample Days:** {osb.sample_size} | "
+                    f"**Prob(Positive Return):** {osb.prob_positive * 100:.1f}%\n",
+                    "| Metric | Bootstrap Estimate |",
+                    "|---|---|",
+                    f"| Median Return | {osb.median_return_pct:.2f}% |",
+                    f"| Mean Return | {osb.mean_return_pct:.2f}% |",
+                    f"| 95% Confidence Interval | "
+                    f"[{osb.ci_lower_pct:.2f}%, {osb.ci_upper_pct:.2f}%] |",
+                    "",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    f"> **OOS Robustness Status:** `INSUFFICIENT_SAMPLE` "
+                    f"({osb.insufficient_reason})",
+                    "> *Diagnostic estimates withheld to prevent misleading numeric conclusions "
+                    "on undersized OOS sample.*",
+                    "",
+                ]
+            )
+    else:
+        lines.extend(
+            [
+                "> **OOS Robustness Status:** `UNAVAILABLE` (No OOS test period configured)",
+                "",
+            ]
+        )
+
+    # 5.4 Leave-One-Out Ticker Exclusion
     if comparison.ticker_exclusion:
         te = comparison.ticker_exclusion
         lines.extend(
             [
-                "### 5.2 Leave-One-Out Ticker Exclusion Test",
+                "### 5.4 Leave-One-Out Ticker Exclusion Test (Baseline: `risk_controlled`)",
                 f"> **Dominant Ticker:** `{te.dominant_ticker or 'None'}` | "
                 f"**Single-Ticker Fragile (>80% P&L):** "
                 f"{'YES (Fragile)' if te.is_fragile_to_single_ticker else 'NO (Robust)'}\n",
@@ -132,14 +232,14 @@ def render_comparison_report(
             )
         lines.append("")
 
-    # 5.3 Strongest-Day Exclusion Diagnostic
+    # 5.5 Strongest-Day Exclusion Diagnostic
     if comparison.strongest_day_exclusion:
         sd = comparison.strongest_day_exclusion
         lines.extend(
             [
-                "### 5.3 Strongest-Day Exclusion Diagnostic (Attribution Test)",
+                "### 5.5 Strongest-Day Exclusion Diagnostic (Attribution Test)",
                 "> *Note: This is an attribution diagnostic measuring whether positive expectancy "
-                "relies entirely on a tiny handful of outlier days.*\n",
+                "relies entirely on a tiny handful of outlier days. It is NOT a strategy rerun.*\n",
                 "| Scenario | Net P&L | Expectancy Positive? |",
                 "|---|---|---|",
                 f"| Full Baseline ({sd.total_trading_days} days) | ${sd.baseline_net_pnl:,.2f} | "

@@ -11,6 +11,9 @@ from tactical_engine.reports.metrics import PerformanceMetrics, calculate_metric
 
 
 class BlockBootstrapResult(BaseModel):
+    diagnostic_name: str = "Benchmark Return Dependence Diagnostic"
+    resampling_unit: str = "benchmark_bar_returns"
+    symbol: str = "SMH"
     mean_return_pct: float
     median_return_pct: float
     ci_lower_pct: float
@@ -19,12 +22,107 @@ class BlockBootstrapResult(BaseModel):
     simulated_returns: list[float] = Field(default_factory=list)
 
 
+class StrategyRobustnessResult(BaseModel):
+    diagnostic_name: str = "Strategy-Level Return Robustness Diagnostic"
+    resampling_unit: str = "strategy_daily_returns"
+    mean_return_pct: float = 0.0
+    median_return_pct: float = 0.0
+    ci_lower_pct: float = 0.0
+    ci_upper_pct: float = 0.0
+    prob_positive: float = 0.0
+    sample_size: int = 0
+    is_sufficient_sample: bool = True
+    insufficient_reason: str | None = None
+    simulated_returns: list[float] = Field(default_factory=list)
+
+
+def strategy_return_bootstrap(
+    trades: list[TradeRecord],
+    initial_cash: float = 100_000.0,
+    expected_block_size: int = 5,
+    num_simulations: int = 500,
+    confidence_level: float = 0.95,
+    seed: int = 42,
+) -> StrategyRobustnessResult:
+    """Politis & Romano (1994) stationary block bootstrap on strategy daily returns.
+
+    Resamples blocks of consecutive daily net returns to preserve autocorrelation
+    and volatility clustering in realized strategy outcomes.
+    """
+    if not trades:
+        return StrategyRobustnessResult(
+            is_sufficient_sample=False,
+            insufficient_reason="INSUFFICIENT_SAMPLE: zero trades executed in evaluation period",
+        )
+
+    # Group net P&L by calendar date of exit
+    day_pnls: dict[str, float] = defaultdict(float)
+    for t in trades:
+        day_str = t.exit_time.strftime("%Y-%m-%d")
+        day_pnls[day_str] += t.net_pnl
+
+    sorted_days = sorted(day_pnls.keys())
+    n_days = len(sorted_days)
+
+    if n_days < 10:
+        return StrategyRobustnessResult(
+            sample_size=n_days,
+            is_sufficient_sample=False,
+            insufficient_reason=(
+                f"INSUFFICIENT_SAMPLE: only {n_days} active trading days (minimum 10 required)"
+            ),
+        )
+
+    daily_returns = np.array([day_pnls[d] / initial_cash for d in sorted_days], dtype=float)
+    n = len(daily_returns)
+
+    p = 1.0 / max(1, expected_block_size)
+    rng = np.random.default_rng(seed)
+
+    sim_cumulative_returns = []
+    for _ in range(num_simulations):
+        resampled_returns = np.empty(n, dtype=float)
+        idx = rng.integers(0, n)
+        for t_idx in range(n):
+            if rng.random() < p:
+                idx = rng.integers(0, n)
+            else:
+                idx = (idx + 1) % n
+            resampled_returns[t_idx] = daily_returns[idx]
+
+        total_ret = float(np.sum(resampled_returns)) * 100.0
+        sim_cumulative_returns.append(round(total_ret, 2))
+
+    sorted_rets = np.sort(sim_cumulative_returns)
+    alpha = 1.0 - confidence_level
+    lower_idx = int(num_simulations * (alpha / 2.0))
+    upper_idx = int(num_simulations * (1.0 - alpha / 2.0))
+
+    mean_ret = float(np.mean(sorted_rets))
+    median_ret = float(np.median(sorted_rets))
+    ci_lower = float(sorted_rets[lower_idx])
+    ci_upper = float(sorted_rets[min(upper_idx, num_simulations - 1)])
+    prob_pos = float(np.mean(sorted_rets > 0))
+
+    return StrategyRobustnessResult(
+        mean_return_pct=round(mean_ret, 2),
+        median_return_pct=round(median_ret, 2),
+        ci_lower_pct=round(ci_lower, 2),
+        ci_upper_pct=round(ci_upper, 2),
+        prob_positive=round(prob_pos, 4),
+        sample_size=n,
+        is_sufficient_sample=True,
+        simulated_returns=sim_cumulative_returns[:50],
+    )
+
+
 def stationary_block_bootstrap(
     bars: list[Bar],
     expected_block_size: int = 20,
     num_simulations: int = 500,
     confidence_level: float = 0.95,
     seed: int = 42,
+    symbol: str = "SMH",
 ) -> BlockBootstrapResult:
     """Politis & Romano (1994) stationary block bootstrap for autocorrelated return series.
 
@@ -32,6 +130,7 @@ def stationary_block_bootstrap(
     """
     if len(bars) < expected_block_size + 2:
         return BlockBootstrapResult(
+            symbol=symbol,
             mean_return_pct=0.0,
             median_return_pct=0.0,
             ci_lower_pct=0.0,

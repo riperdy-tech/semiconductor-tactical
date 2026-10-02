@@ -194,24 +194,25 @@ Do not declare research-ready while any of these remain:
 
 # Current status & Implementation Audit (Updated 2026-10-02 Post-Audit Pass)
 
-Reference: `INSTRUCTIONS.md` and `docs/AUDIT_20261002_POST_GEMINI.md`
+Reference: `docs/execution_plan/PLAN.md`, `INSTRUCTIONS.md`, and `docs/AUDIT_20261002_POST_GEMINI.md`
 
 **Status:**
-- **ENGINE IMPLEMENTATION:** Substantially complete.
-- **HISTORICAL STRATEGY RESEARCH:** Not complete (remains blocked on ingest of genuine historical market data).
+- **ENGINE IMPLEMENTATION:** Substantially complete and research-gate compliant.
+- **HISTORICAL STRATEGY RESEARCH:** Not complete (remains blocked on ingest of genuine verified market data).
 - **OPTIONS RESEARCH:** Unvalidated (no historical tick-level option chains provided).
 - **EVENT FILTERING:** Partial / Unvalidated (blackout logic active, but no historical earnings calendar feed connected).
 
 ### Closed Research Gates:
-1. [x] **Benchmark Decoupling & Regime Wiring**: `SMH` and `SPY` automatically loaded into `regime_adapted` while tradable universe execution is restricted to tradable symbols. `literal_clone` and `risk_controlled` remain unaffected when `sector_filter` is disabled.
-2. [x] **Session-Aware Cadence Validation**: Distinguishes intraday 1m spacing from legitimate overnight/weekend/holiday gaps while strictly rejecting cadence mismatches.
-3. [x] **Explicit Dataset Manifest Contract**: Data provenance governed by `dataset_manifest.json` (`SYNTHETIC_SAMPLE_FIXTURE`, `REAL_HISTORICAL_UNVERIFIED_SOURCE`, `REAL_HISTORICAL_VERIFIED`) preventing provenance spoofing.
-4. [x] **Integrated Falsification Suite**: Stationary block bootstrap (500 iterations), leave-one-out ticker exclusion, and strongest-day exclusion integrated into canonical research runner and report.
-5. [x] **Reconciled Experiment Grids**: Leverage sensitivities tested at `[1.0, 1.25, 1.5, 2.0, 3.0]` and cost sensitivities at `[0.0, 5.0, 10.0, 15.0]` bps.
-6. [x] **Out-of-Sample Date Handling**: `split_data_by_research_dates` supports train/validation/test date segmenting without lookahead leakage.
+1. [x] **Authoritative Verified-Dataset Evidence Gate**: `assert_research_dataset_verified` strictly requires `REAL_HISTORICAL_VERIFIED` and `is_verified_market_data=True`. `run.ps1 historical` and `run.ps1 comparison-historical` refuse synthetic sample fixtures and unverified datasets, and silent fixture fallbacks have been eliminated.
+2. [x] **Tri-Partition Train / Validation / Test OOS Architecture**: `split_data_train_val_test` generates strictly disjoint partitions from `train_end`, `validation_end`, and `test_start`, producing separate metrics for all 3 strategy variants (`literal_clone`, `risk_controlled`, `regime_adapted`). Missing boundaries produce explicit unavailable status without fabrication.
+3. [x] **Benchmark vs. Strategy Robustness Diagnostics**: Clear separation between `Benchmark Return Dependence Diagnostic` (`resampling_unit: benchmark_bar_returns`) and `Strategy-Level Return Robustness Diagnostic` (`resampling_unit: strategy_daily_returns`). Undersized samples (< 10 days, including OOS) explicitly render `INSUFFICIENT_SAMPLE`.
+4. [x] **Benchmark Decoupling & Regime Wiring**: `SMH` and `SPY` automatically loaded into `regime_adapted` while tradable universe execution is restricted to tradable symbols. `literal_clone` and `risk_controlled` remain unaffected when `sector_filter` is disabled.
+5. [x] **Session-Aware Cadence Validation**: Distinguishes intraday 1m spacing from legitimate overnight/weekend/holiday gaps while strictly rejecting cadence mismatches.
+6. [x] **Reconciled Experiment Grids**: Leverage sensitivities tested at `[1.0, 1.25, 1.5, 2.0, 3.0]` and cost sensitivities at `[0.0, 5.0, 10.0, 15.0]` bps.
 
 ### Remaining Research Blockers:
 1. [ ] **Genuine Market Data Ingestion**: Provide primary historical CSV datasets for `MU`, `SNDK`, `SKHY`, `AMD`, `USD`, `SMH`, and `SPY`.
 2. [ ] **Genuine Option Chain Ingestion**: Ingest historical tick-level option quotes before removing `UNVALIDATED` flag from covered-call experiments.
 3. [ ] **Final Reddit-Period Historical Reproduction**: Execute reproduction run on verified historical market data across Reddit period.
+
 

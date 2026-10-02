@@ -132,12 +132,13 @@ def test_falsification_report_generation():
     comparison = run_strategy_comparison(data=data, base_config=cfg)
     assert comparison.ticker_exclusion is not None
     assert comparison.strongest_day_exclusion is not None
-    assert comparison.block_bootstrap is not None
-    assert comparison.oos_comparison is not None
+    assert comparison.benchmark_bootstrap is not None
+    assert comparison.strategy_bootstrap is not None
 
     report = render_comparison_report(comparison, cfg)
     assert "Out-of-Sample (OOS) Generalization Analysis" in report
-    assert "Stationary Block Bootstrap" in report
+    assert "Benchmark Return Dependence Diagnostic" in report
+    assert "Strategy-Level Return Robustness Diagnostic" in report
     assert "Leave-One-Out Ticker Exclusion Test" in report
     assert "Strongest-Day Exclusion Diagnostic" in report
     assert "Options & Event Data Status" in report
