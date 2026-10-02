@@ -2,26 +2,26 @@
 
 ## Phase 0 — Repository foundation
 
-- [ ] Python package + `pyproject.toml`
-- [ ] pytest + lint/format tooling
-- [ ] typed configuration loader
-- [ ] run manifest
-- [ ] basic data models
-- [ ] deterministic fixture data
+- [x] Python package + `pyproject.toml`
+- [x] pytest + lint/format tooling
+- [x] typed configuration loader
+- [x] run manifest
+- [x] basic data models
+- [x] deterministic fixture data
 
 Exit criterion: `pytest` passes on a clean environment.
 
 ## Phase 1 — Equity-only engine
 
-- [ ] normalized OHLCV provider interface
-- [ ] feature calculator
-- [ ] pullback signal family
-- [ ] exit family
-- [ ] position sizing
-- [ ] transaction costs
-- [ ] slippage
-- [ ] deterministic backtest loop
-- [ ] metrics + Markdown report
+- [x] normalized OHLCV provider interface
+- [x] feature calculator
+- [x] pullback signal family
+- [x] exit family
+- [x] position sizing
+- [x] transaction costs
+- [x] slippage
+- [x] deterministic backtest loop
+- [x] metrics + Markdown report
 
 Exit criterion: can reproduce the same fixture result twice byte-for-byte except for run timestamps.
 
