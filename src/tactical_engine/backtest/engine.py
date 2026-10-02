@@ -6,6 +6,10 @@ from tactical_engine.backtest.state import PortfolioTracker, TradeRecord
 from tactical_engine.config import EngineConfig
 from tactical_engine.data.models import Bar, Order, OrderSide, OrderType
 from tactical_engine.execution.simulator import ExecutionSimulator
+from tactical_engine.options.assignment import evaluate_expiration_assignment
+from tactical_engine.options.chain_provider import OptionChainProvider
+from tactical_engine.options.contracts import CoveredCallRecord, OptionContractType, OptionPosition
+from tactical_engine.options.covered_calls import select_covered_call_contract
 from tactical_engine.portfolio.margin import (
     calculate_maintenance_requirement,
     generate_forced_liquidation_orders,
@@ -28,10 +32,25 @@ class BacktestResult(BaseModel):
     peak_margin_debt: float = 0.0
     margin_call_count: int = 0
     forced_liquidation_count: int = 0
+    options_premium_collected: float = 0.0
+    options_realized_pnl: float = 0.0
+    options_validation_status: str = "NONE"
 
 
-def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestResult:
-    # 1. Feature & Signal generation per symbol
+def run_backtest(
+    data: dict[str, list[Bar]],
+    config: EngineConfig,
+    option_chain_provider: OptionChainProvider | None = None,
+) -> BacktestResult:
+    # 1. Validation status per AGENTS.md rule 5
+    if not config.options.enabled:
+        validation_status = "NONE"
+    elif option_chain_provider is None:
+        validation_status = "UNVALIDATED"
+    else:
+        validation_status = "VALIDATED"
+
+    # 2. Feature & Signal generation per symbol
     features_by_sym = {}
     signals_by_sym = {}
     for sym, bars in data.items():
@@ -39,7 +58,6 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
         features_by_sym[sym] = df_feat
         signals_by_sym[sym] = generate_pullback_signals(df_feat, config.signals)
 
-    # 2. Synchronized bar simulation loop
     all_timestamps = sorted(list(set(b.timestamp for bars in data.values() for b in bars)))
 
     tracker = PortfolioTracker(initial_cash=config.portfolio.initial_cash)
@@ -60,7 +78,7 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
                     bars_at_ts[sym] = b
                     break
 
-        # Accrue margin interest from previous step
+        # Margin interest accrual
         if last_ts is not None and config.costs.margin_rate_annual > 0:
             elapsed = (ts - last_ts).total_seconds()
             tracker.accrue_margin_interest(
@@ -73,7 +91,7 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
         equity_curve.append(account_state.equity)
         time_index.append(ts.isoformat())
 
-        # A. Execute pending orders generated at previous bar close
+        # A. Execute pending equity orders
         unfilled_orders = []
         for ord in pending_orders:
             bar = bars_at_ts.get(ord.symbol)
@@ -85,7 +103,7 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
                     unfilled_orders.append(ord)
         pending_orders = unfilled_orders
 
-        # B. Check margin call and generate forced liquidation orders if in deficit
+        # B. Check margin call & forced liquidations
         maint_req = calculate_maintenance_requirement(tracker.positions, current_prices)
         current_account_state = tracker.get_account_state(ts, current_prices)
         if is_margin_call(current_account_state.equity, maint_req):
@@ -96,7 +114,51 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
             for liq_ord in liquidation_orders:
                 pending_orders.append(liq_ord)
 
-        # C. Check normal exits on active positions
+        # C. Covered Call Expiration & Assignment check
+        if config.options.enabled and validation_status == "VALIDATED":
+            for sym in list(tracker.covered_calls.keys()):
+                call_pos = tracker.covered_calls[sym]
+                bar = bars_at_ts.get(sym)
+                if bar and (ts >= call_pos.expiration or sym not in tracker.positions):
+                    is_assigned, cash_proceeds, shares_deliv = evaluate_expiration_assignment(
+                        call_pos, bar.close
+                    )
+                    contracts = abs(call_pos.quantity)
+                    if is_assigned:
+                        tracker.cash += cash_proceeds
+                        # Deliver shares from underlying position
+                        curr_stock = tracker.positions.get(sym)
+                        if curr_stock:
+                            new_shares = max(0.0, curr_stock.quantity - shares_deliv)
+                            if new_shares == 0:
+                                tracker.positions.pop(sym, None)
+                                tracker.entry_times.pop(sym, None)
+                            else:
+                                tracker.positions[sym] = curr_stock.model_copy(
+                                    update={"quantity": new_shares}
+                                )
+                    # Realized P&L on the short option contract: premium received at entry
+                    opt_realized = call_pos.avg_price * 100.0 * contracts
+                    tracker.options_realized_pnl += opt_realized
+                    tracker.covered_call_records.append(
+                        CoveredCallRecord(
+                            contract_symbol=call_pos.symbol,
+                            underlying=sym,
+                            strike=call_pos.strike,
+                            expiration=call_pos.expiration,
+                            entry_time=call_pos.expiration,  # proxy
+                            exit_time=ts,
+                            entry_premium=call_pos.avg_price,
+                            exit_premium=0.0,
+                            contracts=contracts,
+                            realized_pnl=round(opt_realized, 2),
+                            was_assigned=is_assigned,
+                            underlying_shares_delivered=shares_deliv,
+                        )
+                    )
+                    tracker.covered_calls.pop(sym, None)
+
+        # D. Check exits on active positions
         for sym, pos in list(tracker.positions.items()):
             bar = bars_at_ts.get(sym)
             if not bar:
@@ -124,10 +186,45 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
                     )
                 )
 
-        # D. Generate entry orders for next bar
+        # E. Sell Covered Calls on active underlying shares (1 contract per 100 shares)
+        if config.options.enabled and validation_status == "VALIDATED" and option_chain_provider:
+            for sym, pos in tracker.positions.items():
+                if sym not in tracker.covered_calls and pos.quantity >= 100.0:
+                    bar = bars_at_ts.get(sym)
+                    if not bar:
+                        continue
+                    chain = option_chain_provider.get_chain(sym, ts)
+                    selected_call = select_covered_call_contract(
+                        chain=chain,
+                        underlying_price=bar.close,
+                        min_dte=config.options.min_dte,
+                        max_dte=config.options.max_dte,
+                        moneyness=config.options.moneyness,
+                    )
+                    if selected_call and selected_call.bid > 0:
+                        contracts = int(pos.quantity // 100)
+                        # Option fill price after slippage
+                        slip = (config.costs.option_slippage_bps / 10000.0) * selected_call.bid
+                        fill_prem = max(0.01, selected_call.bid - slip)
+                        prem_total = fill_prem * 100.0 * contracts
+
+                        tracker.cash += prem_total
+                        tracker.options_premium_collected += prem_total
+                        tracker.covered_calls[sym] = OptionPosition(
+                            symbol=selected_call.symbol,
+                            underlying=sym,
+                            contract_type=OptionContractType.CALL,
+                            strike=selected_call.strike,
+                            expiration=selected_call.expiration,
+                            quantity=-float(contracts),
+                            avg_price=round(fill_prem, 4),
+                            associated_underlying_shares=float(contracts * 100),
+                        )
+
+        # F. Generate equity entry orders for next bar
         for sym, sigs in signals_by_sym.items():
             if sym in tracker.positions:
-                continue  # Single layer for base test
+                continue
             bar = bars_at_ts.get(sym)
             if not bar:
                 continue
@@ -171,4 +268,7 @@ def run_backtest(data: dict[str, list[Bar]], config: EngineConfig) -> BacktestRe
         peak_margin_debt=round(tracker.peak_margin_debt, 2),
         margin_call_count=tracker.margin_call_count,
         forced_liquidation_count=tracker.forced_liquidation_count,
+        options_premium_collected=round(tracker.options_premium_collected, 2),
+        options_realized_pnl=round(tracker.options_realized_pnl, 2),
+        options_validation_status=validation_status,
     )

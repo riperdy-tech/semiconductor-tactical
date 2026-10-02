@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from tactical_engine.data.models import AccountState, Fill, OrderSide, Position
+from tactical_engine.options.contracts import CoveredCallRecord, OptionPosition
 from tactical_engine.portfolio.margin import calculate_margin_debt, calculate_margin_interest
 
 
@@ -28,6 +29,11 @@ class PortfolioTracker:
         self.peak_margin_debt: float = 0.0
         self.margin_call_count: int = 0
         self.forced_liquidation_count: int = 0
+        # Options state
+        self.covered_calls: dict[str, OptionPosition] = {}
+        self.options_premium_collected: float = 0.0
+        self.options_realized_pnl: float = 0.0
+        self.covered_call_records: list[CoveredCallRecord] = []
 
     def accrue_margin_interest(self, rate_annual: float, elapsed_seconds: float) -> float:
         debt = calculate_margin_debt(self.cash)

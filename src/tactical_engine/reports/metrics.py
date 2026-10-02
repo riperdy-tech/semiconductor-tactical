@@ -20,6 +20,9 @@ class PerformanceMetrics(BaseModel):
     peak_margin_debt: float = 0.0
     margin_call_count: int = 0
     forced_liquidation_count: int = 0
+    options_premium_collected: float = 0.0
+    options_realized_pnl: float = 0.0
+    options_validation_status: str = "NONE"
 
 
 def calculate_metrics(result: BacktestResult) -> PerformanceMetrics:
@@ -74,4 +77,7 @@ def calculate_metrics(result: BacktestResult) -> PerformanceMetrics:
         peak_margin_debt=round(result.peak_margin_debt, 2),
         margin_call_count=result.margin_call_count,
         forced_liquidation_count=result.forced_liquidation_count,
+        options_premium_collected=round(result.options_premium_collected, 2),
+        options_realized_pnl=round(result.options_realized_pnl, 2),
+        options_validation_status=result.options_validation_status,
     )
