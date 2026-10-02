@@ -144,5 +144,18 @@
 
 **Reason:** Fulfills all requirements from `docs/execution_plan/OOS_PROVENANCE_RECONCILIATION.md` and Phase G of `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`.
 
+## 2026-10-02 — USD data quality audit: zero-trade intervals and doctor-data reporting
+
+**Decision:**
+1. **Resolution of USD 4,610 Missing Slots:** Audited the 4,610 missing minute slots in `data/processed/USD.csv` (81.53% RTH coverage). Confirmed via microstructure analysis that 84% are 1-3 minute gaps (max gap = 10m; 0 gaps > 15m) concentrated during midday/afternoon lulls (0.8% missing at open, 23.3% at 14:00 ET). Verified that USD's median bar volume is only 793 shares (min = 100 shares / 1 round lot). These represent **legitimate zero-trade intervals on the consolidated tape (SIP)**, not vendor transmission drops or API interruptions.
+2. **Backtest Treatment & Bias Assessment:**
+   - Pending orders for USD wait until the next printed trade bar and fill at `next_bar.open +/- slippage`.
+   - 0 out of 107 USD trades were entered or exited after a >1m gap; 100% triggered during active contiguous trading.
+   - Sizing and execution drag: Fixed 5 bps slippage accounts for 100% of gross losses on USD ($10,051 slippage vs -$10,023 gross P&L, 2.8% win rate). Excluding USD improves portfolio net return from -92.89% to -71.89%.
+3. **Diagnostic Tooling Transparency:** Enhanced `validate_symbol_bars` and `doctor-data` to explicitly display `RTH Cov%`, `Miss Min`, and `Gaps (>5d)` columns, distinguishing multi-day calendar gaps from intraday missing minute slots.
+4. **Documentation:** Documented complete empirical findings in `docs/USD_DATA_AUDIT.md`.
+5. **Stop Software Changes:** Re-enforced stop condition; no strategy parameters, entry thresholds, leverage, or costs were altered.
+
+
 
 

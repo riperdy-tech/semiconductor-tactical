@@ -13,6 +13,9 @@ class DatasetValidationResult(BaseModel):
     is_valid: bool = True
     errors: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    calendar_gaps_count: int = 0
+    missing_minute_slots: int = 0
+    rth_coverage_pct: float = 100.0
     gaps_count: int = 0
     duplicates_count: int = 0
 
@@ -196,13 +199,35 @@ def validate_symbol_bars(
             errors.append(f"OHLC violation at {bar.timestamp}")
             break
 
-    # Check gaps
-    gaps = detect_time_gaps(bars, max_gap_seconds=max_gap_seconds)
-    if gaps:
+    # Check calendar gaps (> max_gap_seconds)
+    calendar_gaps = detect_time_gaps(bars, max_gap_seconds=max_gap_seconds)
+    if calendar_gaps:
         warnings.append(
-            f"Detected {len(gaps)} calendar gaps > {max_gap_seconds / 86400:.1f} days "
-            f"(first: {gaps[0][0]} -> {gaps[0][1]})"
+            f"Detected {len(calendar_gaps)} calendar gaps > {max_gap_seconds / 86400:.1f} days "
+            f"(first: {calendar_gaps[0][0]} -> {calendar_gaps[0][1]})"
         )
+
+    # Check intraday missing minute slots if 1m resolution
+    missing_minute_slots = 0
+    rth_coverage_pct = 100.0
+    if expected_interval and expected_interval.lower().strip() == "1m":
+        total_missing = 0
+        for i in range(1, len(bars)):
+            prev_b = bars[i - 1]
+            curr_b = bars[i]
+            if prev_b.timestamp.date() == curr_b.timestamp.date():
+                delta_m = (curr_b.timestamp - prev_b.timestamp).total_seconds() / 60.0
+                if delta_m > 1.0:
+                    total_missing += int(round(delta_m - 1.0))
+        missing_minute_slots = total_missing
+        expected_rth_bars = len(bars) + total_missing
+        if expected_rth_bars > 0:
+            rth_coverage_pct = round((len(bars) / expected_rth_bars) * 100.0, 2)
+        if missing_minute_slots > 0:
+            warnings.append(
+                f"Observed {missing_minute_slots} missing 1-minute slots during RTH "
+                f"({rth_coverage_pct:.1f}% coverage; legitimate zero-trade intervals)"
+            )
 
     # Check price jumps / potential splits
     anomalies = detect_price_anomalies(bars)
@@ -220,7 +245,10 @@ def validate_symbol_bars(
         is_valid=len(errors) == 0,
         errors=errors,
         warnings=warnings,
-        gaps_count=len(gaps),
+        calendar_gaps_count=len(calendar_gaps),
+        missing_minute_slots=missing_minute_slots,
+        rth_coverage_pct=rth_coverage_pct,
+        gaps_count=len(calendar_gaps),
         duplicates_count=len(dupes),
     )
 

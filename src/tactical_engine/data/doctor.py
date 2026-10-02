@@ -33,9 +33,10 @@ def run_data_doctor(
 
     print(
         f"\n{'Symbol':<8} {'Status':<10} {'Rows':<8} {'Start Date':<12} {'End Date':<12} "
-        f"{'Gaps':<6} {'Dupes':<6} {'Hash (SHA256:8)':<16} {'Adjustment':<15}"
+        f"{'RTH Cov%':<10} {'Miss Min':<10} {'Gaps(>5d)':<11} {'Dupes':<6} "
+        f"{'Hash (SHA256:8)':<16} {'Adjustment':<15}"
     )
-    print("-" * 95)
+    print("-" * 115)
 
     for sym in symbols:
         sym_upper = sym.upper()
@@ -56,7 +57,8 @@ def run_data_doctor(
 
             print(
                 f"{sym_upper:<8} {status:<10} {len(bars):<8} {start_str:<12} {end_str:<12} "
-                f"{val.gaps_count:<6} {val.duplicates_count:<6} {short_hash:<16} "
+                f"{val.rth_coverage_pct:<10.1f} {val.missing_minute_slots:<10} "
+                f"{val.calendar_gaps_count:<11} {val.duplicates_count:<6} {short_hash:<16} "
                 f"{prov.adjustment_status:<15}"
             )
 
