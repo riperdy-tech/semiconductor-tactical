@@ -1,6 +1,8 @@
 import uuid
+
 import numpy as np
 from pydantic import BaseModel
+
 from tactical_engine.backtest.engine import BacktestResult
 from tactical_engine.backtest.state import PortfolioTracker, TradeRecord
 from tactical_engine.config import EngineConfig
@@ -64,9 +66,7 @@ def run_random_entry_control(
 ) -> BacktestResult:
     # Baseline null hypothesis control: enters at randomly selected timestamps
     rng = np.random.default_rng(seed)
-    all_timestamps = sorted(
-        list(set(b.timestamp for bars in data.values() for b in bars))
-    )
+    all_timestamps = sorted(list(set(b.timestamp for bars in data.values() for b in bars)))
     if len(all_timestamps) < 10:
         return BacktestResult(
             initial_cash=config.portfolio.initial_cash,
@@ -79,7 +79,9 @@ def run_random_entry_control(
 
     # Randomly select candidate entry indices (spaced apart)
     possible_indices = list(range(10, len(all_timestamps) - 10))
-    chosen_indices = set(rng.choice(possible_indices, size=min(target_trades, len(possible_indices)), replace=False))
+    chosen_indices = set(
+        rng.choice(possible_indices, size=min(target_trades, len(possible_indices)), replace=False)
+    )
 
     tracker = PortfolioTracker(initial_cash=config.portfolio.initial_cash)
     simulator = ExecutionSimulator(cost_config=config.costs)

@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from tactical_engine.options.contracts import OptionQuote
 
 
@@ -15,7 +16,4 @@ class HistoricalOptionChainProvider(OptionChainProvider):
         self._quotes.extend(quotes)
 
     def get_chain(self, underlying: str, timestamp: datetime) -> list[OptionQuote]:
-        return [
-            q for q in self._quotes
-            if q.underlying == underlying and q.timestamp == timestamp
-        ]
+        return [q for q in self._quotes if q.underlying == underlying and q.timestamp == timestamp]

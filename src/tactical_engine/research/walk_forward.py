@@ -1,5 +1,7 @@
 from datetime import datetime
+
 from pydantic import BaseModel
+
 from tactical_engine.backtest.engine import run_backtest
 from tactical_engine.config import EngineConfig
 from tactical_engine.data.models import Bar
@@ -40,9 +42,7 @@ def run_walk_forward(
     val_ratio: float = 0.25,
 ) -> WalkForwardResult:
     # Collect all timestamps
-    all_timestamps = sorted(
-        list(set(b.timestamp for bars in data.values() for b in bars))
-    )
+    all_timestamps = sorted(list(set(b.timestamp for bars in data.values() for b in bars)))
     n = len(all_timestamps)
     train_idx = int(n * train_ratio)
     val_idx = int(n * (train_ratio + val_ratio))

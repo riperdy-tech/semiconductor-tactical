@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+
 from tactical_engine.config import EngineConfig
 from tactical_engine.data.synthetic import generate_synthetic_bars
 from tactical_engine.research.walk_forward import run_walk_forward, split_data_by_time

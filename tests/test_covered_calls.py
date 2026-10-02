@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+
 from tactical_engine.options.assignment import evaluate_expiration_assignment
 from tactical_engine.options.contracts import OptionContractType, OptionPosition, OptionQuote
 from tactical_engine.options.covered_calls import select_covered_call_contract

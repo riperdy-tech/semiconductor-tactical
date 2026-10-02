@@ -9,10 +9,9 @@ def select_covered_call_contract(
     moneyness: str = "otm",
 ) -> OptionQuote | None:
     calls = [
-        q for q in chain
-        if q.contract_type == OptionContractType.CALL
-        and min_dte <= q.dte <= max_dte
-        and q.bid > 0
+        q
+        for q in chain
+        if q.contract_type == OptionContractType.CALL and min_dte <= q.dte <= max_dte and q.bid > 0
     ]
     if not calls:
         return None

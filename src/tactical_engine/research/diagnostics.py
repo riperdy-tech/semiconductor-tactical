@@ -1,4 +1,5 @@
 import numpy as np
+
 from tactical_engine.research.sweeps import SweepResult
 
 
