@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+
 from tactical_engine.config import EngineConfig, load_config
 from tactical_engine.data.models import Bar
 from tactical_engine.data.synthetic import generate_synthetic_bars
@@ -31,11 +32,14 @@ def render_comparison_report(
         "| Variant | Return % | Max DD % | Trades | Win Rate | Profit Factor | Margin Calls |",
         "|---|---|---|---|---|---|---|",
         f"| `literal_clone` | {c.total_return_pct:.2f}% | {c.max_drawdown_pct:.2f}% | "
-        f"{c.total_trades} | {c.win_rate * 100:.1f}% | {c.profit_factor:.2f} | {c.margin_call_count} |",
+        f"{c.total_trades} | {c.win_rate * 100:.1f}% | {c.profit_factor:.2f} | "
+        f"{c.margin_call_count} |",
         f"| `risk_controlled` | {r.total_return_pct:.2f}% | {r.max_drawdown_pct:.2f}% | "
-        f"{r.total_trades} | {r.win_rate * 100:.1f}% | {r.profit_factor:.2f} | {r.margin_call_count} |",
+        f"{r.total_trades} | {r.win_rate * 100:.1f}% | {r.profit_factor:.2f} | "
+        f"{r.margin_call_count} |",
         f"| `regime_adapted` | {g.total_return_pct:.2f}% | {g.max_drawdown_pct:.2f}% | "
-        f"{g.total_trades} | {g.win_rate * 100:.1f}% | {g.profit_factor:.2f} | {g.margin_call_count} |",
+        f"{g.total_trades} | {g.win_rate * 100:.1f}% | {g.profit_factor:.2f} | "
+        f"{g.margin_call_count} |",
         "",
         "## 2. Cost Sensitivity Analysis",
         "| Slippage | Return % | Max DD % | Cost Drag % | Net P&L |",
@@ -48,12 +52,14 @@ def render_comparison_report(
             f"{m.cost_drag_pct:.1f}% | ${m.net_pnl:,.2f} |"
         )
 
-    lines.extend([
-        "",
-        "## 3. Leverage Sensitivity Analysis",
-        "| Leverage Cap | Return % | Max DD % | Peak Margin Debt | Margin Interest |",
-        "|---|---|---|---|---|",
-    ])
+    lines.extend(
+        [
+            "",
+            "## 3. Leverage Sensitivity Analysis",
+            "| Leverage Cap | Return % | Max DD % | Peak Margin Debt | Margin Interest |",
+            "|---|---|---|---|---|",
+        ]
+    )
 
     for lev_label, m in comparison.leverage_sensitivity.items():
         lines.append(
@@ -61,18 +67,25 @@ def render_comparison_report(
             f"${m.peak_margin_debt:,.2f} | ${m.margin_interest_paid:,.2f} |"
         )
 
-    lines.extend([
-        "",
-        "## 4. Evidence Classification & Governance",
-        "- `OBSERVED`: Reddit author reported $550k P&L on high-beta semi tickers with margin and covered calls.",
-        "- `DERIVED`: High trade frequency and volatile names make transaction costs and slippage dominant P&L drivers.",
-        "- `HYPOTHESIS`: Statistical pullback entries with ATR targets capture mean-reversion profits.",
-        "- `ASSUMPTION`: Fixed slippage bps and conservative intrabar stop-first resolution.",
-        "- `UNVERIFIED`: Option chain prices when simulated without tick-level historical option books.",
-        "",
-        "> [!IMPORTANT]",
-        "> No edge can be claimed until parameter perturbations and untouched out-of-sample periods confirm persistent positive expectancy after all fees and financing costs.",
-    ])
+    lines.extend(
+        [
+            "",
+            "## 4. Evidence Classification & Governance",
+            "- `OBSERVED`: Reddit author reported $550k P&L on high-beta semi tickers with "
+            "margin and covered calls.",
+            "- `DERIVED`: High trade frequency and volatile names make transaction costs and "
+            "slippage dominant P&L drivers.",
+            "- `HYPOTHESIS`: Statistical pullback entries with ATR targets capture "
+            "mean-reversion profits.",
+            "- `ASSUMPTION`: Fixed slippage bps and conservative intrabar stop-first resolution.",
+            "- `UNVERIFIED`: Option chain prices when simulated without tick-level historical "
+            "option books.",
+            "",
+            "> [!IMPORTANT]",
+            "> No edge can be claimed until parameter perturbations and untouched out-of-sample "
+            "periods confirm persistent positive expectancy after all fees and financing costs.",
+        ]
+    )
 
     return "\n".join(lines)
 
@@ -94,13 +107,17 @@ def run_and_save_comparison_report(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run complete strategy comparison report")
-    parser.add_argument("--config", type=str, default="configs/base.yaml", help="Path to YAML config")
+    parser.add_argument(
+        "--config", type=str, default="configs/base.yaml", help="Path to YAML config"
+    )
     parser.add_argument("--bars", type=int, default=200, help="Number of bars per ticker")
     args = parser.parse_args()
 
     config = load_config(args.config)
     data = {
-        sym: generate_synthetic_bars(symbol=sym, num_bars=args.bars, seed=config.project.random_seed + i)
+        sym: generate_synthetic_bars(
+            symbol=sym, num_bars=args.bars, seed=config.project.random_seed + i
+        )
         for i, sym in enumerate(config.strategy.universe)
     }
 

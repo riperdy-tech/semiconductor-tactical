@@ -62,11 +62,13 @@ Exit criterion: a small real historical chain fixture can reconstruct a known ca
 
 Generate:
 
-- literal clone;
-- risk controlled;
-- regime adapted.
+- [x] literal clone;
+- [x] risk controlled;
+- [x] regime adapted.
 
 Each must use the same base data and reporting metrics.
+
+Exit criterion: side-by-side performance and sensitivity metrics generated on identical base data.
 
 ## Phase 6 — Research report
 
@@ -76,13 +78,13 @@ Create:
 
 with:
 
-- headline findings;
-- regime dependence;
-- cost sensitivity;
-- leverage sensitivity;
-- options contribution;
-- margin-call frequency;
-- robustness;
-- limitations.
+- [x] headline findings;
+- [x] regime dependence;
+- [x] cost sensitivity;
+- [x] leverage sensitivity;
+- [x] options contribution;
+- [x] margin-call frequency;
+- [x] robustness;
+- [x] limitations.
 
 Do not declare an edge until the out-of-sample criteria in the research plan are met.
