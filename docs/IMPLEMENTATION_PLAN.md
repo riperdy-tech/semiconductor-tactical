@@ -49,12 +49,12 @@ Exit criterion: synthetic tests cover margin-call and recovery edge cases.
 
 ## Phase 4 — Options engine
 
-- [ ] option-chain provider interface
-- [ ] covered-call order lifecycle
-- [ ] option spread/slippage
-- [ ] assignment
-- [ ] underlying linkage
-- [ ] premium attribution
+- [x] option-chain provider interface
+- [x] covered-call order lifecycle
+- [x] option spread/slippage
+- [x] assignment
+- [x] underlying linkage
+- [x] premium attribution
 
 Exit criterion: a small real historical chain fixture can reconstruct a known call sequence without look-ahead.
 
