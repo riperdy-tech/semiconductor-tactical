@@ -197,8 +197,8 @@ Do not declare research-ready while any of these remain:
 Reference: `docs/execution_plan/PLAN.md`, `INSTRUCTIONS.md`, and `docs/AUDIT_20261002_POST_GEMINI.md`
 
 **Status:**
-- **ENGINE IMPLEMENTATION:** Substantially complete and research-gate compliant.
-- **HISTORICAL STRATEGY RESEARCH:** Not complete (remains blocked on ingest of genuine verified market data).
+- **ENGINE IMPLEMENTATION:** Complete and research-gate compliant.
+- **HISTORICAL STRATEGY RESEARCH:** First canonical 3-variant comparison executed on verified 1-minute historical data (`massive_stocks_1m_51e9b529de55`).
 - **OPTIONS RESEARCH:** Unvalidated (no historical tick-level option chains provided).
 - **EVENT FILTERING:** Partial / Unvalidated (blackout logic active, but no historical earnings calendar feed connected).
 
@@ -209,11 +209,12 @@ Reference: `docs/execution_plan/PLAN.md`, `INSTRUCTIONS.md`, and `docs/AUDIT_202
 4. [x] **Benchmark Decoupling & Regime Wiring**: `SMH` and `SPY` automatically loaded into `regime_adapted` while tradable universe execution is restricted to tradable symbols. `literal_clone` and `risk_controlled` remain unaffected when `sector_filter` is disabled.
 5. [x] **Session-Aware Cadence Validation**: Distinguishes intraday 1m spacing from legitimate overnight/weekend/holiday gaps while strictly rejecting cadence mismatches.
 6. [x] **Reconciled Experiment Grids**: Leverage sensitivities tested at `[1.0, 1.25, 1.5, 2.0, 3.0]` and cost sensitivities at `[0.0, 5.0, 10.0, 15.0]` bps.
+7. [x] **Genuine Market Data Ingestion Pipeline**: Ingested 1-minute historical aggregate bars for `MU`, `SNDK`, `SKHY`, `AMD`, `USD`, `SMH`, and `SPY` via Massive Stocks REST API for the 2026-07-01 to 2026-09-30 observation window. Filtered strictly to U.S. regular trading hours, validated via `doctor-data`, and generated authoritative manifest `massive_stocks_1m_51e9b529de55.json`.
+8. [x] **Canonical 3-Variant Historical Comparison Execution**: Executed `run.ps1 comparison-historical` on verified 1-minute data across 175,000+ bars with $O(1)$ event loop optimizations, generating machine-readable JSON metrics and Markdown reports.
 
 ### Remaining Research Blockers:
-1. [ ] **Genuine Market Data Ingestion**: Provide primary historical CSV datasets for `MU`, `SNDK`, `SKHY`, `AMD`, `USD`, `SMH`, and `SPY`.
-2. [ ] **Genuine Option Chain Ingestion**: Ingest historical tick-level option quotes before removing `UNVALIDATED` flag from covered-call experiments.
-3. [ ] **Final Reddit-Period Historical Reproduction**: Execute reproduction run on verified historical market data across Reddit period.
+1. [ ] **Genuine Option Chain Ingestion**: Ingest historical tick-level option quotes before removing `UNVALIDATED` flag from covered-call experiments.
+2. [ ] **Untouched Out-of-Sample Partition Execution**: Run final train/validation/test comparison once explicit OOS dates are designated in configuration.
 
 
 

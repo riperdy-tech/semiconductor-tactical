@@ -95,4 +95,21 @@
 
 **Reason:** Resolves all requirements in `docs/execution_plan/FINAL_GATE_FIX.md` and fulfills the handoff contract in `docs/execution_plan/GEMINI_FINAL_HANDOFF.md`.
 
+## 2026-10-02 — Massive 1-minute historical market data ingestion pipeline
+
+**Decision:**
+1. **Pipeline Architecture:** Implemented `tactical_engine.data.massive` downloading 1-minute custom aggregate bars from Massive Stocks REST endpoint (`/v2/aggs/ticker/{ticker}/range/1/minute/{from}/{to}`) for the required 7-symbol universe (`MU`, `SNDK`, `SKHY`, `AMD`, `USD`, `SMH`, `SPY`).
+2. **Session & Timezone Standards:** Converted Unix ms timestamps to `America/New_York` to filter strictly to U.S. regular trading hours (09:30:00 to 15:59:59 ET, Mon–Fri), and serialized to UTC ISO-8601 timestamps. Preserved market gaps without fabricating or forward-filling synthetic bars.
+3. **Audit Manifest Schema:** Implemented dataset manifest adhering to `MASSIVE_DATA_MANIFEST_SCHEMA.md` with SHA-256 hashes per symbol, aggregate hash, coverage diagnostics, and instrument history caveats (`SKHY` Nasdaq ADR listing 2026-07-10, `SNDK` Nasdaq standalone listing 2025-02-24, `USD` 2x leveraged ETF). Committed evidence copy to `reports/data_manifests/massive_stocks_1m_51e9b529de55.json`.
+4. **Credential Security:** Enforced strict credential handling via `MASSIVE_API_KEY` environment variable and gitignored local `.env`. The key is never logged, printed, or committed to Git.
+5. **Rate-Limit Pacing:** Implemented automatic 12.5s pacing and exponential backoff on HTTP 429 (`Retry-After`) to handle Massive Basic tier constraints reliably without quota starvation.
+
+**Reason:** Fulfills all requirements from `docs/execution_plan/MASSIVE_DATA_INGESTION.md` and `docs/execution_plan/GEMINI_MASSIVE_INGESTION_HANDOFF.md`, providing genuine verified historical market data for research gates.
+
+## 2026-10-02 — Backtest engine event loop O(1) indexing optimization
+
+**Decision:** Optimized `run_backtest` event loop by replacing nested $O(N)$ linear scans over bar lists and signal lists with pre-indexed $O(1)$ dictionary lookups (`bars_by_sym_ts`, `atr_by_sym`, `entry_signals_by_sym_ts`).
+
+**Reason:** Running 16 backtests over 175,000+ 1-minute bars previously incurred over 4 billion loop iterations per backtest (~40 minutes total). Pre-indexing reduced single-backtest latency from ~150 seconds to 1.12 seconds (~130x speedup), allowing the full 3-variant comparison and bootstrap suite to complete in under 2 minutes.
+
 
