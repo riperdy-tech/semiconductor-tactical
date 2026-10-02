@@ -17,14 +17,19 @@ class TradeRecord(BaseModel):
     gross_pnl: float
     net_pnl: float
     exit_reason: str
+    slippage_paid: float = 0.0
+    commission_paid: float = 0.0
 
 
 class PortfolioTracker:
     def __init__(self, initial_cash: float):
+        self.initial_cash = initial_cash
         self.cash = initial_cash
         self.positions: dict[str, Position] = {}
         self.closed_trades: list[TradeRecord] = []
         self.entry_times: dict[str, datetime] = {}
+        self.entry_commissions: dict[str, float] = {}
+        self.entry_slippage: dict[str, float] = {}
         self.margin_interest_paid: float = 0.0
         self.peak_margin_debt: float = 0.0
         self.margin_call_count: int = 0
@@ -67,10 +72,24 @@ class PortfolioTracker:
                 self.peak_margin_debt = debt
             if fill.symbol not in self.entry_times:
                 self.entry_times[fill.symbol] = fill.timestamp
+            self.entry_commissions[fill.symbol] = (
+                self.entry_commissions.get(fill.symbol, 0.0) + fill.commission
+            )
+            self.entry_slippage[fill.symbol] = (
+                self.entry_slippage.get(fill.symbol, 0.0) + fill.slippage
+            )
         else:
-            # Sell
+            # Sell: gross_pnl uses fill.price (which already includes market slippage)
             gross_pnl = (fill.price - pos.avg_price) * fill.quantity
-            net_pnl = gross_pnl - fill.commission - fill.slippage
+            alloc_ratio = (fill.quantity / pos.quantity) if pos.quantity > 0 else 1.0
+            entry_comm = self.entry_commissions.get(fill.symbol, 0.0) * alloc_ratio
+            entry_slip = self.entry_slippage.get(fill.symbol, 0.0) * alloc_ratio
+            total_comm = round(entry_comm + fill.commission, 4)
+            total_slip = round(entry_slip + fill.slippage, 4)
+
+            # Net P&L: fill prices already reflect market slippage; only commissions are subtracted
+            net_pnl = gross_pnl - total_comm
+
             self.closed_trades.append(
                 TradeRecord(
                     symbol=fill.symbol,
@@ -82,6 +101,8 @@ class PortfolioTracker:
                     gross_pnl=round(gross_pnl, 2),
                     net_pnl=round(net_pnl, 2),
                     exit_reason=exit_reason,
+                    slippage_paid=round(total_slip, 2),
+                    commission_paid=round(total_comm, 2),
                 )
             )
             self.cash += (fill.quantity * fill.price) - fill.commission
@@ -89,7 +110,15 @@ class PortfolioTracker:
             if remaining_qty == 0:
                 self.positions.pop(fill.symbol, None)
                 self.entry_times.pop(fill.symbol, None)
+                self.entry_commissions.pop(fill.symbol, None)
+                self.entry_slippage.pop(fill.symbol, None)
             else:
+                self.entry_commissions[fill.symbol] = (
+                    self.entry_commissions.get(fill.symbol, 0.0) - entry_comm
+                )
+                self.entry_slippage[fill.symbol] = (
+                    self.entry_slippage.get(fill.symbol, 0.0) - entry_slip
+                )
                 self.positions[fill.symbol] = Position(
                     symbol=fill.symbol,
                     quantity=remaining_qty,

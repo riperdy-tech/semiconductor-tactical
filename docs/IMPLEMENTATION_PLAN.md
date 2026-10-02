@@ -63,25 +63,14 @@ Explicitly handle and document splits, ticker changes, adjusted/unadjusted data,
 Gate: a real historical dataset passes validation and produces a reproducible equity-only backtest. (PASSED)
 
 
-# Phase 2 — Correct execution, accounting, and position mechanics
+# Phase 2 — Correct execution, accounting, and position mechanics [COMPLETED]
 
-Fix execution order:
-signal timestamp -> order creation -> next eligible fill -> fill price -> costs -> portfolio state.
-
-Default rule: a signal created at bar close may not fill on that same bar close.
-
-Fix the current likely slippage double-count. Use one canonical accounting convention:
-- execution price contains market slippage;
-- cash uses execution price;
-- trade P&L uses execution prices;
-- commissions/fees are separate;
-- slippage is reported as attribution, not deducted twice.
-
-Add a reconciliation test tying starting equity, ending equity, realized P&L, unrealized P&L, fees, and financing together within a documented tolerance.
-
-Implement real liquidity behavior. Oversized orders must partially fill or expire; never silently become full fills.
-
-Support multiple positions, multiple entries, partial exits, average cost, realized/unrealized P&L, commissions, slippage, and financing.
+- [x] Fix execution order: signal timestamp -> order creation -> next eligible fill -> fill price -> costs -> portfolio state.
+- [x] Default rule: a signal created at bar close may not fill on that same bar close (verified by test_no_lookahead.py).
+- [x] Fix slippage double-count: execution price contains market slippage; cash uses execution price; trade P&L uses execution prices; commissions/fees are separate; slippage reported as attribution.
+- [x] Add reconciliation tests (`tests/test_reconciliation.py`) tying starting equity, ending equity, realized P&L, unrealized P&L, fees, and financing together within tolerance.
+- [x] Implement real liquidity behavior: oversized orders capped at 10% bar volume; never silently become full fills.
+- [x] Support multiple positions, multiple entries, partial exits, average cost, realized/unrealized P&L, commissions, slippage, and financing.
 
 # Phase 3 — Implement mechanics currently exposed only as configuration
 
