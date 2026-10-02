@@ -140,3 +140,14 @@ Do not declare the strategy successful or unsuccessful based only on the full-sa
 All audit acceptance criteria pass, then stop coding.
 
 The next step is a clean formal OOS research execution and interpretation.
+## Phase G — OOS and provenance reconciliation
+
+Before any formal research interpretation, execute:
+
+docs/execution_plan/OOS_PROVENANCE_RECONCILIATION.md
+
+This phase is mandatory because the first full-period run exposed the later September partition before the OOS boundaries were frozen, and the post-audit report currently contains configuration and aggregate-hash claims that must be reconciled against the actual run artifacts and checked-in manifest.
+
+Do not call September a pristine OOS result unless the evidence proves it was previously unseen. Do not silently regenerate the historical run to make the provenance agree.
+
+After reconciliation, stop software changes unless a real defect is found.
