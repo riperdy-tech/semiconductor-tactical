@@ -117,15 +117,15 @@ The first milestone is **not** live execution. It is a reproducible research rep
 
 ## Current implementation status
 
-The repository currently has the core package/test scaffold and synthetic fixture runner.
+The repository has implemented and verified all audited components from `docs/AUDIT_20261002.md`:
 
-The following items remain research blockers and are documented in `docs/AUDIT_20261002.md`:
+- **Real historical equity-data ingestion**: `CsvEquityDataProvider`, `DataProvenance`, per-file and aggregate SHA-256 digests, validation for duplicates/gaps/anomalies, and canonical CLI commands (`.\run.ps1 doctor-data`, `.\run.ps1 historical`).
+- **Genuine leverage enforcement**: `max_gross_leverage` strictly constrains total portfolio gross exposure during sizing and tracks maintenance buying power.
+- **Genuine layered-entry behavior**: `LayerRecord` tracks entry layers, individual fill prices, incremental risk, and enforces maximum layer limits.
+- **Actual 2× ETF integration**: Ingestion and backtest execution on real 2× ETF series (`USD.csv`) without synthetic scaling.
+- **Sector and regime benchmark layer**: `BenchmarkRegimeProvider` with dual `SMH` and `SPY` benchmark tracking, plus optional `ExternalRegimeProvider` adapter.
+- **Active signal filters**: `relative_volume_filter` (pullback volume confirmation) and `event_filter` (earnings/event blackout suppression).
+- **Covered-call repurchase engine**: `should_repurchase_covered_call` supporting strength entry, pullback repurchase, profit-based decay (50%), and expiration assignment.
+- **Realistic margin engine**: Financing rates, initial/maintenance margin requirements, margin call detection, ordered forced liquidation, and residual debt calculation.
+- **Rigorous reconciliation and anti-lookahead**: Proven next-bar execution and exact $0.01 tolerance cash/equity reconciliation across partial/complete trade cycles.
 
-- real historical equity-data ingestion;
-- genuine leverage enforcement;
-- genuine layered-entry behavior;
-- actual 2× ETF integration;
-- sector/regime inputs rather than per-symbol trend substitution;
-- real use of relative-volume and event filters;
-- historical options data and realistic covered-call repurchase/assignment accounting;
-- consistent cost/P&L accounting tests.

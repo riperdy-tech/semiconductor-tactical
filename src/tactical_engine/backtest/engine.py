@@ -10,6 +10,7 @@ from tactical_engine.options.assignment import evaluate_expiration_assignment
 from tactical_engine.options.chain_provider import OptionChainProvider
 from tactical_engine.options.contracts import CoveredCallRecord, OptionContractType, OptionPosition
 from tactical_engine.options.covered_calls import select_covered_call_contract
+from tactical_engine.options.repurchase import should_repurchase_covered_call
 from tactical_engine.portfolio.margin import (
     calculate_maintenance_requirement,
     generate_forced_liquidation_orders,
@@ -130,16 +131,65 @@ def run_backtest(
             for liq_ord in liquidation_orders:
                 pending_orders.append(liq_ord)
 
-        # C. Covered Call Expiration & Assignment check
+        # C. Covered Call Repurchase & Expiration/Assignment check
         if config.options.enabled and validation_status == "VALIDATED":
             for sym in list(tracker.covered_calls.keys()):
                 call_pos = tracker.covered_calls[sym]
                 bar = bars_at_ts.get(sym)
-                if bar and (ts >= call_pos.expiration or sym not in tracker.positions):
+                if not bar:
+                    continue
+
+                contracts = abs(call_pos.quantity)
+                underlying_entry_p = (
+                    tracker.positions[sym].avg_price if sym in tracker.positions else bar.close
+                )
+
+                # Look for current quote of this contract in chain
+                current_quote = None
+                if option_chain_provider:
+                    chain = option_chain_provider.get_chain(sym, ts)
+                    for q in chain:
+                        if q.symbol == call_pos.symbol:
+                            current_quote = q
+                            break
+
+                # 1. Repurchase check (pullback or profit target)
+                should_repurch, repurch_reason, repurch_p = should_repurchase_covered_call(
+                    call_position=call_pos,
+                    current_call_quote=current_quote,
+                    current_underlying_price=bar.close,
+                    underlying_price_at_entry=underlying_entry_p,
+                    config=config.options,
+                )
+                if should_repurch:
+                    repurch_cost = repurch_p * 100.0 * contracts
+                    tracker.cash -= repurch_cost
+                    opt_realized = (call_pos.avg_price - repurch_p) * 100.0 * contracts
+                    tracker.options_realized_pnl += opt_realized
+                    tracker.covered_call_records.append(
+                        CoveredCallRecord(
+                            contract_symbol=call_pos.symbol,
+                            underlying=sym,
+                            strike=call_pos.strike,
+                            expiration=call_pos.expiration,
+                            entry_time=call_pos.expiration,
+                            exit_time=ts,
+                            entry_premium=call_pos.avg_price,
+                            exit_premium=repurch_p,
+                            contracts=contracts,
+                            realized_pnl=round(opt_realized, 2),
+                            was_assigned=False,
+                            underlying_shares_delivered=0.0,
+                        )
+                    )
+                    tracker.covered_calls.pop(sym, None)
+                    continue
+
+                # 2. Expiration and assignment check
+                if ts >= call_pos.expiration or sym not in tracker.positions:
                     is_assigned, cash_proceeds, shares_deliv = evaluate_expiration_assignment(
                         call_pos, bar.close
                     )
-                    contracts = abs(call_pos.quantity)
                     if is_assigned:
                         tracker.cash += cash_proceeds
                         # Deliver shares from underlying position

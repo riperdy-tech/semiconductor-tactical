@@ -79,3 +79,19 @@ def generate_forced_liquidation_orders(
             break
 
     return orders
+
+
+def calculate_buying_power(
+    equity: float,
+    current_positions_value: float,
+    max_leverage: float = 2.0,
+) -> float:
+    """Calculate remaining buying power under configured maximum gross leverage."""
+    max_total_exposure = max(0.0, equity * max_leverage)
+    return max(0.0, max_total_exposure - current_positions_value)
+
+
+def calculate_residual_debt(cash: float, remaining_positions_value: float) -> float:
+    """Calculate uncollateralized residual debt if cash is negative and exceeds position value."""
+    net_equity = cash + remaining_positions_value
+    return max(0.0, -net_equity)

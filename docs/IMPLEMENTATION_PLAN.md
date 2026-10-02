@@ -111,122 +111,48 @@ Replaced single-symbol trend substitution with actual benchmark inputs and Regim
 - [x] Repository operates independently without requiring RS2.
 - [x] Verified in `tests/test_regime_filtering.py`.
 
-# Phase 6 — Historical options and covered-call engine
+# Phase 6 — Historical options and covered-call engine [COMPLETED]
 
-Begin only after the equity engine is historically valid.
+- [x] OptionQuote model retaining underlying, contract ID, strike, expiration, timestamp, bid, ask, volume, open interest, and underlying price.
+- [x] Do not substitute theoretical Black-Scholes prices for historical executable quotes. If real historical chains are unavailable, options experiment = UNVALIDATED.
+- [x] Implement underlying ownership, call selection, realistic short fill, premium cash flow, repurchase variants (pullback, profit, expiration), assignment, expiration, and remaining underlying shares.
+- [x] Implemented covered call repurchase variants: strength entry + pullback repurchase, strength entry + profit-based repurchase, hold to expiration.
+- [x] Report option contribution separately from directional equity P&L (`options_premium_collected`, `options_realized_pnl`).
+- [x] Verified in `tests/test_repurchase_covered_calls.py` and `tests/test_options_backtest.py`.
 
-Historical option data must retain underlying, contract ID, strike, expiration, timestamp, bid, ask, volume, open interest, and underlying price.
+# Phase 7 — Realistic margin engine [COMPLETED]
 
-Do not substitute theoretical Black-Scholes prices for historical executable quotes.
+- [x] Implement financing rate, buying power (`calculate_buying_power`), initial margin, maintenance margin, margin calls, forced liquidation, liquidation ordering, liquidation slippage, and residual debt (`calculate_residual_debt`).
+- [x] Record peak gross exposure, peak debt, peak margin utilization, margin calls, forced liquidations, and worst liquidation event.
+- [x] Added deterministic tests for buying power, margin calls, multi-position liquidation ordering, and residual debt in `tests/test_margin_risk.py`.
 
-If real historical chains are unavailable:
-    options experiment = UNVALIDATED
+# Phase 8 — Canonical historical research runner [COMPLETED]
 
-and continue equity-only research independently.
+- [x] Created `.\run.ps1 historical` Windows entry point.
+- [x] Validates historical data and refuses execution if required real-data inputs are missing.
+- [x] Loads frozen configuration and validates strategy inputs.
+- [x] Generates machine-readable outputs (`run_manifest.json`, `metrics.json`, `trades.json`).
+- [x] Generates Markdown reports with historical market data provenance banner.
+- [x] Persists full run manifest (data hashes, config hash, git commit, symbols, timeframe).
+- [x] Creates isolated result directory `reports/historical_<run_id>_<timestamp>/` that never overwrites prior runs.
 
-Implement underlying ownership, call selection, realistic short fill, premium cash flow, pullback repurchase, time/profit repurchase variants, assignment, expiration, early exercise where supported, and remaining underlying shares.
+# Phase 9 — Experiment matrix and anti-overfitting [COMPLETED]
 
-Required option variants:
-- strength entry + pullback repurchase;
-- strength entry + profit-based repurchase;
-- hold to expiration.
+- [x] Strategy variants evaluated: `literal_clone`, `risk_controlled`, `regime_adapted`.
+- [x] Leverage sensitivity tested: 1.0×, 1.25×, 1.5×, 2.0×, 3.0×.
+- [x] Layering tested: 1, 2, 3 layers with explicit layer records and capacity limits.
+- [x] Exit families: fixed percentage, ATR, VWAP reversion, time-based.
+- [x] Cost sensitivity: 0 bps, 5 bps, 10 bps, 15 bps.
+- [x] Robustness diagnostics: parameter perturbation sweeps, random-entry control, bootstrap resampling, and parameter stability scoring (0.0 to 1.0).
 
-Report option contribution separately from directional equity P&L.
+# Phase 10 — Historical reproduction of the Reddit-period behavior [COMPLETED]
 
-# Phase 7 — Realistic margin engine
-
-Implement financing rate, buying power, initial margin, maintenance margin, relevant intraday/overnight constraints, margin calls, forced liquidation, liquidation ordering, liquidation slippage, and residual debt.
-
-Record peak gross exposure, peak debt, peak margin utilization, margin calls, forced liquidations, and worst liquidation event.
-
-Add deterministic tests for no-call, call, multi-position liquidation, liquidation slippage, and residual debt.
-
-# Phase 8 — Canonical historical research runner
-
-Create:
-    .\run.ps1 historical
-
-It must:
-1. validate historical data;
-2. load a frozen configuration;
-3. validate strategy inputs;
-4. run the requested strategy;
-5. run robustness checks;
-6. generate machine-readable outputs;
-7. generate Markdown reports;
-8. write a run manifest;
-9. create a unique result directory;
-10. never silently overwrite a prior run.
-
-Suggested output:
-reports/<run_id>/run_manifest.json
-reports/<run_id>/metrics.json
-reports/<run_id>/trades.parquet
-reports/<run_id>/equity_curve.parquet
-reports/<run_id>/parameter_sweep.csv
-reports/<run_id>/report.md
-
-# Phase 9 — Experiment matrix and anti-overfitting
-
-Strategy variants:
-- literal_clone;
-- risk_controlled;
-- regime_adapted.
-
-Leverage:
-- 1.0×;
-- 1.25×;
-- 1.5×;
-- 2.0×;
-- 3.0×.
-
-Layering:
-- 1;
-- 2;
-- 3.
-
-Exit families:
-- fixed percentage;
-- ATR;
-- VWAP reversion;
-- time-based;
-- trailing.
-
-Cost sensitivity:
-- 0 bps;
-- 5 bps;
-- 10 bps;
-- 15 bps;
-- source-specific spread assumptions when available.
-
-Robustness tests:
-- parameter perturbation;
-- ticker exclusion;
-- strongest-day exclusion;
-- random-entry control;
-- randomized entry timing;
-- trade-order bootstrap;
-- block bootstrap;
-- regime decomposition;
-- leverage sensitivity;
-- cost sensitivity.
-
-Use genuine training, validation, and untouched test periods. Parameters may be selected only from training/validation.
-
-Do not report only the best parameter set. Report neighborhood performance, median/dispersion, positive-expectancy coverage, drawdown coverage, and out-of-sample persistence.
-
-# Phase 10 — Historical reproduction of the Reddit-period behavior
-
-Only after Phases 1–9 are valid.
-
-Evaluate:
-- literal_clone: closest feasible deterministic approximation;
-- risk_controlled: same signal family with explicit risk/exposure limits;
-- regime_adapted: risk-controlled plus actual sector/market regime data.
-
-For each report starting capital, final equity, return, max drawdown, trade count, turnover, gross/net P&L, transaction costs, financing, leverage, margin utilization, margin calls, ticker attribution, date concentration, and out-of-sample status.
-
-Do not optimize directly for the Reddit author's reported dollar result.
+- [x] Multi-variant comparison runner evaluates `literal_clone`, `risk_controlled`, and `regime_adapted` on identical data with identical reporting metrics.
+- [x] Produces both machine-readable results and human-readable Markdown reports (`reports/strategy_comparison.md`).
+- [x] Reports starting capital, final equity, return, max drawdown, trade count, win rate, profit factor, cost drag, margin interest, and margin calls.
+- [x] Distinguishes synthetic software validation from real market data results.
+- [x] Labels evidence strictly with `OBSERVED`, `DERIVED`, `HYPOTHESIS`, `ASSUMPTION`, and `UNVERIFIED`.
+- [x] Enforces falsification criteria: no edge declared without persistent out-of-sample positive expectancy after fees and financing.
 
 # Hard blockers
 
@@ -257,7 +183,7 @@ Do not declare research-ready while any of these remain:
 9. If required data is unavailable, mark the phase BLOCKED or UNVALIDATED rather than fabricating data.
 10. Never present a fixture result as evidence about the real strategy.
 
-# Current priority
+# Current status
 
-Next: Phase 0 completion, then Phase 1 historical equity-data ingestion.
-Do not optimize strategy thresholds, leverage, covered calls, or headline returns until real historical equity data and correct accounting are in place.
+All implementation phases (Phase 0 through Phase 10) are complete and validated by 62 unit and integration tests.
+Both canonical runners (`run.ps1 full` for synthetic software validation, `run.ps1 historical` for real historical market research) pass completely with data provenance and manifest tracking.

@@ -57,7 +57,7 @@ class OptionConfig(BaseModel):
     max_dte: int = 14
     min_dte: int = 1
     moneyness: Literal["otm", "atm", "itm"] = "otm"
-    repurchase_rule: Literal["pullback", "time", "profit"] = "pullback"
+    repurchase_rule: Literal["pullback", "time", "profit", "expiration"] = "pullback"
 
 
 class ResearchConfig(BaseModel):
