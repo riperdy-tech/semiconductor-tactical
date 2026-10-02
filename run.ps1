@@ -16,8 +16,7 @@ function Write-Step([string]$Message) {
 }
 
 function Invoke-Python {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
-    & $Python @Args
+    & $Python $args
     if ($LASTEXITCODE -ne 0) {
         throw "Python command failed with exit code $LASTEXITCODE"
     }
