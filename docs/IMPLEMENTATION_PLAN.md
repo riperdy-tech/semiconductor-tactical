@@ -38,12 +38,12 @@ Exit criterion: one command can generate the full equity-only experiment matrix.
 
 ## Phase 3 — Margin model
 
-- [ ] financing rate
-- [ ] maintenance margin
-- [ ] buying power
-- [ ] forced liquidation
-- [ ] liquidation slippage
-- [ ] intraday/overnight constraints
+- [x] financing rate
+- [x] maintenance margin
+- [x] buying power
+- [x] forced liquidation
+- [x] liquidation slippage
+- [x] intraday/overnight constraints
 
 Exit criterion: synthetic tests cover margin-call and recovery edge cases.
 
