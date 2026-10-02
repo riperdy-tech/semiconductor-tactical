@@ -72,25 +72,15 @@ Gate: a real historical dataset passes validation and produces a reproducible eq
 - [x] Implement real liquidity behavior: oversized orders capped at 10% bar volume; never silently become full fills.
 - [x] Support multiple positions, multiple entries, partial exits, average cost, realized/unrealized P&L, commissions, slippage, and financing.
 
-# Phase 3 — Implement mechanics currently exposed only as configuration
+# Phase 3 — Implement mechanics currently exposed only as configuration [COMPLETED]
 
-Gross leverage must actually constrain:
-    sum(abs(position_market_value)) <= equity * max_gross_leverage
-
-Test 1.0×, 1.25×, 1.5×, 2.0×, and 3.0×.
-
-Symbol exposure must obey:
-    position_value <= equity * max_symbol_weight
-
-Risk sizing must obey:
-    risk_budget = equity * risk_per_trade_pct / 100
-    quantity <= risk_budget / stop_distance
-
-Implement explicit layered-entry state. Each layer records layer number, signal time, intended price, fill price, quantity, incremental risk, and aggregate risk.
-
-Support configured 1-, 2-, and 3-layer experiments. No unbounded martingale/averaging down.
-
-Implement actual 2× ETF ingestion and trading. Do not synthesize ETF prices by multiplying a stock return by two.
+- [x] Gross leverage actually constrains position sizing: `sum(abs(position_market_value)) <= equity * max_gross_leverage`.
+- [x] Tested 1.0×, 1.25×, 1.5×, 2.0×, and 3.0× in `tests/test_phase3_mechanics.py`.
+- [x] Symbol exposure strictly obeys: `position_value <= equity * max_symbol_weight`.
+- [x] Risk sizing strictly obeys: `risk_budget = equity * risk_per_trade_pct / 100`, `quantity <= risk_budget / stop_distance`.
+- [x] Implemented explicit layered-entry state (`LayerRecord`) tracking layer number, signal time, intended price, fill price, quantity, incremental risk, and aggregate risk.
+- [x] Supported configured 1-, 2-, and 3-layer experiments without unbounded averaging down.
+- [x] Implemented actual 2× ETF ingestion and trading (`USD.csv`) without synthetic return scaling.
 
 # Phase 4 — Implement the actual signal feature set
 

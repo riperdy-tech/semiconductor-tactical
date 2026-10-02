@@ -21,6 +21,17 @@ class TradeRecord(BaseModel):
     commission_paid: float = 0.0
 
 
+class LayerRecord(BaseModel, frozen=True):
+    layer_number: int
+    signal_time: datetime
+    fill_time: datetime
+    intended_price: float
+    fill_price: float
+    quantity: float
+    incremental_risk: float
+    aggregate_risk: float
+
+
 class PortfolioTracker:
     def __init__(self, initial_cash: float):
         self.initial_cash = initial_cash
@@ -30,6 +41,7 @@ class PortfolioTracker:
         self.entry_times: dict[str, datetime] = {}
         self.entry_commissions: dict[str, float] = {}
         self.entry_slippage: dict[str, float] = {}
+        self.layers_by_symbol: dict[str, list[LayerRecord]] = {}
         self.margin_interest_paid: float = 0.0
         self.peak_margin_debt: float = 0.0
         self.margin_call_count: int = 0
@@ -51,7 +63,9 @@ class PortfolioTracker:
             return interest
         return 0.0
 
-    def apply_fill(self, fill: Fill, exit_reason: str = "") -> None:
+    def apply_fill(
+        self, fill: Fill, exit_reason: str = "", stop_price: float | None = None
+    ) -> None:
         if "forced_liquidation" in exit_reason:
             self.forced_liquidation_count += 1
 
@@ -78,6 +92,31 @@ class PortfolioTracker:
             self.entry_slippage[fill.symbol] = (
                 self.entry_slippage.get(fill.symbol, 0.0) + fill.slippage
             )
+
+            # Record Layer State
+            existing_layers = self.layers_by_symbol.get(fill.symbol, [])
+            layer_num = len(existing_layers) + 1
+            risk_per_share = (
+                (fill.price - stop_price)
+                if stop_price and stop_price < fill.price
+                else (fill.price * 0.02)
+            )
+            inc_risk = risk_per_share * fill.quantity
+            agg_risk = sum(layer.incremental_risk for layer in existing_layers) + inc_risk
+
+            layer_rec = LayerRecord(
+                layer_number=layer_num,
+                signal_time=self.entry_times.get(fill.symbol, fill.timestamp),
+                fill_time=fill.timestamp,
+                intended_price=fill.price,
+                fill_price=fill.price,
+                quantity=fill.quantity,
+                incremental_risk=round(inc_risk, 2),
+                aggregate_risk=round(agg_risk, 2),
+            )
+            if fill.symbol not in self.layers_by_symbol:
+                self.layers_by_symbol[fill.symbol] = []
+            self.layers_by_symbol[fill.symbol].append(layer_rec)
         else:
             # Sell: gross_pnl uses fill.price (which already includes market slippage)
             gross_pnl = (fill.price - pos.avg_price) * fill.quantity
@@ -112,6 +151,7 @@ class PortfolioTracker:
                 self.entry_times.pop(fill.symbol, None)
                 self.entry_commissions.pop(fill.symbol, None)
                 self.entry_slippage.pop(fill.symbol, None)
+                self.layers_by_symbol.pop(fill.symbol, None)
             else:
                 self.entry_commissions[fill.symbol] = (
                     self.entry_commissions.get(fill.symbol, 0.0) - entry_comm

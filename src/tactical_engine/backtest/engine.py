@@ -223,14 +223,23 @@ def run_backtest(
 
         # F. Generate equity entry orders for next bar
         for sym, sigs in signals_by_sym.items():
-            if sym in tracker.positions:
+            existing_pos = tracker.positions.get(sym, None)
+            existing_layers = len(tracker.layers_by_symbol.get(sym, []))
+            if existing_pos and existing_layers >= config.portfolio.max_layers:
                 continue
+
             bar = bars_at_ts.get(sym)
             if not bar:
                 continue
+
             matching_sigs = [s for s in sigs if s.timestamp == ts and s.action == "ENTER_LONG"]
             if matching_sigs:
                 sig = matching_sigs[0]
+                # If layering into existing position, only enter if price
+                # pulled back below avg_price
+                if existing_pos and bar.close > existing_pos.avg_price:
+                    continue
+
                 df_sym = features_by_sym[sym]
                 atr = float(df_sym.loc[ts, "atr"]) if ts in df_sym.index else 1.0
                 stop_p = bar.close - (config.exits.stop_atr * atr)
@@ -240,8 +249,10 @@ def run_backtest(
                     stop_price=stop_p,
                     account_state=current_account_state,
                     config=config.portfolio,
+                    current_prices=current_prices,
                 )
                 if qty > 0:
+                    layer_num = existing_layers + 1
                     pending_orders.append(
                         Order(
                             order_id=str(uuid.uuid4())[:8],
@@ -250,7 +261,7 @@ def run_backtest(
                             side=OrderSide.BUY,
                             order_type=OrderType.MARKET,
                             quantity=qty,
-                            tag=sig.reason,
+                            tag=f"layer_{layer_num}:{sig.reason}",
                         )
                     )
 
