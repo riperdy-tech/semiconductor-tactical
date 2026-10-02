@@ -1,0 +1,68 @@
+import numpy as np
+from pydantic import BaseModel
+from tactical_engine.backtest.engine import BacktestResult
+
+
+class PerformanceMetrics(BaseModel):
+    initial_cash: float
+    final_equity: float
+    total_return_pct: float
+    max_drawdown_pct: float
+    total_trades: int
+    win_rate: float
+    profit_factor: float
+    expectancy_per_trade: float
+    gross_pnl: float
+    net_pnl: float
+    cost_drag_pct: float
+
+
+def calculate_metrics(result: BacktestResult) -> PerformanceMetrics:
+    init_c = result.initial_cash
+    final_eq = result.final_equity
+    tot_ret = ((final_eq - init_c) / init_c) * 100.0 if init_c > 0 else 0.0
+
+    # Max Drawdown
+    eq = np.array(result.equity_curve)
+    if len(eq) > 0:
+        peaks = np.maximum.accumulate(eq)
+        drawdowns = (peaks - eq) / peaks
+        max_dd = float(np.max(drawdowns)) * 100.0
+    else:
+        max_dd = 0.0
+
+    # Trade stats
+    trades = result.trades
+    total_trades = len(trades)
+    if total_trades > 0:
+        wins = [t for t in trades if t.net_pnl > 0]
+        losses = [t for t in trades if t.net_pnl <= 0]
+        win_rate = len(wins) / total_trades
+        gross_profit = sum(t.net_pnl for t in wins)
+        gross_loss = abs(sum(t.net_pnl for t in losses))
+        profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else float("inf")
+        net_pnl = sum(t.net_pnl for t in trades)
+        gross_pnl = sum(t.gross_pnl for t in trades)
+        expectancy = net_pnl / total_trades
+        cost_drag = ((gross_pnl - net_pnl) / abs(gross_pnl)) * 100.0 if gross_pnl != 0 else 0.0
+    else:
+        win_rate = 0.0
+        profit_factor = 0.0
+        net_pnl = 0.0
+        gross_pnl = 0.0
+        expectancy = 0.0
+        cost_drag = 0.0
+
+    return PerformanceMetrics(
+        initial_cash=init_c,
+        final_equity=final_eq,
+        total_return_pct=round(tot_ret, 2),
+        max_drawdown_pct=round(max_dd, 2),
+        total_trades=total_trades,
+        win_rate=round(win_rate, 4),
+        profit_factor=round(profit_factor, 2),
+        expectancy_per_trade=round(expectancy, 2),
+        gross_pnl=round(gross_pnl, 2),
+        net_pnl=round(net_pnl, 2),
+        cost_drag_pct=round(cost_drag, 2),
+    )
