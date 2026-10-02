@@ -80,3 +80,15 @@ Once the final gate fix is complete, continue with:
 The human may provide `MASSIVE_API_KEY` at runtime. Never request that the key be committed to the repository.
 
 The Massive phase is strictly data acquisition, normalization, provenance, and verification. Do not optimize the strategy or interpret performance during this phase.
+
+## Current phase after first real-data run
+
+The Massive ingestion phase has now produced a genuine 1-minute dataset and a first historical comparison. Before any further research interpretation, execute:
+
+1. docs/execution_plan/POST_FIRST_REAL_RUN_AUDIT.md
+2. docs/execution_plan/POST_FIRST_RUN_ACCEPTANCE_TESTS.md
+3. docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md
+
+Do not tune the strategy to improve the first-run result. The current task is to correct implementation fidelity, freeze exit geometry, reconcile provenance, add diagnostics, and establish explicit train/validation/test boundaries.
+
+After the audit acceptance criteria pass, stop software changes and wait for the formal OOS research run.
