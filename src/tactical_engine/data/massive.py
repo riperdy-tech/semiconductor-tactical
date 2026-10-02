@@ -388,6 +388,7 @@ def ingest_massive_universe(
     api_key: str | None = None,
     raw_dir: Path | str | None = None,
     reports_dir: Path | str | None = "reports/data_manifests",
+    rate_limit_delay: float = 12.5,
 ) -> bool:
     """Ingests, RTH-filters, validates, and serializes Massive 1-minute historical data."""
     if not api_key:
@@ -401,7 +402,7 @@ def ingest_massive_universe(
     if raw_path:
         raw_path.mkdir(parents=True, exist_ok=True)
 
-    client = MassiveClient(api_key=api_key)
+    client = MassiveClient(api_key=api_key, rate_limit_delay_seconds=rate_limit_delay)
 
     print("=" * 105)
     print("MASSIVE HISTORICAL DATA INGESTION ENGINE")
@@ -571,6 +572,12 @@ def main() -> None:
     parser.add_argument(
         "--symbols", nargs="+", default=None, help="Symbols to fetch (defaults to all 7 required)"
     )
+    parser.add_argument(
+        "--rate-limit-delay",
+        type=float,
+        default=12.5,
+        help="Delay in seconds between requests for rate limiting (default: 12.5 for Basic tier)",
+    )
     args = parser.parse_args()
 
     try:
@@ -580,6 +587,7 @@ def main() -> None:
             data_dir=args.data_dir,
             symbols=args.symbols,
             raw_dir=args.raw_dir,
+            rate_limit_delay=args.rate_limit_delay,
         )
         if not success:
             sys.exit(1)
