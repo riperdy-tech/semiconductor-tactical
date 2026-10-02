@@ -23,9 +23,23 @@ if ($Mode -notin @("historical", "comparison-historical", "doctor-data", "ingest
 }
 
 
-# If Config is base.yaml and running historical commands, default to historical_daily.yaml for daily datasets
+# If Config is base.yaml and running historical commands, choose 1m or daily config based on dataset manifest
 if ($Config -eq "configs/base.yaml" -and ($Mode -in "historical", "doctor-data", "comparison-historical")) {
-    if (Test-Path (Join-Path $Root "configs/historical_daily.yaml")) {
+    $manifestPath = Join-Path $Root (Join-Path $DataDir "dataset_manifest.json")
+    if (Test-Path $manifestPath) {
+        try {
+            $manifestJson = Get-Content $manifestPath -Raw | ConvertFrom-Json
+            if ($manifestJson.bar_resolution -eq "1m" -and (Test-Path (Join-Path $Root "configs/historical_1m.yaml"))) {
+                $Config = "configs/historical_1m.yaml"
+            } elseif (Test-Path (Join-Path $Root "configs/historical_daily.yaml")) {
+                $Config = "configs/historical_daily.yaml"
+            }
+        } catch {
+            if (Test-Path (Join-Path $Root "configs/historical_daily.yaml")) {
+                $Config = "configs/historical_daily.yaml"
+            }
+        }
+    } elseif (Test-Path (Join-Path $Root "configs/historical_daily.yaml")) {
         $Config = "configs/historical_daily.yaml"
     }
 }
