@@ -48,6 +48,7 @@ class OrderType(StrEnum):
     MARKET = "MARKET"
     LIMIT = "LIMIT"
     STOP = "STOP"
+    STOP_LIMIT = "STOP_LIMIT"
 
 
 class SignalIntent(BaseModel, frozen=True):
@@ -69,6 +70,7 @@ class Order(BaseModel, frozen=True):
     quantity: float
     limit_price: float | None = None
     stop_price: float | None = None
+    stop_loss_price: float | None = None
     target_price: float | None = None
     entry_atr: float | None = None
     tag: str = ""

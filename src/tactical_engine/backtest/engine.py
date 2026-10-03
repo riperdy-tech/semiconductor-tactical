@@ -20,6 +20,10 @@ from tactical_engine.portfolio.margin import (
     is_margin_call,
 )
 from tactical_engine.portfolio.sizing import calculate_position_size
+from tactical_engine.signals.directional_fidelity import (
+    check_strength_predicate,
+    generate_directional_fidelity_signals,
+)
 from tactical_engine.signals.exits import check_exit_condition
 from tactical_engine.signals.features import compute_bar_features
 from tactical_engine.signals.pullback import generate_pullback_signals
@@ -30,6 +34,7 @@ class BacktestResult(BaseModel):
     initial_cash: float
     final_equity: float
     total_trades: int
+    implementation_label: str = "CURRENT_MECHANICAL_PULLBACK_BASELINE"
     trades: list[TradeRecord]
     equity_curve: list[float]
     timestamps: list[str]
@@ -93,13 +98,28 @@ def run_backtest(
 
     features_by_sym = {}
     signals_by_sym = {}
+    is_fidelity = (
+        config.signals.signal_family == "directional_fidelity"
+        or config.strategy.variant == "directional_fidelity_reconstruction"
+    )
+    implementation_label = (
+        "DIRECTIONAL_FIDELITY_RECONSTRUCTION"
+        if is_fidelity
+        else "CURRENT_MECHANICAL_PULLBACK_BASELINE"
+    )
+
     for sym, bars in data.items():
         if sym.upper() in tradable_symbols:
             df_feat = compute_bar_features(bars, trend_window=config.signals.trend_window)
             features_by_sym[sym] = df_feat
-            signals_by_sym[sym] = generate_pullback_signals(
-                df_feat, config.signals, regime_provider=regime_provider
-            )
+            if is_fidelity:
+                signals_by_sym[sym] = generate_directional_fidelity_signals(
+                    df_feat, config.signals, regime_provider=regime_provider
+                )
+            else:
+                signals_by_sym[sym] = generate_pullback_signals(
+                    df_feat, config.signals, regime_provider=regime_provider
+                )
 
     all_timestamps = sorted(list(set(b.timestamp for bars in data.values() for b in bars)))
     bars_by_sym_ts = {sym: {b.timestamp: b for b in bars} for sym, bars in data.items()}
@@ -158,7 +178,11 @@ def run_backtest(
                     tracker.apply_fill(
                         fill,
                         exit_reason=ord.tag,
-                        stop_price=ord.stop_price,
+                        stop_price=(
+                            ord.stop_loss_price
+                            if ord.stop_loss_price is not None
+                            else ord.stop_price
+                        ),
                         target_price=ord.target_price,
                         entry_atr=ord.entry_atr,
                     )
@@ -321,6 +345,11 @@ def run_backtest(
                     bar = bars_at_ts.get(sym)
                     if not bar:
                         continue
+                    # Check underlying strength predicate [Label: OBSERVED / HYPOTHESIS]
+                    feat_df = features_by_sym.get(sym)
+                    if feat_df is not None and ts in feat_df.index:
+                        if not check_strength_predicate(feat_df.loc[ts]):
+                            continue
                     chain = option_chain_provider.get_chain(sym, ts)
                     selected_call = select_covered_call_contract(
                         chain=chain,
@@ -368,20 +397,43 @@ def run_backtest(
                     continue
 
                 entry_atr = atr_by_sym.get(sym, {}).get(ts, 1.0)
-                if config.exits.family == "atr":
-                    stop_p = bar.close - (config.exits.stop_atr * entry_atr)
-                    target_p = bar.close + (config.exits.target_atr * entry_atr)
-                elif config.exits.family == "fixed_pct":
-                    stop_p = bar.close * (1.0 - config.exits.stop_pct)
-                    target_p = bar.close * (1.0 + config.exits.target_pct)
+                if is_fidelity:
+                    stop_loss_p = (
+                        bar.close - (config.signals.swing_stop_atr * entry_atr)
+                        if config.exits.family == "atr"
+                        else (bar.close * 0.98)
+                    )
+                    target_p = (
+                        bar.close + (config.signals.swing_target_atr * entry_atr)
+                        if config.exits.family == "atr"
+                        else (bar.close * 1.03)
+                    )
+                    if config.signals.order_execution_style == "stop_limit":
+                        order_type = OrderType.STOP_LIMIT
+                        stop_trigger_p = bar.close
+                        limit_p = round(bar.close + 0.20 * entry_atr, 4)
+                    else:
+                        order_type = OrderType.MARKET
+                        stop_trigger_p = None
+                        limit_p = None
                 else:
-                    stop_p = bar.close - (1.0 * entry_atr)
-                    target_p = bar.close + (1.5 * entry_atr)
+                    if config.exits.family == "atr":
+                        stop_loss_p = bar.close - (config.exits.stop_atr * entry_atr)
+                        target_p = bar.close + (config.exits.target_atr * entry_atr)
+                    elif config.exits.family == "fixed_pct":
+                        stop_loss_p = bar.close * (1.0 - config.exits.stop_pct)
+                        target_p = bar.close * (1.0 + config.exits.target_pct)
+                    else:
+                        stop_loss_p = bar.close - (1.0 * entry_atr)
+                        target_p = bar.close + (1.5 * entry_atr)
+                    order_type = OrderType.MARKET
+                    stop_trigger_p = stop_loss_p
+                    limit_p = None
 
                 qty = calculate_position_size(
                     symbol=sym,
                     price=bar.close,
-                    stop_price=stop_p,
+                    stop_price=stop_loss_p,
                     account_state=current_account_state,
                     config=config.portfolio,
                     current_prices=current_prices,
@@ -394,9 +446,15 @@ def run_backtest(
                             symbol=sym,
                             timestamp=ts,
                             side=OrderSide.BUY,
-                            order_type=OrderType.MARKET,
+                            order_type=order_type,
                             quantity=qty,
-                            stop_price=round(stop_p, 4),
+                            stop_price=(
+                                round(stop_trigger_p, 4)
+                                if stop_trigger_p is not None
+                                else None
+                            ),
+                            limit_price=limit_p,
+                            stop_loss_price=round(stop_loss_p, 4),
                             target_price=round(target_p, 4),
                             entry_atr=entry_atr,
                             tag=f"layer_{layer_num}:{sig.reason}",
@@ -439,6 +497,7 @@ def run_backtest(
         initial_cash=config.portfolio.initial_cash,
         final_equity=final_state.equity,
         total_trades=len(tracker.closed_trades),
+        implementation_label=implementation_label,
         trades=tracker.closed_trades,
         equity_curve=equity_curve,
         timestamps=time_index,

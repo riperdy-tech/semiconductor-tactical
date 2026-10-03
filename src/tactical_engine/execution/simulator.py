@@ -19,14 +19,64 @@ class ExecutionSimulator:
         if fill_qty <= 0:
             return None
 
-        # Default: market orders fill at next bar open
-        base_price = bar.open
-        if order.order_type == OrderType.LIMIT and order.limit_price is not None:
-            if order.side == OrderSide.BUY and bar.low > order.limit_price:
+        base_price: float = bar.open
+
+        if order.order_type == OrderType.MARKET:
+            base_price = bar.open
+
+        elif order.order_type == OrderType.LIMIT:
+            if order.limit_price is None:
                 return None
-            if order.side == OrderSide.SELL and bar.high < order.limit_price:
+            if order.side == OrderSide.BUY:
+                if bar.low > order.limit_price:
+                    return None
+                base_price = min(bar.open, order.limit_price)
+            else:
+                if bar.high < order.limit_price:
+                    return None
+                base_price = max(bar.open, order.limit_price)
+
+        elif order.order_type == OrderType.STOP:
+            if order.stop_price is None:
                 return None
-            base_price = order.limit_price
+            if order.side == OrderSide.BUY:
+                if bar.high < order.stop_price:
+                    return None
+                base_price = max(bar.open, order.stop_price)
+            else:
+                if bar.low > order.stop_price:
+                    return None
+                base_price = min(bar.open, order.stop_price)
+
+        elif order.order_type == OrderType.STOP_LIMIT:
+            if order.stop_price is None or order.limit_price is None:
+                return None
+            if order.side == OrderSide.BUY:
+                # Trigger check: bar must reach or exceed stop trigger
+                if bar.high < order.stop_price and bar.open < order.stop_price:
+                    return None
+                # Limit check: bar must have traded at or below limit price
+                if bar.low > order.limit_price:
+                    # Gapped above limit price without fill opportunity
+                    return None
+                # Base price selection
+                if bar.open >= order.stop_price:
+                    base_price = bar.open if bar.open <= order.limit_price else order.limit_price
+                else:
+                    base_price = min(order.stop_price, order.limit_price)
+            else:
+                # Trigger check: bar must reach or drop below stop trigger
+                if bar.low > order.stop_price and bar.open > order.stop_price:
+                    return None
+                # Limit check: bar must have traded at or above limit price
+                if bar.high < order.limit_price:
+                    # Gapped below limit price without fill opportunity
+                    return None
+                # Base price selection
+                if bar.open <= order.stop_price:
+                    base_price = bar.open if bar.open >= order.limit_price else order.limit_price
+                else:
+                    base_price = max(order.stop_price, order.limit_price)
 
         fill_price, slippage_dollars = calculate_fill_price(
             base_price=base_price,

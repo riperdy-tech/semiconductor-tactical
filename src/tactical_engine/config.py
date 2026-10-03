@@ -12,19 +12,33 @@ class ProjectConfig(BaseModel):
 
 
 class StrategyConfig(BaseModel):
-    variant: Literal["literal_clone", "risk_controlled", "regime_adapted"] = "risk_controlled"
+    variant: Literal[
+        "literal_clone",
+        "risk_controlled",
+        "regime_adapted",
+        "current_mechanical_pullback_baseline",
+        "directional_fidelity_reconstruction",
+    ] = "risk_controlled"
     universe: list[str] = Field(default_factory=lambda: ["MU", "SNDK", "SKHY", "AMD"])
     two_x_etfs: list[str] = Field(default_factory=list)
     bar_interval: str = "1m"
 
 
 class SignalConfig(BaseModel):
+    signal_family: Literal["pullback_zscore", "directional_fidelity"] = "pullback_zscore"
     pullback_zscore: float = -1.5
     trend_window: int = 60
     sector_filter: bool = True
     relative_volume_filter: bool = True
     event_filter: bool = True
     regime_filter_mode: Literal["none", "sector", "broad", "combined"] = "sector"
+    # Directional fidelity parameters (HYPOTHESIS / ASSUMPTION deterministic proxies)
+    pullback_min_pct: float = 0.005
+    pullback_max_pct: float = 0.030
+    stabilization_threshold: float = 0.35
+    swing_target_atr: float = 2.5
+    swing_stop_atr: float = 1.5
+    order_execution_style: Literal["market", "stop_limit"] = "stop_limit"
 
 
 class ExitConfig(BaseModel):

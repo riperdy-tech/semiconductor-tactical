@@ -45,16 +45,28 @@ Therefore the repository must not pretend that a single "Reddit strategy" has be
 
 ## Interpretation rules
 
-`OBSERVED`: what the author says.
+- `OBSERVED`: directly described by the Reddit post/comments.
+- `DERIVED`: necessary mechanical or structural inference from observed facts.
+- `HYPOTHESIS`: plausible deterministic proxy chosen to approximate discretionary chart reading.
+- `ASSUMPTION`: parameter or threshold chosen because the source is silent.
+- `UNVERIFIED`: information or claim that cannot currently be checked with primary data.
 
-`DERIVED`: e.g. high turnover + high-beta names + frequent exits implies capital recycling is a major component of the reported P&L.
+## Phase H Fidelity Audit Findings
 
-`HYPOTHESIS`: e.g. buying a statistically extreme pullback inside a still-positive sector trend is a plausible approximation of the author's discretionary chart reading.
+See full matrix in `docs/REDDIT_STRATEGY_EVIDENCE_MATRIX.md` and gap audit in `docs/execution_plan/REDDIT_STRATEGY_FIDELITY_GAP_AUDIT.md`.
 
-`ASSUMPTION`: any exact threshold we have to choose for the first backtest.
+1. **Current Baseline is a Hypothesis Proxy:** The initial z-score pullback and tight ATR exit implementation is designated `CURRENT_MECHANICAL_PULLBACK_BASELINE`. It is an engineering hypothesis, not the observed Reddit rule.
+2. **Component Decoupling:** Directional equity trading, covered-call writing, margin financing, and extended-hours trading must be evaluated independently.
+3. **Data Sufficiency Status:**
+   - Equity RTH: `VALIDATED` (1m OHLCV for MU, SNDK, SKHY, USD, SMH, SPY).
+   - Margin Financing: `VALIDATED` (mechanics validated; specific leverage is `ASSUMPTION`).
+   - Covered Calls: `UNVALIDATED` (historical option chains absent; Black-Scholes substitution prohibited).
+   - Extended Hours: `UNVALIDATED` (dataset strictly RTH 09:30-16:00 ET; non-RTH SKHY/Kioxia trading absent).
+4. **Descriptive Plausibility Diagnostics:** The reported ~1,300+ trade count over ~90 calendar days (~20.6 trades/day across portfolio) serves as a reality check on holding duration (multi-hour to multi-day swing positions vs. 2-minute tick stop-outs), NOT as an optimization objective.
 
 ## Important warning about the headline result
 
 The $550k result is an observed self-report, not evidence that the strategy has a persistent edge. The historical period may have been unusually favorable for the selected securities, and capital, margin availability, leverage, turnover, skill, timing, and survivorship may all contribute.
 
 The project's job is to falsify easy explanations before declaring an edge.
+

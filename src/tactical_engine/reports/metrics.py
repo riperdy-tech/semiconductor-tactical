@@ -23,6 +23,7 @@ class PerformanceMetrics(BaseModel):
     options_premium_collected: float = 0.0
     options_realized_pnl: float = 0.0
     options_validation_status: str = "NONE"
+    implementation_label: str = "CURRENT_MECHANICAL_PULLBACK_BASELINE"
     # Trade-frequency diagnostics
     total_signals_generated: int = 0
     filled_entries_count: int = 0
@@ -93,7 +94,9 @@ def calculate_metrics(result: BacktestResult) -> PerformanceMetrics:
         forced_liquidation_count=result.forced_liquidation_count,
         options_premium_collected=round(result.options_premium_collected, 2),
         options_realized_pnl=round(result.options_realized_pnl, 2),
-        options_validation_status=result.options_validation_status,
+        implementation_label=getattr(
+            result, "implementation_label", "CURRENT_MECHANICAL_PULLBACK_BASELINE"
+        ),
         total_signals_generated=result.total_signals_generated,
         filled_entries_count=result.filled_entries_count,
         max_simultaneous_positions=result.max_simultaneous_positions,

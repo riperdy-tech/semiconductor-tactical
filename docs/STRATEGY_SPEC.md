@@ -4,39 +4,49 @@
 
 Build a deterministic research engine that approximates the observable behavior in the source post while keeping every unsupported detail parameterized.
 
-The strategy has three layers:
+The strategy is architecturally decoupled into four distinct layers:
 
-1. **Equity tactical layer** — short-horizon directional trades in high-beta semiconductor names.
-2. **Covered-call layer** — short-dated covered calls entered during underlying strength and repurchased after favorable pullbacks.
-3. **Capital/risk layer** — position sizing, leverage, margin financing, liquidation, and capital rotation.
+1. **Layer 1: Directional Equity Layer** — short-to-medium horizon active directional trades in concentrated high-beta semiconductor names (MU, SNDK, SKHY, USD).
+2. **Layer 2: Covered-Call Overlay Layer** — short-dated covered calls entered during underlying strength and repurchased on pullbacks (`UNVALIDATED` until authentic historical chain data is provided).
+3. **Layer 3: Capital / Margin Layer** — position sizing, margin financing, borrowing interest, gross exposure constraints, and forced liquidation.
+4. **Layer 4: Session / Extended-Hours Layer** — non-RTH trading activity (`UNVALIDATED` until verified non-RTH quotes are provided).
 
 ## 2. Strategy variants
 
-### Variant A — `literal_clone`
+### Baseline: `CURRENT_MECHANICAL_PULLBACK_BASELINE` (Preserved)
+- **Status:** `PRESERVED_HISTORICAL_BASELINE`
+- **Epistemic Classification:** `HYPOTHESIS` (mean-reversion dip buying) / `ASSUMPTION` (60-bar window, z-score <= -1.5, 1.0x ATR target/stop).
+- **Description:** The original mechanical z-score pullback implementation. Preserved as an immutable empirical control proving that high-frequency noise trading with tight ATR stops yields catastrophic transaction-cost decay.
 
-Closest mechanical approximation to the source behavior.
+### Variant 1: `DIRECTIONAL_FIDELITY_RECONSTRUCTION`
+- **Status:** `ACTIVE_RESEARCH_VARIANT`
+- **Epistemic Classification:**
+  - Active scalping/swing trading in high-beta names: `OBSERVED`
+  - Stop-limit order execution: `OBSERVED`
+  - Long-only trend-following pullback entry: `HYPOTHESIS`
+  - Swing profit target (2.5x ATR) and stop (1.5x ATR): `ASSUMPTION`
+- **Description:** Reconstructs the observed discretionary trading process as a deterministic swing model: requires intraday trend alignment (`trend_slope > 0`, MA alignment, optional sector trend), enters on controlled dip stabilization (0.5%–3.0% from recent high), executes via stop-limit orders with ceiling price caps, and exits on swing horizons.
 
-Characteristics:
+### Variant 2: `DIRECTIONAL_FIDELITY_MARGIN`
+- **Status:** `ACTIVE_RESEARCH_VARIANT`
+- **Epistemic Classification:**
+  - Margin debt and large position usage: `OBSERVED`
+  - Specific leverage cap (1.5x, 2.0x, 3.0x): `ASSUMPTION`
+  - 5% annual borrowing rate and 25% maintenance: `ASSUMPTION`
+- **Description:** Combines `DIRECTIONAL_FIDELITY_RECONSTRUCTION` with explicit margin financing, 2 layers of entry, and liquidation monitoring to assess whether leverage can amplify genuine edge without margin call breach.
 
-- concentrated high-beta semiconductor universe;
-- frequent entries/exits;
-- layered entries may be enabled;
-- short-dated covered calls may be enabled;
-- optional 2× semiconductor ETF exposure;
-- configurable leverage and margin;
-- designed for **research replication**, not recommended live use.
+### Variant 3: `COVERED_CALL_OVERLAY`
+- **Status:** `UNVALIDATED`
+- **Epistemic Classification:**
+  - Short-dated covered calls written on strength and bought back on dips: `OBSERVED`
+  - Moneyness (OTM), DTE (1-14d), strike selection: `ASSUMPTION`
+  - Option P&L attribution without chain data: `PROHIBITED`
+- **Description:** Models short call writing conditional on holding >= 100 shares and underlying at strength (`check_strength_predicate`), with repurchase triggers on pullbacks. Quarantined as `UNVALIDATED` until real option chain tick data is ingested.
 
-Because the source does not specify every threshold, the clone must expose parameter ranges rather than invent a single authoritative threshold.
-
-### Variant B — `risk_controlled`
-
-Same signal family as the clone, but with explicit fixed-risk sizing and hard limits on total exposure, layers, and loss per position.
-
-### Variant C — `regime_adapted`
-
-`risk_controlled` + optional regime/sector filters.
-
-The adapter may consume RS2/MRI output as an input feature, but this repo must work without RS2.
+### Legacy Baseline Variants (Subsumed under Baseline)
+- `literal_clone`: 1.5x leverage, 2 layers, no sector filter.
+- `risk_controlled`: 1.0x leverage, 1 layer, fixed-risk sizing.
+- `regime_adapted`: `risk_controlled` with sector trend filter.
 
 ## 3. Universe
 

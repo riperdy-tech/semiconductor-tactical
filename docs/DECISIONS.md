@@ -156,6 +156,33 @@
 4. **Documentation:** Documented complete empirical findings in `docs/USD_DATA_AUDIT.md`.
 5. **Stop Software Changes:** Re-enforced stop condition; no strategy parameters, entry thresholds, leverage, or costs were altered.
 
+## 2026-10-03 — Phase H: Reddit strategy fidelity reconstruction and component decoupling
+
+**Decision:**
+1. **Preservation of Mechanical Baseline:** Preserved the original z-score pullback and ATR exit runs (`fad5c527` and `2e9f108d`) as `CURRENT_MECHANICAL_PULLBACK_BASELINE`. Formally documented that the z-score/ATR implementation is an automated `HYPOTHESIS` proxy, not the observed Reddit rule.
+2. **Deconstruction of Strategy into Four Decoupled Layers:**
+   - **Layer 1: Directional Equity:** Active swing trading in concentrated high-beta names (MU, SNDK, SKHY, USD) using trend-following pullback entries and stop-limit execution.
+   - **Layer 2: Covered-Call Overlay:** Short-dated calls written exclusively during underlying strength and repurchased on pullbacks.
+   - **Layer 3: Capital / Margin Layer:** Margin financing, interest accrual, maintenance requirement, and forced liquidation.
+   - **Layer 4: Session / Extended Hours:** Non-RTH trading activity.
+3. **Epistemic Classification & Data Sufficiency Gates:**
+   - Every rule is labeled `OBSERVED`, `DERIVED`, `HYPOTHESIS`, `ASSUMPTION`, or `UNVERIFIED` in `docs/REDDIT_STRATEGY_EVIDENCE_MATRIX.md`.
+   - **Covered Calls Status:** Declared `UNVALIDATED` because real historical option chain quotes are absent. Black-Scholes theoretical fills are strictly prohibited from headline results per `AGENTS.md` Rule 7.
+   - **Extended Hours Status:** Declared `UNVALIDATED` because market data is strictly 09:30-16:00 ET RTH.
+   - **Equity RTH:** `VALIDATED` using Massive verified 1-minute market data.
+4. **Implementation of Directional Fidelity Reconstruction (`DIRECTIONAL_FIDELITY_RECONSTRUCTION`):**
+   - Replaced rapid-fire z-score dip buying with a deterministic swing model requiring intraday trend alignment (`trend_slope > 0`, MA alignment, optional SMH sector confirmation) and dip stabilization (0.5%–3.0% from 20-bar high).
+   - Modeled explicit stop-limit orders (`OrderType.STOP_LIMIT`) with ceiling price protection to prevent gap-through slippage.
+   - Realigned exit horizons from 2.0-minute tick stops to multi-bar swing targets (2.5x ATR target, 1.5x ATR stop).
+5. **Plausibility Diagnostics without Parameter Tuning:**
+   - Tracked trades/day, trades/sym/day, and median hold time as descriptive reality checks against source claims (~1,300 trades, multi-hour/multi-day hold).
+   - Strictly prohibited parameter tuning against the reported $550k profit, 1,300 trade count, or sample profitability.
+6. **Fidelity Matrix CLI Runner:**
+   - Implemented `run_fidelity_matrix` and `fidelity-historical` CLI in `run.ps1` producing canonical Markdown and JSON artifacts with full data provenance.
+
+**Reason:** Fulfills all requirements from `docs/execution_plan/REDDIT_STRATEGY_FIDELITY_EXECUTION_PLAN.md` and Phase H of `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`.
+
+
 
 
 
