@@ -14,20 +14,20 @@ To uphold the integrity mandates established in `AGENTS.md` and Phase J:
 
 | Parameter Identifier | Target Component | Registered Value / Candidate Set | Epistemic Label | Technical & Economic Rationale | Pre-Registration Commit SHA | July–Sept 2026 Contamination Status |
 |---|---|---|---|---|---|---|
-| `V2_CORE_ALLOC_01` | Core Portfolio | `0.60` (60% of equity) | `ASSUMPTION` | Establishes persistent inventory reflecting the bull thesis while reserving 40% margin capacity for tactical sleeve. | `0772574a` | `POST_HOC_SPECIFIED` |
-| `V2_CORE_REBAL_01` | Core Portfolio | `MONTHLY` | `ASSUMPTION` | Periodic rebalancing prevents runaway concentration while keeping turnover minimal. | `0772574a` | `POST_HOC_SPECIFIED` |
-| `V2_TACT_LEVRG_01` | Tactical Sleeve | `2.0` max gross leverage | `OBSERVED` | Reflects source's explicit statement of trading on margin and using 2x leverage. | `0772574a` | `POST_HOC_SPECIFIED` |
-| `V2_TACT_MRGN_01`  | Margin Account | `0.25` maintenance ratio | `DERIVED` | FINRA Rule 4210 standard minimum maintenance requirement for long equity. | `0772574a` | `POST_HOC_SPECIFIED` |
+| `V2_CORE_ALLOC_01` | Core Portfolio | `0.60` (60% of equity) | `ASSUMPTION` | Research scenario assumption: source describes persistent large holdings but does not disclose exact starting weights. Reserves 40% margin capacity for tactical sleeve. | `0772574a` | `POST_HOC_SPECIFIED` |
+| `V2_CORE_REBAL_01` | Core Portfolio | `STATIC_HOLD` (No monthly rebalance) | `ASSUMPTION` | Core remains static unless altered by tactical interaction, option assignment, or margin liquidation. Monthly rebalance is removed from default behavior. | `0772574a` | `POST_HOC_SPECIFIED` |
+| `V2_TACT_LEVRG_01` | Tactical Sleeve | `2.0` max gross leverage | `ASSUMPTION / HYPOTHESIS` | The source supports margin and 2x products, not an exact 2.0x account gross-leverage cap. Modeled as a plausible upper-bound hypothesis. | `0772574a` | `POST_HOC_SPECIFIED` |
+| `V2_TACT_MRGN_01`  | Margin Account | `0.25` maintenance ratio | `DERIVED / BROKER_MODEL` | FINRA Rule 4210 standard minimum maintenance requirement for long equity (broker-model rule, not Reddit-specific). | `0772574a` | `POST_HOC_SPECIFIED` |
 | `V2_TACT_RATE_01`  | Margin Account | `0.05` (5% annual rate) | `ASSUMPTION` | Realistic institutional/prime broker margin financing benchmark. | `0772574a` | `POST_HOC_SPECIFIED` |
-| `V2_IMP_WIN_01`    | Tactical Impulse| `[15, 30, 60]` minutes | `HYPOTHESIS` | Intraday impulse detection windows spanning opening drive to 1-hour trend surges. | `0772574a` | `POST_HOC_SPECIFIED` |
-| `V2_IMP_MAG_01`    | Tactical Impulse| `[0.015, 0.020, 0.025]` | `HYPOTHESIS` | Centered on the source's illustrative ~2% move reference point. | `0772574a` | `POST_HOC_SPECIFIED` |
-| `V2_PB_DEPTH_01`   | Tactical Pullback| `[0.382, 0.500, 0.618]` | `HYPOTHESIS` | Standard structural auction retracement fractions of the initial impulse. | `0772574a` | `POST_HOC_SPECIFIED` |
-| `V2_STAB_BARS_01`  | Tactical Reclaim| `[3, 5, 8]` bars | `HYPOTHESIS` | Minimum price stabilization duration above local retracement low. | `0772574a` | `POST_HOC_SPECIFIED` |
-| `V2_EXIT_SCALE_01` | Tactical Exit   | `0.50` (50% partial exit)| `OBSERVED` | Scalp initial 50% on rebound to VWAP/high, leave 50% as trailing swing. | `0772574a` | `POST_HOC_SPECIFIED` |
-| `V2_STOP_TYPE_01`  | Tactical Stop   | `LOCAL_LOW_PIVOT` | `HYPOTHESIS` | Structural stop set just below the stabilization low, invalidating the setup. | `0772574a` | `POST_HOC_SPECIFIED` |
-| `V2_OPT_DTE_01`    | Covered Calls   | `[3, 5, 7]` days | `OBSERVED` | Short-dated weekly options described by source. | `0772574a` | `POST_HOC_SPECIFIED` |
+| `V2_IMP_WIN_01`    | Tactical Impulse| `[15, 30, 60]` minutes (Default: 30) | `HYPOTHESIS` | Intraday impulse detection windows spanning opening drive to 1-hour trend surges. | `0772574a` | `POST_HOC_SPECIFIED` |
+| `V2_IMP_MAG_01`    | Tactical Impulse| `[0.015, 0.020, 0.025]` (Default: 0.020) | `HYPOTHESIS` | Centered on the source's illustrative ~2% move reference point. | `0772574a` | `POST_HOC_SPECIFIED` |
+| `V2_PB_DEPTH_01`   | Tactical Pullback| `[0.382, 0.500, 0.618]` (Default: 0.500) | `HYPOTHESIS` | Standard structural auction retracement fractions of the initial impulse. | `0772574a` | `POST_HOC_SPECIFIED` |
+| `V2_STAB_BARS_01`  | Tactical Reclaim| `[3, 5, 8]` bars (Default: 5) | `HYPOTHESIS` | Minimum price stabilization duration above local retracement low. | `0772574a` | `POST_HOC_SPECIFIED` |
+| `V2_EXIT_SCALE_01` | Tactical Exit   | `0.50` (50% partial exit)| `HYPOTHESIS` | Source supports active scaling, not a universal 50% rule. Modeled as a structured two-stage exit hypothesis. | `0772574a` | `POST_HOC_SPECIFIED` |
+| `V2_STOP_TYPE_01`  | Tactical Stop   | `LOCAL_LOW_PIVOT` | `HYPOTHESIS` | Structural stop set just below the stabilization low (with pre-registered 0.2% buffer). | `0772574a` | `POST_HOC_SPECIFIED` |
+| `V2_OPT_DTE_01`    | Covered Calls   | `[3, 5, 7]` days | `ASSUMPTION / HYPOTHESIS` | Source mentioned short-dated options, but exact DTE values are engineering assumptions. | `0772574a` | `POST_HOC_SPECIFIED` |
 | `V2_OPT_DELTA_01`  | Covered Calls   | `[0.20, 0.30]` (OTM) | `ASSUMPTION` | Out-of-the-money delta targeting premium capture while permitting moderate upside. | `0772574a` | `POST_HOC_SPECIFIED` |
-| `V2_OPT_REPUR_01`  | Covered Calls   | `0.50` (50% decay) OR `2% underlying drop` | `OBSERVED` | Source explicitly described repurchasing calls when underlying pulled back. | `0772574a` | `POST_HOC_SPECIFIED` |
+| `V2_OPT_REPUR_01`  | Covered Calls   | `0.50` decay OR `2% underlying drop` | `HYPOTHESIS / ASSUMPTION` | Repurchase on pullback is observed, but specific numerical thresholds are hypotheses. | `0772574a` | `POST_HOC_SPECIFIED` |
 
 ---
 

@@ -64,7 +64,7 @@ The primary Reddit source describes an intuitive cyclical process of trading aro
   - 50% tactical reduction at initial rebound target (e.g., return to session VWAP / impulse high);
   - Remaining 50% trailing stop or multi-day swing hold.
 - **Crucial Invariant**: Tactical exits never liquidate core shares. Core position persists through pullbacks.
-- **Epistemic Classification**: `OBSERVED` (scaling out of tactical trades).
+- **Epistemic Classification**: `OBSERVED` (general scaling out of tactical positions) / `HYPOTHESIS` (specific 50% partial exit ratio).
 
 ---
 

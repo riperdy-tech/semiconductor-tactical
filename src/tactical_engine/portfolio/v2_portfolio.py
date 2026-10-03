@@ -135,6 +135,8 @@ class V2PortfolioEngine:
         self.financing_interest_paid: float = 0.0
         self.commissions_paid: float = 0.0
         self.slippage_paid: float = 0.0
+        self.cumulative_core_realized_pnl: float = 0.0
+        self.cumulative_tactical_realized_pnl: float = 0.0
 
     # -------------------------------------------------------------------------
     # Core Positions
@@ -177,6 +179,7 @@ class V2PortfolioEngine:
                 f"{pos.encumbered_shares_for_calls} shares are encumbered by open covered calls"
             )
         pnl = pos.reduce_shares(quantity, price)
+        self.cumulative_core_realized_pnl += pnl
         proceeds = quantity * price
         self.cash += proceeds - commission
         self.commissions_paid += commission
@@ -221,6 +224,7 @@ class V2PortfolioEngine:
         if pos is None or pos.quantity <= 0:
             raise ValueError(f"No active tactical position in {symbol} to reduce")
         pnl = pos.reduce_shares(quantity, price)
+        self.cumulative_tactical_realized_pnl += pnl
         proceeds = quantity * price
         self.cash += proceeds - commission
         self.commissions_paid += commission
@@ -387,6 +391,10 @@ class V2PortfolioEngine:
             0.0, pos.encumbered_shares_for_calls - call.shares_covered
         )
         equity_pnl = pos.reduce_shares(call.shares_covered, call.strike)
+        if call.sleeve_source == V2HoldingSleeve.CORE:
+            self.cumulative_core_realized_pnl += equity_pnl
+        else:
+            self.cumulative_tactical_realized_pnl += equity_pnl
 
         strike_proceeds = call.shares_covered * call.strike
         self.cash += strike_proceeds - commission
@@ -580,12 +588,12 @@ class V2PortfolioEngine:
             covered_call_realized_pnl + covered_call_unrealized_pnl -
             financing_interest_paid - commissions_paid - slippage_paid
         """
-        core_realized = sum(p.realized_pnl for p in self.core_positions.values())
+        core_realized = self.cumulative_core_realized_pnl
         core_unrealized = sum(
             p.unrealized_pnl(current_prices.get(sym, p.avg_price))
             for sym, p in self.core_positions.items()
         )
-        tact_realized = sum(p.realized_pnl for p in self.tactical_positions.values())
+        tact_realized = self.cumulative_tactical_realized_pnl
         tact_unrealized = sum(
             p.unrealized_pnl(current_prices.get(sym, p.avg_price))
             for sym, p in self.tactical_positions.items()

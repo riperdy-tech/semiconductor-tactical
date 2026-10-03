@@ -41,7 +41,7 @@ To decouple the economic contribution of each structural layer, research in V2 i
 
 | Experiment Tier | Configuration Scope | Primary Assets Evaluated | Key Invariants & Gates | Required Status Label |
 |---|---|---|---|---|
-| **V2-A** | Core Portfolio Only | MU, SNDK, SKHY (U.S.) | Unlevered persistent holding; monthly rebalance; zero tactical trading. Baseline benchmark. | `BENCHMARK` |
+| **V2-A** | Core Portfolio Only | MU, SNDK, SKHY (U.S.) | Unlevered persistent holding (60% normalized scenario); static hold (no monthly rebalance); zero tactical trading. Baseline benchmark. | `BENCHMARK` |
 | **V2-B** | Core + Tactical Trading | MU, SNDK, SKHY | Tactical add/reduce around core; cash funded; tactical exits never liquidate core. | `EVALUABLE` |
 | **V2-C** | Core + Tactical + Margin | MU, SNDK, SKHY | Margin debt permitted up to 2.0x leverage; 5% annual interest; 25% maintenance margin. | `EVALUABLE` |
 | **V2-D** | Core + Tactical + Margin + Covered Calls | MU, SNDK, SKHY + Options | Covered calls on owned shares; buyback on pullback. Hard gate: requires real option quotes. | `GATED_UNVALIDATED` (without real chains) |

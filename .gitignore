@@ -13,7 +13,9 @@ Thumbs.db
 .idea/
 reports/generated/
 reports/*.md
+!reports/V2_HISTORICAL_COMPARISON.md
 reports/historical_*/
+reports/v2_comparison_*/
 *.egg-info/
 data/raw/*
 data/processed/*

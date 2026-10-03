@@ -240,6 +240,41 @@
 
 **Reason:** Fulfills all requirements from `docs/execution_plan/REDDIT_BEHAVIORAL_V2_EXECUTION_PLAN.md` and Phase J of `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`.
 
+## 2026-10-04 — Phase K: Reddit Behavioral V2 End-to-End Implementation & Research Gate
+
+**Decision:**
+1. **Correction of Epistemic Evidence Labels:**
+   - Corrected remaining V2 registry items: 2.0x gross leverage reclassified to `ASSUMPTION / HYPOTHESIS` (source mentions margin/2x products, not a strict 2.0x portfolio cap).
+   - 50% tactical scale-out reclassified to `HYPOTHESIS` (source mentions active scaling/scalping, not a universal 50% rule).
+   - 3/5/7 DTE reclassified to `ASSUMPTION / HYPOTHESIS` (source notes short-dated options, not exact DTEs).
+   - Covered-call repurchase triggers reclassified to `HYPOTHESIS / ASSUMPTION`.
+   - 60% core allocation explicitly classified as `ASSUMPTION` (research scenario assumption, not a recovered account fact).
+   - Removed monthly core rebalance from default V2 behavior (`STATIC_HOLD`). Core inventory remains static unless altered by tactical interaction, option assignment, or forced margin liquidation.
+2. **Default Universe Isolation & Clean Scope:**
+   - Default headline universe strictly confined to `MU`, `SNDK`, and `SKHY`.
+   - Generic sector ETF `USD`, candidate 2× leveraged ETFs (`SKUU`, `SKHU`, `SKHL`, `MUU`, etc.), and conditional OTC ADR `KXIAY` are strictly excluded from headline replication.
+   - Asian direct venues (`000660.KS`, `285A.T`) are explicitly `OUT_OF_SCOPE_FOR_V2`.
+3. **Implementation of Directional Signal Engine (`v2_signals.py`):**
+   - Implemented 6-stage deterministic sequence: regime filter (60-bar SMA), directional impulse (30m $\ge 2.0\%$), pullback (50%), stabilization (5 bars above low), tactical add/reload, and tiered exits.
+   - Tactical exit semantics: 50% partial exit on 50% rebound toward peak, `LOCAL_LOW` stop placed 0.2% below stabilization trough.
+   - Pre-registered default parameters frozen prior to historical execution. Zero parameter search.
+4. **End-to-End Backtest Engine (`v2_engine.py`):**
+   - Connected 1m bars -> features -> signals -> pending orders -> `ExecutionSimulator` -> `V2PortfolioEngine`.
+   - Enforced no-lookahead: bar $t$ signal -> bar $t+1$ execution.
+   - Enforced core isolation: tactical exits strictly decrement tactical positions, never persistent core shares.
+   - Enforced mathematical P&L reconciliation invariant across equity, slippage, commissions, and margin interest.
+5. **Historical Research Runner & CLI (`run.ps1 fidelity-v2-historical`):**
+   - Implemented canonical runner in `src/tactical_engine/research/v2_historical_runner.py`.
+   - Runs ablation tiers V2-A (Core only), V2-B (Core + Tactical), and V2-C (Core + Tactical + Margin).
+   - Data gates preserved: `TRUE_LEVEL2_REPLICATION = UNVALIDATED`, `HISTORICAL_OPTION_CHAIN_STATUS = UNVALIDATED`, `DIRECT_ASIA_REPLICATION_STATUS = OUT_OF_SCOPE_FOR_V2`, `PRISTINE_OOS = UNAVAILABLE`.
+   - July 1 – September 30, 2026 classified strictly as `POST_HOC_HOLDOUT`.
+   - Generates machine-readable `reports/v2_historical_comparison.json` and human-readable `reports/V2_HISTORICAL_COMPARISON.md`.
+6. **Mandatory Software Stop Condition:**
+   - Software changes frozen following reproducible run and test pass. No parameter tuning against July–September results.
+
+**Reason:** Fulfills all requirements from `docs/execution_plan/REDDIT_V2_END_TO_END_IMPLEMENTATION_PLAN.md` and Phase K of `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`.
+
+
 
 
 
