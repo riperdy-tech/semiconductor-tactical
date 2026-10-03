@@ -179,4 +179,38 @@ The fidelity task must:
 
 Do not optimize for profitability, trade-count matching, or resemblance to the reported account equity.
 
-Stop after the new fidelity acceptance criteria pass.
+Stop after the fidelity acceptance criteria pass.
+
+## Phase I — Phase H post-run research integrity correction
+
+Before any further strategy experiment, execute:
+
+docs/execution_plan/GEMINI_PHASE_H_POST_RUN_CORRECTION.md
+
+This phase is mandatory. It is a **research-bookkeeping correction only**.
+
+Do not modify the frozen directional strategy parameters.
+
+The correction must:
+
+- restore the exact preserved CURRENT_MECHANICAL_PULLBACK_BASELINE identity;
+- separate that baseline from later sector-filtered mechanical diagnostics;
+- establish parameter provenance from git history;
+- classify key directional parameters as PRE_SPECIFIED, POST_HOC_SPECIFIED, or UNKNOWN;
+- correct P&L/slippage/commission/financing terminology and verify no double counting;
+- classify stop-limit entry as a HYPOTHESIS rather than an observed source rule;
+- avoid describing 8-minute median holding time as validated swing behavior;
+- preserve all historical artifacts;
+- add regression tests for these research-integrity rules.
+
+Do not rerun the strategy to search for better parameters.
+
+After Phase I passes, stop software changes again.
+
+The research status must continue to state:
+
+FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED
+
+and:
+
+PRISTINE_OOS = UNAVAILABLE
