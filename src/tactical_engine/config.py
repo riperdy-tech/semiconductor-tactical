@@ -17,6 +17,7 @@ class StrategyConfig(BaseModel):
         "risk_controlled",
         "regime_adapted",
         "current_mechanical_pullback_baseline",
+        "mechanical_pullback_sector_filtered_diagnostic",
         "directional_fidelity_reconstruction",
     ] = "risk_controlled"
     universe: list[str] = Field(default_factory=lambda: ["MU", "SNDK", "SKHY", "AMD"])

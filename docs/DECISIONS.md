@@ -182,6 +182,33 @@
 
 **Reason:** Fulfills all requirements from `docs/execution_plan/REDDIT_STRATEGY_FIDELITY_EXECUTION_PLAN.md` and Phase H of `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`.
 
+## 2026-10-03 — Phase I: Phase H post-run research integrity correction
+
+**Decision:**
+1. **Preserved Baseline Identity Rule:** Enforced strict identity separation:
+   - `CURRENT_MECHANICAL_PULLBACK_BASELINE`: Exclusively refers to the authoritative preserved historical baseline (Run `2e9f108d`, variant `risk_controlled`, leverage 1.0x, 1 layer, sector filter disabled, producing **-92.89% return across 5,082 trades**, config hash `0d34835d97140803`).
+   - `MECHANICAL_PULLBACK_SECTOR_FILTERED_DIAGNOSTIC`: Any subsequent evaluation enabling the sector filter on the mechanical pullback (~ -34.88% / -35.69% return, ~1,114 / 1,129 trades) is strictly designated as a mechanical diagnostic. It is separated from the baseline.
+   - `DIRECTIONAL_FIDELITY_RECONSTRUCTION`: Frozen Phase H directional swing trading hypothesis (**-53.27% return across 1,334 trades**).
+2. **Parameter Provenance Ledger & POST_HOC_SPECIFIED Classification:**
+   - Authored `docs/execution_plan/REDDIT_FIDELITY_PARAMETER_PROVENANCE.md` recording git commit history, dates, values, and evidence labels for all directional parameters (`pullback_min_pct`, `pullback_max_pct`, `stabilization_threshold`, `swing_target_atr`, `swing_stop_atr`, `order_execution_style`).
+   - Formally classified all directional parameters as `POST_HOC_SPECIFIED` because the July 1 – September 30, 2026 dataset had already been observed in baseline runs on 2026-10-02 prior to parameter introduction in commit `3a5228b`.
+   - Explicitly downgraded research validity: trade count proximity (~1,334 vs ~1,300) is a descriptive check only and cannot be treated as independent confirmation of fidelity.
+3. **P&L Accounting and Reconciliation Invariant:**
+   - Formalized mathematical reconciliation: `Signal-Price P&L (Pre-Slippage) - Execution Slippage - Commission Paid - Margin Interest Paid = Portfolio Net P&L = Final Equity - Initial Cash`.
+   - Confirmed no double-counting of slippage: execution slippage is embedded into simulation fill prices, never deducted twice from net realized P&L.
+   - Added `pre_slippage_pnl`, `net_realized_pnl`, and `portfolio_net_pnl` to `TradeRecord` and `PerformanceMetrics`.
+4. **Epistemic Precision & Wording Corrections:**
+   - Stop Limits: Updated to distinguish `[OBSERVED]` order type use by source from `[HYPOTHESIS]` directional entry order modeling.
+   - Holding Horizon: Replaced claims of "natural swing frequency" with "reduced high-frequency churn relative to the baseline (median hold time 8.0 min vs 2.0 min)".
+   - Fidelity Status: Replaced "Fidelity Gap Resolved" with "Fidelity Gap Partially Addressed — Deterministic Hypothesis Implemented".
+   - Overall Research Status: Re-asserted `FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED` and `PRISTINE_OOS = UNAVAILABLE`.
+5. **Artifact Preservation & Stop Condition:**
+   - All historical run artifacts (`fad5c527`, `2e9f108d`, `5cf918f0`) preserved intact.
+   - Re-enforced mandatory STOP CONDITION: no strategy parameter changes, no optimization reruns.
+
+**Reason:** Fulfills all requirements from `docs/execution_plan/GEMINI_PHASE_H_POST_RUN_CORRECTION.md` and Phase I of `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`.
+
+
 
 
 

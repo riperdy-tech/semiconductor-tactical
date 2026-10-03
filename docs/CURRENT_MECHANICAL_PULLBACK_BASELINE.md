@@ -125,3 +125,14 @@ research:
 ## 3. Preservation Declaration
 
 Both runs above remain permanently preserved on disk and in git history. They represent the empirical performance of the mechanical z-score pullback hypothesis under realistic costs, demonstrating that a 2-minute median hold time with fixed 5 bps slippage destroys equity. These results provide the foundation against which all subsequent fidelity reconstructions will be rigorously contrasted.
+
+---
+
+## 4. Separation of Immutable Preserved Baseline from Later Diagnostics
+
+Per `docs/execution_plan/GEMINI_PHASE_H_POST_RUN_CORRECTION.md` Section 3, the repository enforces strict identity separation:
+
+1. **`CURRENT_MECHANICAL_PULLBACK_BASELINE`**: Refers EXCLUSIVELY to the authoritative preserved historical baseline (Run `2e9f108d`, variant `risk_controlled`, leverage 1.0x, 1 layer, sector filter disabled, producing **-92.89% return across 5,082 trades**).
+2. **`MECHANICAL_PULLBACK_SECTOR_FILTERED_DIAGNOSTIC`**: Any subsequent diagnostic evaluation that enables the sector filter on the mechanical pullback (producing **-34.88% / -35.69% across ~1,114 / 1,129 trades**) is strictly designated as a mechanical diagnostic. It must NEVER be called or substituted for `CURRENT_MECHANICAL_PULLBACK_BASELINE`.
+3. **`DIRECTIONAL_FIDELITY_RECONSTRUCTION`**: Refers strictly to the frozen Phase H directional swing trading hypothesis (**-53.27% return across 1,334 trades**).
+

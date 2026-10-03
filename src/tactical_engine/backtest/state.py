@@ -19,6 +19,7 @@ class TradeRecord(BaseModel):
     exit_reason: str
     slippage_paid: float = 0.0
     commission_paid: float = 0.0
+    pre_slippage_pnl: float = 0.0
 
 
 class LayerRecord(BaseModel, frozen=True):
@@ -144,6 +145,8 @@ class PortfolioTracker:
 
             # Net P&L: fill prices already reflect market slippage; only commissions are subtracted
             net_pnl = gross_pnl - total_comm
+            # Signal-price / pre-slippage P&L: hypothetical trade return before slippage
+            pre_slip_pnl = gross_pnl + total_slip
 
             self.closed_trades.append(
                 TradeRecord(
@@ -155,6 +158,7 @@ class PortfolioTracker:
                     quantity=fill.quantity,
                     gross_pnl=round(gross_pnl, 2),
                     net_pnl=round(net_pnl, 2),
+                    pre_slippage_pnl=round(pre_slip_pnl, 2),
                     exit_reason=exit_reason,
                     slippage_paid=round(total_slip, 2),
                     commission_paid=round(total_comm, 2),

@@ -15,8 +15,10 @@ from tactical_engine.reports.metrics import PerformanceMetrics, calculate_metric
 
 
 class FidelityMatrixResult(BaseModel):
-    # Experiment 1: Current baseline (preserved)
+    # Experiment 1: Preserved baseline (immutable historical baseline: run 2e9f108d)
     baseline: PerformanceMetrics
+    # Diagnostic: Sector-filtered mechanical pullback diagnostic
+    sector_filtered_diagnostic: PerformanceMetrics | None = None
     # Experiment 2: Directional fidelity (equity-only, 1.0x leverage)
     directional_equity: PerformanceMetrics
     # Experiment 3: Directional + margin (1.5x / 2.0x leverage with financing)
@@ -35,6 +37,39 @@ class FidelityMatrixResult(BaseModel):
     plausibility_comparison: dict[str, Any] = Field(default_factory=dict)
 
 
+def get_preserved_baseline_config(base_config: EngineConfig) -> EngineConfig:
+    """Return canonical configuration for the preserved mechanical pullback baseline
+    as recorded in docs/CURRENT_MECHANICAL_PULLBACK_BASELINE.md (run 2e9f108d).
+    """
+    cfg_dict = base_config.model_dump()
+    cfg_dict["strategy"]["variant"] = "current_mechanical_pullback_baseline"
+    cfg_dict["signals"]["signal_family"] = "pullback_zscore"
+    cfg_dict["signals"]["sector_filter"] = False
+    cfg_dict["signals"]["relative_volume_filter"] = True
+    cfg_dict["signals"]["event_filter"] = False
+    cfg_dict["signals"]["pullback_zscore"] = -1.5
+    cfg_dict["signals"]["trend_window"] = 60
+    cfg_dict["portfolio"]["max_gross_leverage"] = 1.0
+    cfg_dict["portfolio"]["max_layers"] = 1
+    cfg_dict["portfolio"]["max_symbol_weight"] = 0.25
+    cfg_dict["exits"]["family"] = "atr"
+    cfg_dict["exits"]["target_atr"] = 1.0
+    cfg_dict["exits"]["stop_atr"] = 1.0
+    cfg_dict["costs"]["equity_commission_bps"] = 0.0
+    cfg_dict["costs"]["equity_slippage_bps"] = 5.0
+    cfg_dict["costs"]["margin_rate_annual"] = 0.05
+    return EngineConfig.model_validate(cfg_dict)
+
+
+def get_sector_filtered_diagnostic_config(base_config: EngineConfig) -> EngineConfig:
+    """Return configuration for the mechanical pullback sector-filtered diagnostic."""
+    cfg = get_preserved_baseline_config(base_config)
+    cfg_dict = cfg.model_dump()
+    cfg_dict["strategy"]["variant"] = "mechanical_pullback_sector_filtered_diagnostic"
+    cfg_dict["signals"]["sector_filter"] = True
+    return EngineConfig.model_validate(cfg_dict)
+
+
 def run_fidelity_matrix(
     data: dict[str, list[Bar]],
     base_config: EngineConfig,
@@ -44,13 +79,15 @@ def run_fidelity_matrix(
     # 0. Data sufficiency gate check
     sufficiency = check_data_sufficiency(data_dir=data_dir)
 
-    # 1. Experiment 1: Current Baseline (CURRENT_MECHANICAL_PULLBACK_BASELINE)
-    baseline_cfg_dict = base_config.model_dump()
-    baseline_cfg_dict["strategy"]["variant"] = "current_mechanical_pullback_baseline"
-    baseline_cfg_dict["signals"]["signal_family"] = "pullback_zscore"
-    baseline_cfg = EngineConfig.model_validate(baseline_cfg_dict)
+    # 1. Experiment 1: Preserved Baseline (CURRENT_MECHANICAL_PULLBACK_BASELINE)
+    baseline_cfg = get_preserved_baseline_config(base_config)
     res_base = run_backtest(data, baseline_cfg)
     m_base = calculate_metrics(res_base)
+
+    # 1b. Sector-Filtered Diagnostic (MECHANICAL_PULLBACK_SECTOR_FILTERED_DIAGNOSTIC)
+    diag_cfg = get_sector_filtered_diagnostic_config(base_config)
+    res_diag = run_backtest(data, diag_cfg)
+    m_diag = calculate_metrics(res_diag)
 
     # 2. Experiment 2: Directional Fidelity (Equity-only, 1.0x leverage, no options)
     dir_cfg_dict = base_config.model_dump()
@@ -100,6 +137,7 @@ def run_fidelity_matrix(
 
     # 6. Experiment 6: Component Ablations
     ablations: dict[str, PerformanceMetrics] = {
+        "mechanical_pullback_sector_filtered_diagnostic": m_diag,
         "equity_only_1.0x": m_dir,
         "equity_plus_margin_1.5x": m_margin,
     }
@@ -131,19 +169,24 @@ def run_fidelity_matrix(
         "source_described_trade_count": (
             "~1,300+ over ~90 calendar days (~20 trades/day across portfolio)"
         ),
-        "baseline_trade_count": m_base.total_trades,
-        "baseline_trades_per_day": m_base.trades_per_day,
-        "baseline_median_hold_minutes": m_base.median_holding_time_minutes,
+        "preserved_baseline_trade_count": m_base.total_trades,
+        "preserved_baseline_trades_per_day": m_base.trades_per_day,
+        "preserved_baseline_median_hold_minutes": m_base.median_holding_time_minutes,
+        "diagnostic_sector_filtered_trade_count": m_diag.total_trades,
+        "diagnostic_sector_filtered_trades_per_day": m_diag.trades_per_day,
         "fidelity_directional_trade_count": m_dir.total_trades,
         "fidelity_directional_trades_per_day": m_dir.trades_per_day,
         "fidelity_directional_median_hold_minutes": m_dir.median_holding_time_minutes,
         "source_trade_count_diagnostic_note": (
-            "Descriptive plausibility check only; trade count was NOT an optimization target."
+            "Descriptive plausibility check only; trade count was NOT an optimization target. "
+            "Because parameters are classified as POST_HOC_SPECIFIED, similarity cannot be "
+            "treated as independent validation."
         ),
     }
 
     return FidelityMatrixResult(
         baseline=m_base,
+        sector_filtered_diagnostic=m_diag,
         directional_equity=m_dir,
         directional_margin=m_margin,
         directional_covered_calls=m_calls,

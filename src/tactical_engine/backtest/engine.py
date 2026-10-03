@@ -102,11 +102,20 @@ def run_backtest(
         config.signals.signal_family == "directional_fidelity"
         or config.strategy.variant == "directional_fidelity_reconstruction"
     )
-    implementation_label = (
-        "DIRECTIONAL_FIDELITY_RECONSTRUCTION"
-        if is_fidelity
-        else "CURRENT_MECHANICAL_PULLBACK_BASELINE"
-    )
+    variant_str = config.strategy.variant.lower()
+    if is_fidelity:
+        implementation_label = "DIRECTIONAL_FIDELITY_RECONSTRUCTION"
+    elif variant_str in (
+        "mechanical_pullback_sector_filtered_diagnostic",
+        "regime_adapted",
+    ) or (not is_fidelity and config.signals.sector_filter):
+        implementation_label = "MECHANICAL_PULLBACK_SECTOR_FILTERED_DIAGNOSTIC"
+    elif variant_str in ("current_mechanical_pullback_baseline", "risk_controlled"):
+        implementation_label = "CURRENT_MECHANICAL_PULLBACK_BASELINE"
+    elif variant_str == "literal_clone":
+        implementation_label = "LITERAL_CLONE_MECHANICAL_PULLBACK"
+    else:
+        implementation_label = variant_str.upper()
 
     for sym, bars in data.items():
         if sym.upper() in tradable_symbols:

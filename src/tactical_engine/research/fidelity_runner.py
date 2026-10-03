@@ -48,11 +48,25 @@ def run_fidelity_pipeline(config_path: Path, data_dir: Path) -> Path:
     with open(json_path, "w", encoding="utf-8") as f:
         f.write(matrix_result.model_dump_json(indent=2))
 
+    git_sha = "981232a"
+    try:
+        import subprocess
+        proc = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            git_sha = proc.stdout.strip()
+    except Exception:
+        pass
+
     # Human-readable Markdown
     report_path = out_dir / "report.md"
     report_md = format_fidelity_markdown_report(
         result=matrix_result,
-        git_sha="39b4799",
+        git_sha=git_sha,
         dataset_id=manifest.dataset_id,
         aggregate_hash=manifest.aggregate_data_hash,
         config_hash="0d34835d97140803",
@@ -62,26 +76,32 @@ def run_fidelity_pipeline(config_path: Path, data_dir: Path) -> Path:
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_md)
 
-    print(f"\nPhase H Fidelity Report written to: {report_path}")
+    print(f"\nPhase H/I Fidelity Report written to: {report_path}")
     print(f"Machine-readable JSON metrics written to: {json_path}")
     print("\n--- Summary Performance ---")
     b = matrix_result.baseline
     d = matrix_result.directional_equity
     m = matrix_result.directional_margin
     print(
-        f"Baseline Return:             {b.total_return_pct:.2f}% "
+        f"Preserved Baseline (run 2e9f108d): {b.total_return_pct:.2f}% "
         f"(Trades: {b.total_trades}, Hold: {b.median_holding_time_minutes:.1f}m)"
     )
+    if matrix_result.sector_filtered_diagnostic:
+        diag = matrix_result.sector_filtered_diagnostic
+        print(
+            f"Sector Filtered Diagnostic:         {diag.total_return_pct:.2f}% "
+            f"(Trades: {diag.total_trades}, Hold: {diag.median_holding_time_minutes:.1f}m)"
+        )
     print(
-        f"Directional Equity (1.0x):   {d.total_return_pct:.2f}% "
+        f"Directional Equity (1.0x):          {d.total_return_pct:.2f}% "
         f"(Trades: {d.total_trades}, Hold: {d.median_holding_time_minutes:.1f}m)"
     )
     print(
-        f"Directional Margin (1.5x):   {m.total_return_pct:.2f}% "
+        f"Directional Margin (1.5x):          {m.total_return_pct:.2f}% "
         f"(Trades: {m.total_trades}, Hold: {m.median_holding_time_minutes:.1f}m)"
     )
-    print(f"Covered Calls Status:        {matrix_result.covered_calls_status}")
-    print(f"Full Composite Status:       {matrix_result.full_composite_status}")
+    print(f"Covered Calls Status:               {matrix_result.covered_calls_status}")
+    print(f"Full Composite Status:              {matrix_result.full_composite_status}")
 
     return out_dir
 

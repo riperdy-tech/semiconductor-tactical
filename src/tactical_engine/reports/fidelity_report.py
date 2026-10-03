@@ -86,7 +86,7 @@ def format_fidelity_markdown_report(
         "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
 
-    # Row 1: Baseline
+    # Row 1: Preserved Baseline
     b = result.baseline
     lines.append(
         f"| **Exp 1: Baseline** | `{b.implementation_label}` | {b.total_return_pct:.2f}% | "
@@ -94,6 +94,17 @@ def format_fidelity_markdown_report(
         f"{b.profit_factor:.2f} | ${b.net_pnl:,.2f} | {b.trades_per_day:.1f} | "
         f"{b.median_holding_time_minutes:.1f}m | PRESERVED BASELINE |"
     )
+
+    # Row 1b: Diagnostic Sector-Filtered Mechanical Pullback
+    if result.sector_filtered_diagnostic:
+        diag = result.sector_filtered_diagnostic
+        lines.append(
+            f"| **Diag: Sector Filtered** | `{diag.implementation_label}` | "
+            f"{diag.total_return_pct:.2f}% | {diag.max_drawdown_pct:.2f}% | {diag.total_trades} | "
+            f"{diag.win_rate*100:.1f}% | {diag.profit_factor:.2f} | ${diag.net_pnl:,.2f} | "
+            f"{diag.trades_per_day:.1f} | {diag.median_holding_time_minutes:.1f}m | "
+            "MECHANICAL DIAGNOSTIC |"
+        )
 
     # Row 2: Directional Equity
     d = result.directional_equity
@@ -129,27 +140,50 @@ def format_fidelity_markdown_report(
         "",
         "---",
         "",
-        "## 3. Execution Cost & Drag Decomposition",
+        "## 3. Execution Cost & Drag Decomposition (P&L Attribution)",
         "",
-        "| Experiment | Gross P&L | Slippage Paid | Margin Interest | "
-        "Total Costs | Net P&L | Cost Drag % |",
-        "|---|---|---|---|---|---|---|",
+        "| Experiment | Signal-Price P&L | Slippage Paid | Commission | "
+        "Margin Interest | Net Realized P&L | Portfolio Net P&L | Cost Drag % |",
+        "|---|---|---|---|---|---|---|---|",
         (
-            f"| **Exp 1: Baseline** | ${b.gross_pnl:,.2f} | ${b.slippage_paid:,.2f} | "
-            f"${b.margin_interest_paid:,.2f} | ${b.total_cost_paid:,.2f} | "
-            f"${b.net_pnl:,.2f} | {b.costs_as_pct_of_gross_pnl:.1f}% |"
+            f"| **Exp 1: Baseline** | ${b.pre_slippage_pnl:,.2f} | ${b.slippage_paid:,.2f} | "
+            f"${b.commission_paid:,.2f} | ${b.margin_interest_paid:,.2f} | "
+            f"${b.net_realized_pnl:,.2f} | ${b.portfolio_net_pnl:,.2f} | "
+            f"{b.costs_as_pct_of_gross_pnl:.1f}% |"
+        ),
+    ])
+
+    if result.sector_filtered_diagnostic:
+        diag = result.sector_filtered_diagnostic
+        lines.append(
+            f"| **Diag: Sector Filtered** | ${diag.pre_slippage_pnl:,.2f} | "
+            f"${diag.slippage_paid:,.2f} | ${diag.commission_paid:,.2f} | "
+            f"${diag.margin_interest_paid:,.2f} | ${diag.net_realized_pnl:,.2f} | "
+            f"${diag.portfolio_net_pnl:,.2f} | {diag.costs_as_pct_of_gross_pnl:.1f}% |"
+        )
+
+    lines.extend([
+        (
+            f"| **Exp 2: Directional Fidelity** | ${d.pre_slippage_pnl:,.2f} | "
+            f"${d.slippage_paid:,.2f} | ${d.commission_paid:,.2f} | "
+            f"${d.margin_interest_paid:,.2f} | ${d.net_realized_pnl:,.2f} | "
+            f"${d.portfolio_net_pnl:,.2f} | {d.costs_as_pct_of_gross_pnl:.1f}% |"
         ),
         (
-            f"| **Exp 2: Directional Fidelity** | ${d.gross_pnl:,.2f} | "
-            f"${d.slippage_paid:,.2f} | ${d.margin_interest_paid:,.2f} | "
-            f"${d.total_cost_paid:,.2f} | ${d.net_pnl:,.2f} | "
-            f"{d.costs_as_pct_of_gross_pnl:.1f}% |"
+            f"| **Exp 3: Directional + Margin** | ${m.pre_slippage_pnl:,.2f} | "
+            f"${m.slippage_paid:,.2f} | ${m.commission_paid:,.2f} | "
+            f"${m.margin_interest_paid:,.2f} | ${m.net_realized_pnl:,.2f} | "
+            f"${m.portfolio_net_pnl:,.2f} | {m.costs_as_pct_of_gross_pnl:.1f}% |"
+        ),
+        "",
+        "> **ACCOUNTING INVARIANT & NO DOUBLE-COUNTING RULE:**",
+        (
+            "> `Signal-Price P&L - Execution Slippage - Commission - Margin Interest = "
+            "Portfolio Net P&L`"
         ),
         (
-            f"| **Exp 3: Directional + Margin** | ${m.gross_pnl:,.2f} | "
-            f"${m.slippage_paid:,.2f} | ${m.margin_interest_paid:,.2f} | "
-            f"${m.total_cost_paid:,.2f} | ${m.net_pnl:,.2f} | "
-            f"{m.costs_as_pct_of_gross_pnl:.1f}% |"
+            "> Execution slippage is embedded directly into fill prices at simulation time; "
+            "it is never deducted a second time from Net Realized P&L."
         ),
         "",
         "---",
@@ -161,23 +195,23 @@ def format_fidelity_markdown_report(
         (
             "| **Total Trade Count** | ~1,300+ trades / 90d | "
             f"{b.total_trades} trades | {d.total_trades} trades | "
-            "Fidelity proxy avoids hyper-turnover noise churn |"
+            "Descriptive check; not an optimization target |"
         ),
         (
             "| **Trades per Day** | ~20.6 trades/day across 63 sessions | "
             f"{b.trades_per_day:.1f} trades/day | {d.trades_per_day:.1f} trades/day | "
-            "Directional swing model trades at natural swing frequency |"
+            "Reduced frequency relative to mechanical baseline |"
         ),
         (
             "| **Median Holding Time** | Multi-hour to multi-day swing positions | "
             f"{b.median_holding_time_minutes:.1f} min | "
             f"{d.median_holding_time_minutes:.1f} min | "
-            "Eliminated 2.0-minute tick stop-out churn |"
+            "Reduced high-frequency churn relative to the baseline |"
         ),
         (
-            "| **Order Execution Type** | Explicit stop-limits on volatile names | "
-            "Next-bar market orders | Stop-limit with ceiling protection | "
-            "Models source stop-limit behavior |"
+            "| **Order Execution Type** | Explicit stop-limits [OBSERVED] | "
+            "Next-bar market orders | Stop-limit entry proxy [HYPOTHESIS] | "
+            "Modeled entry proxy inspired by observed stop-limit use |"
         ),
         (
             "| **Covered Calls** | Sold on strength, repurchased on pullbacks | "
@@ -192,7 +226,11 @@ def format_fidelity_markdown_report(
         "",
         (
             "> **PLAUSIBILITY NOTE:** Plausibility diagnostics serve exclusively as "
-            "reality checks. Parameters were never tuned to match trade count or dollar profits."
+            "reality checks. Parameters were never tuned to match trade count or dollar profits. "
+            "The observed similarity in trade count (~1,334 vs ~1,300+) is not treated as "
+            "validation of the strategy. Because directional parameters are classified as "
+            "POST_HOC_SPECIFIED, trade count similarity cannot be treated as independent "
+            "confirmation of fidelity."
         ),
         "",
         "---",
@@ -206,7 +244,9 @@ def format_fidelity_markdown_report(
 
     for name, ab in result.ablations.items():
         obs = "N/A"
-        if "market_orders" in name:
+        if "sector_filtered_diagnostic" in name:
+            obs = "Mechanical pullback with sector trend filter active"
+        elif "market_orders" in name:
             obs = "Evaluating market order vs stop-limit execution drag"
         elif "no_sector" in name:
             obs = "Evaluating impact of sector regime filter"
@@ -230,21 +270,25 @@ def format_fidelity_markdown_report(
         "## 6. Research Conclusion & Next Steps",
         "",
         (
-            "1. **Fidelity Gap Resolved:** The difference between the baseline's 2-minute "
-            "z-score churn and the source's swing trading is quantified and separated."
+            "1. **Fidelity Gap Partially Addressed — Deterministic Hypothesis Implemented:** "
+            "The original z-score/ATR baseline was a poor proxy for the described discretionary "
+            "process. Phase H introduced a structurally closer deterministic hypothesis, but it "
+            "remains a model approximation, not recovered source code."
         ),
         (
             "2. **Strict Epistemic Quarantine:** Covered calls and extended hours remain labeled "
             "`UNVALIDATED` until authentic primary market data is provided."
         ),
         (
-            "3. **Research Integrity:** No parameters were tuned to match the $550k claim or "
-            "1,300 trades. The model remains completely falsifiable."
+            "3. **Research Integrity & Status:** No parameters were tuned to match the $550k claim "
+            "or 1,300 trades. Directional parameters are classified as `POST_HOC_SPECIFIED`. "
+            "Therefore: `FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED` and "
+            "`PRISTINE_OOS = UNAVAILABLE`."
         ),
         "",
         (
-            "> **STOP CONDITION:** Phase H fidelity reconstruction is complete. "
-            "Software changes cease."
+            "> **STOP CONDITION:** Phase I research integrity correction complete. "
+            "Software changes cease. No further optimization loops permitted."
         ),
     ])
 

@@ -152,7 +152,9 @@ This audit systematically evaluates each component of the current tactical engin
    Generates `OrderType.MARKET` orders filling at next bar's `open +/- slippage`.
 2. **What does the source actually describe?**
    Author explicitly states: "used stop limits and traded frequently because the names can move substantially."
-3. **Epistemic Label:** `OBSERVED` (use of stop limits).
+3. **Epistemic Label:**
+   - `OBSERVED`: The trader used stop-limit orders.
+   - `HYPOTHESIS`: Modeling directional entry specifically as a stop-limit order triggered at bar close is a deterministic simulation proxy, not a proven source rule for entries.
 4. **Does the mismatch materially affect P&L?**
    Yes. Stop-limits control maximum slippage on breakout or stop-loss executions, but introduce execution risk (unfilled orders when price gaps beyond limit).
 5. **Can the current dataset support a better implementation?**
@@ -167,12 +169,12 @@ This audit systematically evaluates each component of the current tactical engin
 | Dimension | Baseline Implementation | Observed Source Behavior | Fidelity Status |
 |---|---|---|---|
 | **Underlying Equities** | MU, SNDK, SKHY, AMD, USD | MU, SNDK, SKHY, 2x ETFs | **Alike (Verified Data)** |
-| **Entry Trigger** | 1m z-score <= -1.5 (mean-reversion) | Discretionary trend + dip buying | **Mismatch (Hypothesis Proxy)** |
-| **Exit Mechanism** | 1.0x ATR tight stop/target (2m hold) | Swing & scalp management (hours/days) | **Mismatch (Assumption Proxy)** |
-| **Trade Frequency** | 70–80 trades/day | ~20 trades/day (~4-5/sym/day) | **16x Frequency Divergence** |
+| **Entry Trigger** | 1m z-score <= -1.5 (mean-reversion) | Discretionary trend + dip buying | **Mismatch (Hypothesis Proxy; POST_HOC_SPECIFIED)** |
+| **Exit Mechanism** | 1.0x ATR tight stop/target (2m hold) | Swing & scalp management (hours/days) | **Mismatch (Assumption Proxy; POST_HOC_SPECIFIED)** |
+| **Trade Frequency** | 70–80 trades/day | ~20 trades/day (~4-5/sym/day) | **Descriptive Check Only; Not Validation** |
 | **Covered Calls** | Disabled (false) | Active write on strength / buyback on dip | **Omitted (Data Unvalidated)** |
-| **Order Execution** | Next-bar market orders | Stop-limit orders | **Partial (Needs Stop-Limit)** |
+| **Order Execution** | Next-bar market orders | Stop-limit orders | **OBSERVED Order Type / HYPOTHESIS Entry Proxy** |
 | **Session Hours** | RTH only (09:30–16:00 ET) | RTH + non-RTH SKHY/Kioxia | **Partial (Non-RTH Unvalidated)** |
 | **Leverage** | Fixed 1.0x / 1.5x limits | Discretionary margin debt | **Parameter Assumption** |
 
-The baseline proved that high-frequency z-score mean-reversion with tight ATR exits in high-beta semiconductor names fails under realistic execution costs. Phase H now reconstructs the architecture to faithfully model the source components.
+The baseline proved that high-frequency z-score mean-reversion with tight ATR exits in high-beta semiconductor names fails under realistic execution costs. Phase H and Phase I reconstruct the architecture to faithfully model the source components with full parameter provenance and accounting integrity.

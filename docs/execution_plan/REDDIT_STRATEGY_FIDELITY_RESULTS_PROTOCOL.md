@@ -16,12 +16,19 @@ This protocol defines the execution, logging, and evaluation procedures for the 
 ## 2. Core Experiment Matrix Definitions
 
 ### Experiment 1: Preserved Baseline (`CURRENT_MECHANICAL_PULLBACK_BASELINE`)
-- **Variant:** `current_mechanical_pullback_baseline`
-- **Signal:** 1-minute rolling 60-bar z-score $\le -1.5$, relative volume $\ge 0.70$.
+- **Variant:** `current_mechanical_pullback_baseline` (Run `2e9f108d`, config hash `0d34835d97140803`)
+- **Signal:** 1-minute rolling 60-bar z-score $\le -1.5$, relative volume $\ge 0.70$, sector filter `False`.
 - **Exit:** 1.0x entry ATR target, 1.0x entry ATR stop, 120-minute maximum hold.
+- **Leverage:** 1.0x gross leverage, max 1 layer, 25% max symbol weight.
+- **Costs:** 0.0 bps commission, 5.0 bps slippage, 5.0% margin interest.
 - **Order Model:** Next-bar market orders.
 - **Options:** Disabled.
-- **Execution Role:** Baseline control establishing the cost-drag and rapid-stop mechanics of high-frequency mean-reversion.
+- **Execution Role:** Immutable preserved historical baseline establishing the cost-drag and rapid-stop mechanics of high-frequency mean-reversion (-92.89% return, 5,082 trades).
+
+### Diagnostic: Sector-Filtered Mechanical Pullback (`MECHANICAL_PULLBACK_SECTOR_FILTERED_DIAGNOSTIC`)
+- **Variant:** `mechanical_pullback_sector_filtered_diagnostic`
+- **Signal:** Same mechanical pullback, with sector filter `True`.
+- **Execution Role:** Evaluates the isolated impact of sector filtering on the mechanical baseline (~ -34.88% / -35.69% return, ~1,114 / 1,129 trades). Strictly a diagnostic; never substituted for the baseline.
 
 ### Experiment 2: Directional Fidelity (`DIRECTIONAL_FIDELITY_RECONSTRUCTION`)
 - **Variant:** `directional_fidelity_reconstruction`
@@ -29,18 +36,19 @@ This protocol defines the execution, logging, and evaluation procedures for the 
   - Intraday trend intact (`trend_slope > 0`, MA alignment, optional SMH sector confirmation).
   - Dip from recent high between 0.5% and 3.0% (`-0.030 <= dist_high <= -0.005`).
   - Bar stabilization (close in upper 35% of bar or positive return).
-- **Exit:** Multi-bar swing targets (e.g. 2.5x ATR target, 1.5x ATR stop, 240m max hold).
-- **Order Model:** Stop-limit orders with ceiling limit price to prevent adverse fill slippage.
+- **Exit:** Multi-bar swing targets (2.5x ATR target, 1.5x ATR stop, 240m max hold).
+- **Order Model:** Stop-limit orders with ceiling limit price to prevent adverse fill slippage [HYPOTHESIS entry proxy].
 - **Leverage:** 1.0x unleveraged cash account (isolating directional signal edge).
 - **Options:** Disabled.
-- **Execution Role:** Determines whether the underlying semiconductor swing trading behavior can generate positive expectancy independent of options or leverage.
+- **Parameter Provenance:** `POST_HOC_SPECIFIED` per `docs/execution_plan/REDDIT_FIDELITY_PARAMETER_PROVENANCE.md`.
+- **Execution Role:** Evaluates whether directional semiconductor swing trading can generate positive expectancy independent of options or leverage (-53.27% return, 1,334 trades).
 
 ### Experiment 3: Directional + Margin (`DIRECTIONAL_FIDELITY_MARGIN`)
 - **Variant:** `directional_fidelity_reconstruction` with margin.
 - **Leverage:** 1.5x gross leverage, max 2 layers.
 - **Financing:** 5.0% annual borrowing rate, margin debt tracking, maintenance requirement monitoring, forced liquidation simulation.
 - **Options:** Disabled.
-- **Execution Role:** Quantifies whether reported performance characteristics could arise from leverage amplification vs underlying signal edge.
+- **Execution Role:** Quantifies whether reported performance characteristics could arise from leverage amplification vs underlying signal edge (-58.51% return, 1,369 trades).
 
 ### Experiment 4: Directional + Covered Calls (`COVERED_CALL_OVERLAY`)
 - **Status:** `UNVALIDATED` (Gated by data sufficiency).
@@ -53,6 +61,7 @@ This protocol defines the execution, logging, and evaluation procedures for the 
 
 ### Experiment 6: Component Ablations
 - Evaluates individual mechanics:
+  - `mechanical_pullback_sector_filtered_diagnostic`
   - `equity_only_1.0x` vs `equity_plus_margin_1.5x` vs `equity_plus_margin_2.0x`
   - `market_orders` vs `stop_limit` orders
   - `sector_filter_on` vs `sector_filter_off`
@@ -82,11 +91,34 @@ Before assessing profitability, report:
 - `costs_as_pct_of_gross_pnl`
 
 These metrics are compared against the source's descriptive claims (~1,300 trades, multi-hour/multi-day swing positions) **strictly as descriptive reality checks**. They must never be used as optimization targets.
+- **Trade Count Note:** The similarity between 1,334 trades and the source's ~1,300 claim is not treated as validation of the strategy.
+- **Holding Time Note:** The 8.0-minute median hold time represents reduced high-frequency churn relative to the 2.0-minute baseline, but does not prove that the Reddit trader held positions for similar durations.
 
 ---
 
-## 5. Stop Condition
+## 5. P&L Accounting and Reconciliation Invariant
+
+The simulation engine maintains mathematical reconciliation across all P&L and cost components:
+```
+Signal-Price P&L (Pre-Slippage)
+  - Execution Slippage (embedded directly into fill prices)
+  = Gross Realized Trading P&L
+  - Commission Paid
+  = Net Realized Trading P&L
+  + Options Realized P&L
+  - Margin Interest Paid
+  = Portfolio Net P&L
+  = Final Equity - Initial Cash (for closed positions)
+```
+**No Double-Counting Rule:** Execution slippage is reflected directly in entry and exit fill prices; it is never subtracted a second time from Net Realized P&L.
+
+---
+
+## 6. Stop Condition
 
 Once the fidelity matrix runs, produces canonical JSON and Markdown outputs, passes tests, and satisfies all acceptance criteria:
 **STOP SOFTWARE CHANGES.**
-Do not iterate to seek positive returns. The objective is honest, reproducible, falsifiable scientific modeling.
+Do not iterate to seek positive returns. The research status remains:
+- `FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED`
+- `PRISTINE_OOS = UNAVAILABLE`
+

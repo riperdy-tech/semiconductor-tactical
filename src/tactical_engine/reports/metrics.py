@@ -16,6 +16,10 @@ class PerformanceMetrics(BaseModel):
     gross_pnl: float
     net_pnl: float
     cost_drag_pct: float
+    # P&L attribution and reconciliation semantics
+    pre_slippage_pnl: float = 0.0  # Signal-price / pre-slippage P&L
+    net_realized_pnl: float = 0.0  # Realized trade P&L after slippage and commissions
+    portfolio_net_pnl: float = 0.0  # Net portfolio P&L after trades, options, and financing
     margin_interest_paid: float = 0.0
     peak_margin_debt: float = 0.0
     margin_call_count: int = 0
@@ -76,6 +80,14 @@ def calculate_metrics(result: BacktestResult) -> PerformanceMetrics:
         expectancy = 0.0
         cost_drag = 0.0
 
+    comm_paid = round(result.commission_paid, 2)
+    slip_paid = round(result.slippage_paid, 2)
+    pre_slip_pnl = round(gross_pnl + slip_paid, 2)
+    net_realized = round(net_pnl, 2)
+    margin_paid = round(result.margin_interest_paid, 2)
+    options_realized = round(result.options_realized_pnl, 2)
+    portfolio_net = round(net_realized + options_realized - margin_paid, 2)
+
     return PerformanceMetrics(
         initial_cash=init_c,
         final_equity=final_eq,
@@ -88,12 +100,15 @@ def calculate_metrics(result: BacktestResult) -> PerformanceMetrics:
         gross_pnl=round(gross_pnl, 2),
         net_pnl=round(net_pnl, 2),
         cost_drag_pct=round(cost_drag, 2),
-        margin_interest_paid=round(result.margin_interest_paid, 2),
+        pre_slippage_pnl=pre_slip_pnl,
+        net_realized_pnl=net_realized,
+        portfolio_net_pnl=portfolio_net,
+        margin_interest_paid=margin_paid,
         peak_margin_debt=round(result.peak_margin_debt, 2),
         margin_call_count=result.margin_call_count,
         forced_liquidation_count=result.forced_liquidation_count,
         options_premium_collected=round(result.options_premium_collected, 2),
-        options_realized_pnl=round(result.options_realized_pnl, 2),
+        options_realized_pnl=options_realized,
         implementation_label=getattr(
             result, "implementation_label", "CURRENT_MECHANICAL_PULLBACK_BASELINE"
         ),
@@ -105,8 +120,8 @@ def calculate_metrics(result: BacktestResult) -> PerformanceMetrics:
         trades_per_day=round(result.trades_per_day, 2),
         trades_per_symbol_per_day=round(result.trades_per_symbol_per_day, 2),
         median_holding_time_minutes=round(result.median_holding_time_minutes, 1),
-        commission_paid=round(result.commission_paid, 2),
-        slippage_paid=round(result.slippage_paid, 2),
+        commission_paid=comm_paid,
+        slippage_paid=slip_paid,
         total_cost_paid=round(result.total_cost_paid, 2),
         costs_as_pct_of_gross_pnl=round(result.costs_as_pct_of_gross_pnl, 2),
     )
