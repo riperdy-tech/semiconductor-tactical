@@ -187,7 +187,7 @@ Before any further strategy experiment, execute:
 
 docs/execution_plan/GEMINI_PHASE_H_POST_RUN_CORRECTION.md
 
-This phase is mandatory. It is a **research-bookkeeping correction only**.
+This phase is mandatory. It is a research-bookkeeping correction only.
 
 Do not modify the frozen directional strategy parameters.
 
@@ -208,6 +208,75 @@ Do not rerun the strategy to search for better parameters.
 After Phase I passes, stop software changes again.
 
 The research status must continue to state:
+
+FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED
+
+and:
+
+PRISTINE_OOS = UNAVAILABLE
+
+## Phase J — Reddit Behavioral Replication V2 (US-market scope)
+
+After Phase I passes, execute:
+
+docs/execution_plan/REDDIT_BEHAVIORAL_V2_EXECUTION_PLAN.md
+
+This is the next substantive reconstruction phase.
+
+V2 must model the Reddit source as a portfolio process rather than a single buy/sell signal, including:
+
+- persistent core holdings;
+- tactical add/reduce/re-entry around those holdings;
+- account-level margin;
+- covered calls attached to owned shares;
+- stop-limit execution;
+- Level-2 as a separate data gate;
+- U.S.-market-only execution.
+
+### V2 instrument scope
+
+Use:
+
+- MU;
+- SNDK;
+- SKHY;
+- U.S.-market KXIAY only when historical data is sufficient and clearly labeled as a U.S. ADR proxy;
+- verified U.S.-listed 2x products only after source-evidence and data validation.
+
+Do not model direct:
+
+- KRX 000660;
+- Tokyo 285A.
+
+Set:
+
+DIRECT_ASIA_REPLICATION_STATUS = OUT_OF_SCOPE_FOR_V2
+
+Do not include the current generic USD semiconductor ETF in the source-replication headline unless primary-source evidence establishes that it represents the trader's actual 2x exposure.
+
+### V2 fidelity rules
+
+The V2 plan requires:
+
+- a new source evidence matrix;
+- explicit separation of source-identified ETFs from candidate proxy ETFs;
+- persistent holdings separate from tactical positions;
+- covered calls linked to owned shares;
+- genuine Level-2 data gated as UNVALIDATED when absent;
+- U.S.-only session scope;
+- pre-registered V2 parameters;
+- no July–September parameter selection;
+- no optimization toward $550k, ~1,300 trades, or profitability.
+
+Do not reuse the Phase H post-hoc directional parameter set as if it were pre-registered V2.
+
+After the V2 specification, instrument manifest, parameter registry, data gates, tests, and documentation pass:
+
+STOP SOFTWARE CHANGES.
+
+The next action requires a separately approved V2 research execution.
+
+The research status must remain:
 
 FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED
 
