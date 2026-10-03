@@ -221,65 +221,58 @@ After Phase I passes, execute:
 
 docs/execution_plan/REDDIT_BEHAVIORAL_V2_EXECUTION_PLAN.md
 
-This is the next substantive reconstruction phase.
+This is the substantive V2 architecture/specification phase.
 
-V2 must model the Reddit source as a portfolio process rather than a single buy/sell signal, including:
+V2 must model the Reddit source as a portfolio process rather than a single buy/sell signal, including persistent core holdings, tactical add/reduce/re-entry, account-level margin, covered calls attached to owned shares, stop-limit execution, a Level-2 data gate, and U.S.-market-only execution.
 
-- persistent core holdings;
-- tactical add/reduce/re-entry around those holdings;
-- account-level margin;
-- covered calls attached to owned shares;
-- stop-limit execution;
-- Level-2 as a separate data gate;
-- U.S.-market-only execution.
+V2 scope excludes direct KRX and Tokyo execution. The default headline universe is MU/SNDK/SKHY. KXIAY and candidate U.S.-listed 2x products remain separate, explicitly labeled proxy experiments until data and source-evidence gates pass.
 
-### V2 instrument scope
+Do not optimize for $550k, ~1,300 trades, or positive P&L.
 
-Use:
+## Phase K — Reddit Behavioral V2 End-to-End Implementation & Research Gate
 
-- MU;
-- SNDK;
-- SKHY;
-- U.S.-market KXIAY only when historical data is sufficient and clearly labeled as a U.S. ADR proxy;
-- verified U.S.-listed 2x products only after source-evidence and data validation.
+After Phase J and Phase I pass, execute:
 
-Do not model direct:
+docs/execution_plan/REDDIT_V2_END_TO_END_IMPLEMENTATION_PLAN.md
 
-- KRX 000660;
-- Tokyo 285A.
+This phase is the bridge from V2 architecture to a real historical backtest.
 
-Set:
+It must first correct remaining evidence labels:
 
-DIRECT_ASIA_REPLICATION_STATUS = OUT_OF_SCOPE_FOR_V2
+- account-level 2.0x gross leverage is an ASSUMPTION/HYPOTHESIS, not OBSERVED;
+- 50% tactical scale-out is HYPOTHESIS, not OBSERVED;
+- exact 3/5/7 DTE values are ASSUMPTION/HYPOTHESIS, not OBSERVED;
+- exact numerical option repurchase triggers are HYPOTHESIS/ASSUMPTION;
+- 60% normalized core allocation is an ASSUMPTION;
+- monthly core rebalance is not part of the default V2 behavior unless separately justified.
 
-Do not include the current generic USD semiconductor ETF in the source-replication headline unless primary-source evidence establishes that it represents the trader's actual 2x exposure.
+Then:
 
-### V2 fidelity rules
+- freeze a normalized 60% core research scenario across MU/SNDK/SKHY;
+- keep candidate leveraged products separate from the headline replication;
+- implement a real V2 directional signal/order-generation module;
+- connect signals to ExecutionSimulator and V2PortfolioEngine;
+- add a canonical V2 historical runner and run.ps1 mode;
+- execute only V2-A, V2-B, and V2-C in the first end-to-end historical pass;
+- keep covered calls blocked pending real option-chain data;
+- keep Level-2 blocked pending genuine historical Level-2 data;
+- keep direct KRX/Tokyo execution out of scope;
+- preserve POST_HOC_HOLDOUT classification for July–September;
+- do not reuse or retune Phase H post-hoc parameters.
 
-The V2 plan requires:
+The first V2 historical diagnostic must use the pre-registered default candidate defined in the V2 registry and must not perform a July–September parameter search.
 
-- a new source evidence matrix;
-- explicit separation of source-identified ETFs from candidate proxy ETFs;
-- persistent holdings separate from tactical positions;
-- covered calls linked to owned shares;
-- genuine Level-2 data gated as UNVALIDATED when absent;
-- U.S.-only session scope;
-- pre-registered V2 parameters;
-- no July–September parameter selection;
-- no optimization toward $550k, ~1,300 trades, or profitability.
-
-Do not reuse the Phase H post-hoc directional parameter set as if it were pre-registered V2.
-
-After the V2 specification, instrument manifest, parameter registry, data gates, tests, and documentation pass:
+After V2-A/B/C execute reproducibly and all acceptance criteria pass:
 
 STOP SOFTWARE CHANGES.
 
-The next action requires a separately approved V2 research execution.
+The next step is a separately approved research-analysis phase.
 
-The research status must remain:
+Global status must remain:
 
 FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED
-
-and:
-
+TRUE_LEVEL2_REPLICATION = UNVALIDATED
+HISTORICAL_OPTION_CHAIN_STATUS = UNVALIDATED
+DIRECT_ASIA_REPLICATION_STATUS = OUT_OF_SCOPE_FOR_V2
 PRISTINE_OOS = UNAVAILABLE
+
