@@ -208,6 +208,39 @@
 
 **Reason:** Fulfills all requirements from `docs/execution_plan/GEMINI_PHASE_H_POST_RUN_CORRECTION.md` and Phase I of `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`.
 
+## 2026-10-03 — Phase J: Reddit Behavioral Replication V2 (US-market scope)
+
+**Decision:**
+1. **U.S.-Market Only Scope & Asian Venue Exclusion:**
+   - Confined V2 execution strictly to U.S.-listed instruments. Direct execution on Korea Exchange (`000660.KS`) and Tokyo Stock Exchange (`285A.T`) is explicitly quarantined: `DIRECT_ASIA_REPLICATION_STATUS = OUT_OF_SCOPE_FOR_V2`. Direct Asian execution is reserved for a future multi-currency research engine (V3).
+2. **Instrument Universe Hierarchy & Manifest:**
+   - Core Equities: `MU`, `SNDK`, and `SKHY` (U.S. ADR) classified as `SOURCE_IDENTIFIED` and `VALIDATED`.
+   - Conditional U.S. ADR: `KXIAY` classified as an active U.S. OTC ADR (1:10 ratio) serving as a proxy for Tokyo Kioxia activity. Never describe as Nasdaq-listed. Kioxia confirmed in official release on Sep 15, 2026 that U.S. exchange ADS listing details remain undecided. Gated as `UNVALIDATED` pending dedicated OTC data feed.
+   - 2x Leveraged ETFs: Cataloged U.S. candidates (`SKUU`, `SKHU`, `SKHL`, `MUU`, `SNDG`, `SNDU`, `SNXX`) as `CANDIDATE_PROXY`. Prohibited from `SOURCE_IDENTIFIED` status without primary evidence.
+   - Generic `USD` ETF: Strictly quarantined from headline source replication.
+   - Machine-readable manifest created at `reports/data_manifests/v2_us_instrument_manifest.json` with Pydantic parser at `src/tactical_engine/data/v2_manifest.py`.
+3. **Multi-Layer Portfolio Process Engine (`v2_portfolio.py`):**
+   - Replaced single-signal mean-reversion with a 5-layer portfolio process:
+     - Layer 1 (Persistent Core): Long-lived inventory with independent cost basis and P&L.
+     - Layer 2 (Tactical Sleeve): Intraday/swing scalps with add, reload, partial reduction (50%), and re-entry. Invariant: tactical reductions NEVER liquidate persistent core holdings.
+     - Layer 3 (Covered-Call Overlay): Calls written strictly against owned unencumbered shares (`contracts <= shares / 100`). State machine handles write on strength, repurchase on pullback, expiration OTM, and assignment. Hard-gated as `UNVALIDATED` without real option chains.
+     - Layer 4 (Account Margin): Margin debt across all holdings, 5% annual interest, 25% maintenance, liquidation prioritizes tactical before core.
+     - Layer 5 (Profit Withdrawals): Segregated capital transfers tracked without inflating strategy returns.
+   - Enforced zero-tolerance mathematical reconciliation invariant across all equity and cash flows.
+4. **Level-2 Data Gate:**
+   - Established explicit data gate: `TRUE_LEVEL2_REPLICATION = UNVALIDATED`. Synthetic order book features from OHLCV are prohibited.
+5. **Parameter Pre-Registration & Contamination Control:**
+   - Pre-registered a bounded candidate parameter family in `docs/execution_plan/REDDIT_V2_PARAMETER_REGISTRY.md`.
+   - Quarantined Phase H post-hoc parameters (`impulse_pct_range [0.005, 0.030]`, `stabilization_ratio 0.35`, tight ATRs).
+   - Classified July–September 2026 as `POST_HOC_HOLDOUT`. Status remains `PRISTINE_OOS = UNAVAILABLE`.
+6. **V2 Experiment Matrix (V2-A through V2-F):**
+   - Formalized 6-tier ablation protocol in `docs/execution_plan/REDDIT_V2_RESULTS_PROTOCOL.md`.
+7. **Mandatory Software Stop Condition:**
+   - Enforced software freeze upon passing tests and documentation. Prohibited parameter tuning to $550k, 1,300 trades, or profitability.
+
+**Reason:** Fulfills all requirements from `docs/execution_plan/REDDIT_BEHAVIORAL_V2_EXECUTION_PLAN.md` and Phase J of `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`.
+
+
 
 
 

@@ -43,6 +43,21 @@ The strategy is architecturally decoupled into four distinct layers:
   - Option P&L attribution without chain data: `PROHIBITED`
 - **Description:** Models short call writing conditional on holding >= 100 shares and underlying at strength (`check_strength_predicate`), with repurchase triggers on pullbacks. Quarantined as `UNVALIDATED` until real option chain tick data is ingested.
 
+### Variant 4: `REDDIT_BEHAVIORAL_V2` (US-Market Scope)
+- **Status:** `PRE_REGISTERED_ARCHITECTURE`
+- **Epistemic Classification:**
+  - Persistent core holdings in memory names: `OBSERVED`
+  - Tactical scalping and swing trading around core: `OBSERVED`
+  - Covered calls sold on strength and repurchased on pullbacks: `OBSERVED`
+  - Level-2 order-book decision making: `OBSERVED` (gated as `UNVALIDATED`)
+  - Direct KRX / Tokyo trading: `OBSERVED` (gated as `OUT_OF_SCOPE_FOR_V2`)
+  - Stop limits: `OBSERVED` (order mechanism) / `HYPOTHESIS` (directional entry rule)
+  - KXIAY U.S. OTC ADR proxy (1:10 ratio): `HYPOTHESIS` (proxy for Tokyo Kioxia; never describe as Nasdaq-listed)
+  - Candidate 2x Leveraged ETFs: `CANDIDATE_PROXY`
+  - Generic USD ETF: `QUARANTINED`
+  - Candidate parameter family: `PRE_REGISTERED`
+- **Description:** Models the trader's actual portfolio process across 5 integrated layers: persistent core memory inventory, tactical trading sleeve with add/reload/partial reduction/re-entry, covered-call overlay attached to owned shares, account-level margin financing, and segregated profit withdrawal tracking. Evaluated across 6-tier ablation matrix V2-A through V2-F.
+
 ### Legacy Baseline Variants (Subsumed under Baseline)
 - `literal_clone`: 1.5x leverage, 2 layers, no sector filter.
 - `risk_controlled`: 1.0x leverage, 1 layer, fixed-risk sizing.

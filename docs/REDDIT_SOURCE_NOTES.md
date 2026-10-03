@@ -70,3 +70,18 @@ The $550k result is an observed self-report, not evidence that the strategy has 
 
 The project's job is to falsify easy explanations before declaring an edge.
 
+## Phase J Behavioral Replication V2 Findings & Scope Boundaries
+
+See full evidence matrix in `docs/REDDIT_BEHAVIORAL_V2_EVIDENCE_MATRIX.md` and directional behavior spec in `docs/REDDIT_V2_DIRECTIONAL_BEHAVIOR.md`.
+
+1. **Portfolio Process vs Single Signal:** The trader's actual activity was a multi-layer process: persistent long inventory in high-beta memory names -> active scalps/reloads around core on margin -> short-dated covered calls sold on surges and repurchased on pullbacks. Tactical reductions never liquidate core holdings.
+2. **U.S.-Market Only Scope:** Direct Asian execution (KRX SK hynix `000660`, Tokyo Kioxia `285A`) is explicitly out of scope for V2 (`DIRECT_ASIA_REPLICATION_STATUS = OUT_OF_SCOPE_FOR_V2`).
+3. **Instrument Clarifications:**
+   - `SKHY`: Primary U.S. vehicle for SK hynix memory exposure (`SOURCE_IDENTIFIED`).
+   - `KXIAY`: Active U.S. OTC ADR (1:10 ratio) evaluated as a proxy for Tokyo Kioxia activity. Never describe as Nasdaq-listed. Kioxia officially stated on Sep 15, 2026 that U.S. exchange listing details remain undecided.
+   - 2x Leveraged ETFs: Candidates (`SKUU`, `SKHU`, `SKHL`, `MUU`, `SNDG`, `SNDU`, `SNXX`) inventoried as `CANDIDATE_PROXY`.
+   - Generic `USD` ETF: Strictly quarantined from headline source-replication results.
+4. **Level-2 Data Gate:** Gated as `TRUE_LEVEL2_REPLICATION = UNVALIDATED`. Synthetic order book features from OHLCV are prohibited.
+5. **Pre-Registration:** Phase H parameters (`0.5%–3%`, `0.35 stabilization`, tight ATRs) remain quarantined as `POST_HOC_SPECIFIED`. V2 pre-registers a bounded candidate family prior to any simulation.
+
+
