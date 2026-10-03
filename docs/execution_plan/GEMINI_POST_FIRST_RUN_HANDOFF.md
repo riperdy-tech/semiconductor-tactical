@@ -104,11 +104,11 @@ Store them in the config, run manifest, report, and docs/DECISIONS.md.
 
 Run:
 
-.un.ps1 test
+.\run.ps1 test
 
-.un.ps1 doctor
+.\run.ps1 doctor
 
-.un.ps1 doctor-data -Config <1m-config> -DataDir data/processed
+.\run.ps1 doctor-data -Config <1m-config> -DataDir data/processed
 
 and:
 
@@ -140,6 +140,7 @@ Do not declare the strategy successful or unsuccessful based only on the full-sa
 All audit acceptance criteria pass, then stop coding.
 
 The next step is a clean formal OOS research execution and interpretation.
+
 ## Phase G — OOS and provenance reconciliation
 
 Before any formal research interpretation, execute:
@@ -151,3 +152,31 @@ This phase is mandatory because the first full-period run exposed the later Sept
 Do not call September a pristine OOS result unless the evidence proves it was previously unseen. Do not silently regenerate the historical run to make the provenance agree.
 
 After reconciliation, stop software changes unless a real defect is found.
+
+## Phase H — Reddit strategy fidelity reconstruction
+
+Before further strategy performance interpretation, execute:
+
+docs/execution_plan/REDDIT_STRATEGY_FIDELITY_EXECUTION_PLAN.md
+
+This phase is mandatory because the existing backtest engine is operationally complete but the current strategy implementation is not a faithful reconstruction of the full behavior described by the source.
+
+The current negative result must remain preserved as:
+
+CURRENT_MECHANICAL_PULLBACK_BASELINE
+
+Do not discard it, overwrite it, or relabel it as the Reddit trader's actual strategy.
+
+The fidelity task must:
+
+- build a source-evidence matrix using OBSERVED / DERIVED / HYPOTHESIS / ASSUMPTION / UNVERIFIED labels;
+- identify the gap between the current z-score/ATR mean-reversion implementation and the source's described directional trading behavior;
+- model directional equity trading separately from covered calls, margin/capital deployment, and extended-hours activity;
+- require real historical option-chain data before covered-call P&L is treated as validated;
+- explicitly classify unsupported extended-hours behavior as UNVALIDATED when data is unavailable;
+- preserve no-lookahead, execution, provenance, and OOS controls;
+- compare descriptive trading behavior without fitting parameters to the reported $550k result or reported trade count.
+
+Do not optimize for profitability, trade-count matching, or resemblance to the reported account equity.
+
+Stop after the new fidelity acceptance criteria pass.
