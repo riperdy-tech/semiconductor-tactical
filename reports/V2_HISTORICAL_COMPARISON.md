@@ -1,8 +1,10 @@
 # Reddit Behavioral Replication V2 — Historical Comparison Report
 
-**Run ID:** `e7c88bde`  
-**Date Generated:** `2026-10-04T09:38:52.102088+00:00`  
-**Git Commit SHA:** `7819c4a`  
+**Run ID:** `24a9e783`  
+**Date Generated:** `2026-10-04T11:12:08.486073+00:00`  
+**Execution Code SHA:** `c10f91c`  
+**Artifact Commit SHA:** `PENDING_CHECKIN`  
+**Accounting Tolerance:** `$0.001000`  
 **Dataset ID:** `massive_stocks_1m_51e9b529de55`  
 **Dataset SHA256:** `51e9b529de5556002bc3a0e1bc4fd1ee7eef06061b54c11457703d9af39b13e8`  
 **Nominal Date Range:** `2026-07-01T00:00:00Z to 2026-09-30T23:59:59Z`  
@@ -10,8 +12,10 @@
 **Evaluation Status:** `POST_HOC_HOLDOUT / NOT_PRISTINE_OOS`  
 **Phase L Accounting Status:** `PHASE_L_ACCOUNTING_CORRECTED`  
 **Phase L.1 Accounting Status:** `PHASE_L1_ACCOUNTING_CORRECTED`  
+**Phase L.2 Reproduced Status:** `PHASE_L2_FINAL_REPRODUCED_RESULT`  
 **Preserved Phase K Baseline:** Run ID `5080f859` (Commit `1eda7cc`) preserved at `reports/fidelity_runs/phase_k_baseline_1eda7cc/`  
 **Preserved Phase L Baseline:** Run ID `bc19e12e` (Commit `0ce2208`) preserved at `reports/fidelity_runs/phase_l_baseline_0ce2208/`  
+**Preserved Phase L.1 Baseline:** Run ID `e7c88bde` (Commit `eeadc94`) preserved at `reports/fidelity_runs/phase_l1_baseline_eeadc94/`  
 
 ---
 
@@ -105,7 +109,7 @@ PRISTINE_OOS                     = UNAVAILABLE
 | **Total Commissions Paid** | $0.00 | $0.00 | $0.00 |
 | **Net Realized Closed Trade P&L** | $0.00 | $-3,830.14 | $-3,830.14 |
 | **Open Tactical Terminal Contribution** | $0.00 | $+5,276.83 | $+5,276.83 |
-| **Accounting Invariant Check** | Clean (`True`) | Clean (`True`) | Clean (`True`) |
+| **Accounting Invariant Check** | Clean within declared tolerance ($0.000000 <= $0.001000) | Clean within declared tolerance ($0.000200 <= $0.001000) | Clean within declared tolerance ($0.000200 <= $0.001000) |
 
 ---
 
@@ -156,7 +160,8 @@ Plus Persistent Core Contribution:      $+6,482.16
 Calculated Total Net Strategy P&L:      $+7,928.85
 Ending Equity minus Initial Cash:       $+7,928.85
 Reconciliation Discrepancy:             $0.000200
-Invariant Status:                       Clean (True)
+Accounting Tolerance:                  $0.001000
+Invariant Status:                       Clean within declared tolerance ($0.000200 <= $0.001000)
 
 Slippage Single-Count Reconciliation:
   Closed-Trade Slippage:                $644.47

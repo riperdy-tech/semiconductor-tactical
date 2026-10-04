@@ -1,7 +1,10 @@
 {
-  "run_id": "e7c88bde",
-  "created_at_utc": "2026-10-04T09:38:52.102088+00:00",
-  "git_sha": "7819c4a",
+  "run_id": "24a9e783",
+  "created_at_utc": "2026-10-04T11:12:08.486073+00:00",
+  "execution_code_sha": "c10f91c",
+  "artifact_commit_sha": "PENDING_CHECKIN",
+  "git_sha": "c10f91c",
+  "accounting_tolerance": 0.001,
   "dataset_id": "massive_stocks_1m_51e9b529de55",
   "aggregate_data_hash": "51e9b529de5556002bc3a0e1bc4fd1ee7eef06061b54c11457703d9af39b13e8",
   "market_scope": "US_MARKET_ONLY",
@@ -11,6 +14,7 @@
   "evaluation_status": "POST_HOC_HOLDOUT / NOT_PRISTINE_OOS",
   "phase_l_accounting_status": "PHASE_L_ACCOUNTING_CORRECTED",
   "phase_l1_accounting_status": "PHASE_L1_ACCOUNTING_CORRECTED",
+  "phase_l2_reproduced_status": "PHASE_L2_FINAL_REPRODUCED_RESULT",
   "pre_core_interval_status": "UNINITIALIZED / NOT_IN_SAMPLE (2026-07-01 to 2026-07-10 excluded due to SKHY start disparity)",
   "phase_k_baseline_run_id": "5080f859",
   "phase_k_baseline_git_sha": "1eda7cc",
@@ -22,6 +26,9 @@
   "phase_l_baseline_run_id": "bc19e12e",
   "phase_l_baseline_git_sha": "0ce2208",
   "phase_l_preservation_path": "reports/fidelity_runs/phase_l_baseline_0ce2208/",
+  "phase_l1_baseline_run_id": "e7c88bde",
+  "phase_l1_baseline_git_sha": "eeadc94",
+  "phase_l1_preservation_path": "reports/fidelity_runs/phase_l1_baseline_eeadc94/",
   "full_reddit_strategy_replication": "NOT_ESTABLISHED",
   "direct_asia_replication_status": "OUT_OF_SCOPE_FOR_V2",
   "true_level2_replication": "UNVALIDATED",
@@ -95,6 +102,7 @@
     "pre_slippage_pnl": 0.0,
     "total_commission_paid": 0.0,
     "total_slippage_paid": 0.0,
+    "accounting_tolerance": 0.001,
     "reconciliation_discrepancy": 0.0,
     "reconciles_cleanly": true,
     "tactical_adds_count": 0,
@@ -44618,6 +44626,7 @@
     "pre_slippage_pnl": -3185.6737,
     "total_commission_paid": 0.0,
     "total_slippage_paid": 659.0696999999997,
+    "accounting_tolerance": 0.001,
     "reconciliation_discrepancy": 0.00019999999949504854,
     "reconciles_cleanly": true,
     "tactical_adds_count": 57,
@@ -89090,7 +89099,7 @@
     ],
     "trades": [
       {
-        "trade_id": "779020f0",
+        "trade_id": "87e2a492",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T14:10:00Z",
@@ -89110,7 +89119,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=158.76 >= target=158.67)"
       },
       {
-        "trade_id": "c2bce553",
+        "trade_id": "ef06dedd",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T14:51:00Z",
@@ -89130,7 +89139,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1736.14 <= stop=1742.51)"
       },
       {
-        "trade_id": "57207690",
+        "trade_id": "d041f857",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T14:10:00Z",
@@ -89150,7 +89159,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=156.14 <= stop=156.31)"
       },
       {
-        "trade_id": "bd22d008",
+        "trade_id": "b25352e3",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T14:23:00Z",
@@ -89170,7 +89179,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=156.14 <= stop=156.31)"
       },
       {
-        "trade_id": "1a6dba3a",
+        "trade_id": "4d7cd6f2",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T14:51:00Z",
@@ -89190,7 +89199,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=926.44 <= stop=927.44)"
       },
       {
-        "trade_id": "c5c3f5db",
+        "trade_id": "094ada0b",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T19:59:00Z",
@@ -89210,7 +89219,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1812.54 >= target=1692.36)"
       },
       {
-        "trade_id": "107bfc6f",
+        "trade_id": "348255f5",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-14T15:47:00Z",
@@ -89230,7 +89239,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=177.20 <= stop=178.21)"
       },
       {
-        "trade_id": "9481c83f",
+        "trade_id": "2814b7cf",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T19:59:00Z",
@@ -89250,7 +89259,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1665.11 <= stop=1673.76)"
       },
       {
-        "trade_id": "7c38fa7c",
+        "trade_id": "62a2c38f",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-14T13:32:00Z",
@@ -89270,7 +89279,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1665.11 <= stop=1673.76)"
       },
       {
-        "trade_id": "3bd52597",
+        "trade_id": "71bc689e",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-15T18:20:00Z",
@@ -89290,7 +89299,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=175.64 <= stop=176.54)"
       },
       {
-        "trade_id": "4ce94359",
+        "trade_id": "64208c6c",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-16T17:11:00Z",
@@ -89310,7 +89319,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1435.20 <= stop=1435.76)"
       },
       {
-        "trade_id": "836f68aa",
+        "trade_id": "5ce4a687",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-17T17:26:00Z",
@@ -89330,7 +89339,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1474.39 <= stop=1475.58)"
       },
       {
-        "trade_id": "e31cddd0",
+        "trade_id": "cc57fa32",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-17T17:20:00Z",
@@ -89350,7 +89359,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=890.51 <= stop=890.57)"
       },
       {
-        "trade_id": "9f60a8ba",
+        "trade_id": "95e69463",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T13:57:00Z",
@@ -89370,7 +89379,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=156.55 <= stop=156.58)"
       },
       {
-        "trade_id": "b3ba7547",
+        "trade_id": "ce248cb6",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T14:04:00Z",
@@ -89390,7 +89399,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1395.00 <= stop=1397.69)"
       },
       {
-        "trade_id": "924d49a8",
+        "trade_id": "45e554a6",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T15:54:00Z",
@@ -89410,7 +89419,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=158.74 >= target=158.54)"
       },
       {
-        "trade_id": "ab52654c",
+        "trade_id": "19dd13b1",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T15:54:00Z",
@@ -89430,7 +89439,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=157.20 <= stop=157.49)"
       },
       {
-        "trade_id": "9a84f5f2",
+        "trade_id": "ad28c386",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T16:01:00Z",
@@ -89450,7 +89459,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=157.20 <= stop=157.49)"
       },
       {
-        "trade_id": "1b7db9af",
+        "trade_id": "36460abf",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T16:31:00Z",
@@ -89470,7 +89479,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1429.35 <= stop=1430.46)"
       },
       {
-        "trade_id": "f5186022",
+        "trade_id": "42418fa1",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T16:38:00Z",
@@ -89490,7 +89499,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=888.02 <= stop=889.24)"
       },
       {
-        "trade_id": "f5f5b6f3",
+        "trade_id": "4e944a7c",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-22T14:47:00Z",
@@ -89510,7 +89519,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1602.98 >= target=1601.86)"
       },
       {
-        "trade_id": "0beeeddb",
+        "trade_id": "96b9e93b",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-22T14:47:00Z",
@@ -89530,7 +89539,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1586.01 <= stop=1587.28)"
       },
       {
-        "trade_id": "50567e3a",
+        "trade_id": "d9c4de2b",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-22T15:10:00Z",
@@ -89550,7 +89559,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1586.01 <= stop=1587.28)"
       },
       {
-        "trade_id": "dfa91598",
+        "trade_id": "1ffc260d",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-23T13:57:00Z",
@@ -89570,7 +89579,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=975.76 <= stop=977.38)"
       },
       {
-        "trade_id": "de465e38",
+        "trade_id": "f7cb7c01",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-23T14:04:00Z",
@@ -89590,7 +89599,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=996.56 >= target=996.19)"
       },
       {
-        "trade_id": "03f8942d",
+        "trade_id": "dcf20c79",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-23T14:04:00Z",
@@ -89610,7 +89619,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=983.11 <= stop=983.53)"
       },
       {
-        "trade_id": "75ce62f7",
+        "trade_id": "e84384e1",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-23T14:09:00Z",
@@ -89630,7 +89639,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=983.11 <= stop=983.53)"
       },
       {
-        "trade_id": "d304f4e6",
+        "trade_id": "0cbce6f3",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-24T15:35:00Z",
@@ -89650,7 +89659,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=940.49 >= target=939.45)"
       },
       {
-        "trade_id": "1915d3ad",
+        "trade_id": "8beceac1",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-24T15:35:00Z",
@@ -89670,7 +89679,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=932.51 <= stop=933.31)"
       },
       {
-        "trade_id": "05562cca",
+        "trade_id": "fc61d4ae",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-24T15:40:00Z",
@@ -89690,7 +89699,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=932.51 <= stop=933.31)"
       },
       {
-        "trade_id": "319b112c",
+        "trade_id": "ddb3584f",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-24T19:59:00Z",
@@ -89710,7 +89719,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1462.99 >= target=1448.04)"
       },
       {
-        "trade_id": "b6fee9c3",
+        "trade_id": "4d1364b2",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-24T19:59:00Z",
@@ -89730,7 +89739,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1433.02 <= stop=1433.86)"
       },
       {
-        "trade_id": "d0dbc46e",
+        "trade_id": "ddaccfdf",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-27T13:38:00Z",
@@ -89750,7 +89759,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=155.61 <= stop=155.86)"
       },
       {
-        "trade_id": "9c6152eb",
+        "trade_id": "acee53b6",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-27T13:38:00Z",
@@ -89770,7 +89779,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=905.76 <= stop=913.19)"
       },
       {
-        "trade_id": "83770ffd",
+        "trade_id": "84ca58d7",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-27T16:25:00Z",
@@ -89790,7 +89799,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=887.45 >= target=884.21)"
       },
       {
-        "trade_id": "dba5844b",
+        "trade_id": "4103110d",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-27T16:25:00Z",
@@ -89810,7 +89819,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=877.62 <= stop=878.50)"
       },
       {
-        "trade_id": "36766ad7",
+        "trade_id": "d0a05cb6",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-27T16:27:00Z",
@@ -89830,7 +89839,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=877.62 <= stop=878.50)"
       },
       {
-        "trade_id": "765406ab",
+        "trade_id": "b1479846",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-27T16:41:00Z",
@@ -89850,7 +89859,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1278.01 <= stop=1278.49)"
       },
       {
-        "trade_id": "fb76dd70",
+        "trade_id": "750ae4aa",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T15:17:00Z",
@@ -89870,7 +89879,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=818.62 >= target=818.04)"
       },
       {
-        "trade_id": "a6356c2d",
+        "trade_id": "608b1650",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T15:37:00Z",
@@ -89890,7 +89899,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1111.90 >= target=1108.06)"
       },
       {
-        "trade_id": "6f60e850",
+        "trade_id": "b040c594",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T15:37:00Z",
@@ -89910,7 +89919,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1096.01 <= stop=1097.90)"
       },
       {
-        "trade_id": "36147e95",
+        "trade_id": "be7d9d39",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T15:47:00Z",
@@ -89930,7 +89939,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1096.01 <= stop=1097.90)"
       },
       {
-        "trade_id": "33a4f7be",
+        "trade_id": "a741bf56",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T19:14:00Z",
@@ -89950,7 +89959,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1045.00 <= stop=1060.77)"
       },
       {
-        "trade_id": "c9b6a4e9",
+        "trade_id": "df8238fd",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T15:17:00Z",
@@ -89970,7 +89979,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=808.00 <= stop=809.60)"
       },
       {
-        "trade_id": "16ebc2ec",
+        "trade_id": "65b2f7a3",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T15:22:00Z",
@@ -89990,7 +89999,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=808.00 <= stop=809.60)"
       },
       {
-        "trade_id": "cc87ca1f",
+        "trade_id": "a2c0b84c",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T14:19:00Z",
@@ -90010,7 +90019,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=130.00 <= stop=130.76)"
       },
       {
-        "trade_id": "d43ae8f7",
+        "trade_id": "33d13ef0",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:05:00Z",
@@ -90030,7 +90039,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=781.98 >= target=781.90)"
       },
       {
-        "trade_id": "3d2b3668",
+        "trade_id": "3a0e7df8",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:05:00Z",
@@ -90050,7 +90059,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=130.85 >= target=130.72)"
       },
       {
-        "trade_id": "62e5db03",
+        "trade_id": "69f8b8f3",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:05:00Z",
@@ -90070,7 +90079,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1080.18 >= target=1078.07)"
       },
       {
-        "trade_id": "c1eeabc6",
+        "trade_id": "02c681da",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:05:00Z",
@@ -90090,7 +90099,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=774.06 <= stop=774.40)"
       },
       {
-        "trade_id": "37dcb73a",
+        "trade_id": "69d7ead4",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:08:00Z",
@@ -90110,7 +90119,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=774.06 <= stop=774.40)"
       },
       {
-        "trade_id": "26598ae1",
+        "trade_id": "f3df6f8a",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:05:00Z",
@@ -90130,7 +90139,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1062.99 <= stop=1063.10)"
       },
       {
-        "trade_id": "c4729ab9",
+        "trade_id": "2ab24cd5",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:09:00Z",
@@ -90150,7 +90159,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1062.99 <= stop=1063.10)"
       },
       {
-        "trade_id": "c96f69a8",
+        "trade_id": "e30ad127",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:05:00Z",
@@ -90170,7 +90179,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=129.16 <= stop=129.40)"
       },
       {
-        "trade_id": "3e77540c",
+        "trade_id": "aa62dd97",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:08:00Z",
@@ -90190,7 +90199,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=129.16 <= stop=129.40)"
       },
       {
-        "trade_id": "70e90440",
+        "trade_id": "492ed3d1",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-30T17:43:00Z",
@@ -90210,7 +90219,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1252.02 <= stop=1253.92)"
       },
       {
-        "trade_id": "5298a78a",
+        "trade_id": "4d3b3630",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-31T16:47:00Z",
@@ -90230,7 +90239,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=148.40 >= target=148.31)"
       },
       {
-        "trade_id": "086e992a",
+        "trade_id": "a66ae767",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-31T16:49:00Z",
@@ -90250,7 +90259,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1243.10 >= target=1242.93)"
       },
       {
-        "trade_id": "525ba877",
+        "trade_id": "7d187792",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-31T16:47:00Z",
@@ -90270,7 +90279,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=147.33 <= stop=147.40)"
       },
       {
-        "trade_id": "166c9633",
+        "trade_id": "571d7fe9",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-31T16:52:00Z",
@@ -90290,7 +90299,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=147.33 <= stop=147.40)"
       },
       {
-        "trade_id": "65e1cd9c",
+        "trade_id": "b8ff1e71",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-31T16:49:00Z",
@@ -90310,7 +90319,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1231.00 <= stop=1232.25)"
       },
       {
-        "trade_id": "5927dc59",
+        "trade_id": "e98aeb96",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-31T16:53:00Z",
@@ -90330,7 +90339,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1231.00 <= stop=1232.25)"
       },
       {
-        "trade_id": "163d2cc4",
+        "trade_id": "d8d1c4aa",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-03T15:17:00Z",
@@ -90350,7 +90359,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1242.68 <= stop=1243.76)"
       },
       {
-        "trade_id": "c089f5b2",
+        "trade_id": "9ba3ec15",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-04T14:06:00Z",
@@ -90370,7 +90379,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=151.75 >= target=151.73)"
       },
       {
-        "trade_id": "405db0c4",
+        "trade_id": "5735f3e0",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-05T15:50:00Z",
@@ -90390,7 +90399,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1400.67 <= stop=1400.95)"
       },
       {
-        "trade_id": "71decc77",
+        "trade_id": "e2675403",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-04T14:06:00Z",
@@ -90410,7 +90419,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=138.40 <= stop=148.60)"
       },
       {
-        "trade_id": "0874a989",
+        "trade_id": "b86baa1d",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-04T16:21:00Z",
@@ -90430,7 +90439,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=138.40 <= stop=148.60)"
       },
       {
-        "trade_id": "3d58464e",
+        "trade_id": "092b8519",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-06T14:45:00Z",
@@ -90450,7 +90459,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=144.32 <= stop=144.52)"
       },
       {
-        "trade_id": "b97e2e59",
+        "trade_id": "8a2c1476",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-06T14:44:00Z",
@@ -90470,7 +90479,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=889.01 <= stop=890.72)"
       },
       {
-        "trade_id": "ebd14ab5",
+        "trade_id": "7e50715b",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-06T15:25:00Z",
@@ -90490,7 +90499,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=144.90 <= stop=145.06)"
       },
       {
-        "trade_id": "e1a2b8b1",
+        "trade_id": "ad62e246",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-07T15:46:00Z",
@@ -90510,7 +90519,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=878.70 >= target=877.62)"
       },
       {
-        "trade_id": "dd3e3892",
+        "trade_id": "0b976809",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-07T15:48:00Z",
@@ -90530,7 +90539,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1244.79 >= target=1242.22)"
       },
       {
-        "trade_id": "dcdb353f",
+        "trade_id": "54d3ed9f",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-07T15:48:00Z",
@@ -90550,7 +90559,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1230.00 <= stop=1231.22)"
       },
       {
-        "trade_id": "4d904737",
+        "trade_id": "76217f88",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-07T16:09:00Z",
@@ -90570,7 +90579,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1230.00 <= stop=1231.22)"
       },
       {
-        "trade_id": "04f0d42d",
+        "trade_id": "2ff63152",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-07T15:46:00Z",
@@ -90590,7 +90599,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=869.09 <= stop=871.59)"
       },
       {
-        "trade_id": "94e98b05",
+        "trade_id": "90e1b98a",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-07T16:08:00Z",
@@ -90610,7 +90619,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=869.09 <= stop=871.59)"
       },
       {
-        "trade_id": "dd355ee5",
+        "trade_id": "8927296c",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-11T13:52:00Z",
@@ -90630,7 +90639,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=139.85 >= target=139.64)"
       },
       {
-        "trade_id": "08e77798",
+        "trade_id": "6a1e9f87",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-11T15:15:00Z",
@@ -90650,7 +90659,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1274.09 >= target=1272.87)"
       },
       {
-        "trade_id": "e248551b",
+        "trade_id": "866e3e00",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-11T15:15:00Z",
@@ -90670,7 +90679,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1264.08 <= stop=1264.23)"
       },
       {
-        "trade_id": "5a514087",
+        "trade_id": "30f84757",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-11T15:23:00Z",
@@ -90690,7 +90699,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1264.08 <= stop=1264.23)"
       },
       {
-        "trade_id": "1cca28a4",
+        "trade_id": "7ad471d4",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-12T13:43:00Z",
@@ -90710,7 +90719,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1357.60 >= target=1355.70)"
       },
       {
-        "trade_id": "2aac50b3",
+        "trade_id": "40526a2a",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-14T13:47:00Z",
@@ -90730,7 +90739,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=980.00 >= target=977.99)"
       },
       {
-        "trade_id": "ac049f0b",
+        "trade_id": "805fe4d6",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-14T13:47:00Z",
@@ -90750,7 +90759,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=965.36 <= stop=966.57)"
       },
       {
-        "trade_id": "4a750778",
+        "trade_id": "5b07747d",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-14T14:06:00Z",
@@ -90770,7 +90779,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=965.36 <= stop=966.57)"
       },
       {
-        "trade_id": "4db8c96e",
+        "trade_id": "ee5cace2",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-17T14:14:00Z",
@@ -90790,7 +90799,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1026.90 >= target=1025.32)"
       },
       {
-        "trade_id": "41ee6728",
+        "trade_id": "a00b3d2d",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-17T14:14:00Z",
@@ -90810,7 +90819,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1016.88 <= stop=1016.89)"
       },
       {
-        "trade_id": "398b9d1f",
+        "trade_id": "9a14260e",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-17T14:49:00Z",
@@ -90830,7 +90839,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1016.88 <= stop=1016.89)"
       },
       {
-        "trade_id": "0e885ba5",
+        "trade_id": "97026c9c",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-19T15:01:00Z",
@@ -90850,7 +90859,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=939.32 >= target=937.50)"
       },
       {
-        "trade_id": "a7717381",
+        "trade_id": "8974dc10",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-19T15:01:00Z",
@@ -90870,7 +90879,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=930.07 <= stop=930.70)"
       },
       {
-        "trade_id": "53da77f8",
+        "trade_id": "db1d0acd",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-19T15:46:00Z",
@@ -90890,7 +90899,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=930.07 <= stop=930.70)"
       },
       {
-        "trade_id": "807a4a81",
+        "trade_id": "8446b419",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-21T13:44:00Z",
@@ -90910,7 +90919,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=985.59 >= target=985.27)"
       },
       {
-        "trade_id": "d2d83627",
+        "trade_id": "115cac16",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-21T13:44:00Z",
@@ -90930,7 +90939,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=974.16 <= stop=974.79)"
       },
       {
-        "trade_id": "5686887b",
+        "trade_id": "5abf5037",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-21T13:48:00Z",
@@ -90950,7 +90959,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=974.16 <= stop=974.79)"
       },
       {
-        "trade_id": "53e901a0",
+        "trade_id": "d2e3f2d8",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-25T13:44:00Z",
@@ -90970,7 +90979,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=922.50 <= stop=922.70)"
       },
       {
-        "trade_id": "ec1eab73",
+        "trade_id": "445761f6",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-31T13:44:00Z",
@@ -90990,7 +90999,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=948.30 >= target=948.01)"
       },
       {
-        "trade_id": "35c40666",
+        "trade_id": "d6f0eaee",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-31T13:44:00Z",
@@ -91010,7 +91019,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=939.02 <= stop=939.91)"
       },
       {
-        "trade_id": "ac502374",
+        "trade_id": "239f9064",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-31T13:58:00Z",
@@ -91030,7 +91039,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=939.02 <= stop=939.91)"
       },
       {
-        "trade_id": "4c7977dc",
+        "trade_id": "38926d41",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-04T14:17:00Z",
@@ -91050,7 +91059,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1003.58 >= target=1002.60)"
       },
       {
-        "trade_id": "e9bad422",
+        "trade_id": "8666ffb7",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-04T14:17:00Z",
@@ -91070,7 +91079,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=993.70 <= stop=994.93)"
       },
       {
-        "trade_id": "de70cb5a",
+        "trade_id": "b0fc0e3a",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-04T14:39:00Z",
@@ -91090,7 +91099,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=993.70 <= stop=994.93)"
       },
       {
-        "trade_id": "ac8c4e4f",
+        "trade_id": "e6ba74e8",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-08T13:37:00Z",
@@ -91110,7 +91119,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1009.16 <= stop=1014.00)"
       },
       {
-        "trade_id": "deac37af",
+        "trade_id": "cfc6039c",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-08T13:50:00Z",
@@ -91130,7 +91139,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1008.00 <= stop=1008.05)"
       },
       {
-        "trade_id": "4f72c65a",
+        "trade_id": "42fd9254",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-15T13:45:00Z",
@@ -91150,7 +91159,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=940.50 >= target=939.88)"
       },
       {
-        "trade_id": "83b5650d",
+        "trade_id": "bb929fc8",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-15T13:45:00Z",
@@ -91170,7 +91179,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=931.36 <= stop=931.87)"
       },
       {
-        "trade_id": "d3974c9d",
+        "trade_id": "1415823f",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-15T14:02:00Z",
@@ -91190,7 +91199,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=931.36 <= stop=931.87)"
       },
       {
-        "trade_id": "bf5334f1",
+        "trade_id": "39365582",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-21T16:17:00Z",
@@ -91210,7 +91219,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1030.02 <= stop=1037.05)"
       },
       {
-        "trade_id": "422b0ca0",
+        "trade_id": "345ccd61",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-25T13:50:00Z",
@@ -91230,7 +91239,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1081.67 <= stop=1084.84)"
       },
       {
-        "trade_id": "fe29278f",
+        "trade_id": "c234aad5",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-29T13:41:00Z",
@@ -91302,6 +91311,7 @@
     "pre_slippage_pnl": -3185.6737,
     "total_commission_paid": 0.0,
     "total_slippage_paid": 659.0696999999997,
+    "accounting_tolerance": 0.001,
     "reconciliation_discrepancy": 0.00019999999949504854,
     "reconciles_cleanly": true,
     "tactical_adds_count": 57,
@@ -135774,7 +135784,7 @@
     ],
     "trades": [
       {
-        "trade_id": "276cd845",
+        "trade_id": "34b386d4",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T14:10:00Z",
@@ -135794,7 +135804,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=158.76 >= target=158.67)"
       },
       {
-        "trade_id": "c3632d5a",
+        "trade_id": "2a7b68e9",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T14:51:00Z",
@@ -135814,7 +135824,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1736.14 <= stop=1742.51)"
       },
       {
-        "trade_id": "79ad8758",
+        "trade_id": "7c71c143",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T14:10:00Z",
@@ -135834,7 +135844,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=156.14 <= stop=156.31)"
       },
       {
-        "trade_id": "31dca7fd",
+        "trade_id": "04eb7e11",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T14:23:00Z",
@@ -135854,7 +135864,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=156.14 <= stop=156.31)"
       },
       {
-        "trade_id": "8f3b7043",
+        "trade_id": "03977b71",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T14:51:00Z",
@@ -135874,7 +135884,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=926.44 <= stop=927.44)"
       },
       {
-        "trade_id": "eef73673",
+        "trade_id": "3e9fb3a2",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T19:59:00Z",
@@ -135894,7 +135904,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1812.54 >= target=1692.36)"
       },
       {
-        "trade_id": "c052e38d",
+        "trade_id": "f743ed58",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-14T15:47:00Z",
@@ -135914,7 +135924,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=177.20 <= stop=178.21)"
       },
       {
-        "trade_id": "83b75eda",
+        "trade_id": "6fd0181b",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-13T19:59:00Z",
@@ -135934,7 +135944,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1665.11 <= stop=1673.76)"
       },
       {
-        "trade_id": "5331951b",
+        "trade_id": "9d619111",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-14T13:32:00Z",
@@ -135954,7 +135964,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1665.11 <= stop=1673.76)"
       },
       {
-        "trade_id": "d7f32784",
+        "trade_id": "4019a303",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-15T18:20:00Z",
@@ -135974,7 +135984,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=175.64 <= stop=176.54)"
       },
       {
-        "trade_id": "a023d24b",
+        "trade_id": "a60a0800",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-16T17:11:00Z",
@@ -135994,7 +136004,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1435.20 <= stop=1435.76)"
       },
       {
-        "trade_id": "96a3645d",
+        "trade_id": "20efb0ec",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-17T17:26:00Z",
@@ -136014,7 +136024,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1474.39 <= stop=1475.58)"
       },
       {
-        "trade_id": "e76f84ee",
+        "trade_id": "0a3e79c4",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-17T17:20:00Z",
@@ -136034,7 +136044,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=890.51 <= stop=890.57)"
       },
       {
-        "trade_id": "63f4b747",
+        "trade_id": "f24e71b7",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T13:57:00Z",
@@ -136054,7 +136064,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=156.55 <= stop=156.58)"
       },
       {
-        "trade_id": "727d8073",
+        "trade_id": "f75eadc3",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T14:04:00Z",
@@ -136074,7 +136084,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1395.00 <= stop=1397.69)"
       },
       {
-        "trade_id": "b95c207a",
+        "trade_id": "74525f6c",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T15:54:00Z",
@@ -136094,7 +136104,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=158.74 >= target=158.54)"
       },
       {
-        "trade_id": "0a7f4228",
+        "trade_id": "57d5ca85",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T15:54:00Z",
@@ -136114,7 +136124,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=157.20 <= stop=157.49)"
       },
       {
-        "trade_id": "45c36c3e",
+        "trade_id": "3405f263",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T16:01:00Z",
@@ -136134,7 +136144,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=157.20 <= stop=157.49)"
       },
       {
-        "trade_id": "10a7b1bd",
+        "trade_id": "fe764ecc",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T16:31:00Z",
@@ -136154,7 +136164,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1429.35 <= stop=1430.46)"
       },
       {
-        "trade_id": "33ff0b9a",
+        "trade_id": "2c0af901",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-20T16:38:00Z",
@@ -136174,7 +136184,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=888.02 <= stop=889.24)"
       },
       {
-        "trade_id": "1b8fcb3f",
+        "trade_id": "90883912",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-22T14:47:00Z",
@@ -136194,7 +136204,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1602.98 >= target=1601.86)"
       },
       {
-        "trade_id": "3f09957e",
+        "trade_id": "31556850",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-22T14:47:00Z",
@@ -136214,7 +136224,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1586.01 <= stop=1587.28)"
       },
       {
-        "trade_id": "c761f9da",
+        "trade_id": "d4a50da0",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-22T15:10:00Z",
@@ -136234,7 +136244,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1586.01 <= stop=1587.28)"
       },
       {
-        "trade_id": "b3b9cf50",
+        "trade_id": "dc1a2e49",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-23T13:57:00Z",
@@ -136254,7 +136264,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=975.76 <= stop=977.38)"
       },
       {
-        "trade_id": "eb275e51",
+        "trade_id": "5d2ebb26",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-23T14:04:00Z",
@@ -136274,7 +136284,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=996.56 >= target=996.19)"
       },
       {
-        "trade_id": "ec73cb2b",
+        "trade_id": "88a826ff",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-23T14:04:00Z",
@@ -136294,7 +136304,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=983.11 <= stop=983.53)"
       },
       {
-        "trade_id": "1fce2543",
+        "trade_id": "87487824",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-23T14:09:00Z",
@@ -136314,7 +136324,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=983.11 <= stop=983.53)"
       },
       {
-        "trade_id": "c8fca74a",
+        "trade_id": "3eea4b72",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-24T15:35:00Z",
@@ -136334,7 +136344,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=940.49 >= target=939.45)"
       },
       {
-        "trade_id": "b3ef4e86",
+        "trade_id": "84db89a3",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-24T15:35:00Z",
@@ -136354,7 +136364,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=932.51 <= stop=933.31)"
       },
       {
-        "trade_id": "b7a52db2",
+        "trade_id": "1ea15ac1",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-24T15:40:00Z",
@@ -136374,7 +136384,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=932.51 <= stop=933.31)"
       },
       {
-        "trade_id": "8540ce8b",
+        "trade_id": "6eb12f54",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-24T19:59:00Z",
@@ -136394,7 +136404,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1462.99 >= target=1448.04)"
       },
       {
-        "trade_id": "18ca3bef",
+        "trade_id": "d251fd53",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-24T19:59:00Z",
@@ -136414,7 +136424,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1433.02 <= stop=1433.86)"
       },
       {
-        "trade_id": "ab908b1f",
+        "trade_id": "9d268c4a",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-27T13:38:00Z",
@@ -136434,7 +136444,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=155.61 <= stop=155.86)"
       },
       {
-        "trade_id": "3c4ca153",
+        "trade_id": "ec3e6b24",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-27T13:38:00Z",
@@ -136454,7 +136464,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=905.76 <= stop=913.19)"
       },
       {
-        "trade_id": "03e90a36",
+        "trade_id": "f1639852",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-27T16:25:00Z",
@@ -136474,7 +136484,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=887.45 >= target=884.21)"
       },
       {
-        "trade_id": "86fd0eab",
+        "trade_id": "f41ca975",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-27T16:25:00Z",
@@ -136494,7 +136504,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=877.62 <= stop=878.50)"
       },
       {
-        "trade_id": "ed147a77",
+        "trade_id": "0be0241b",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-27T16:27:00Z",
@@ -136514,7 +136524,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=877.62 <= stop=878.50)"
       },
       {
-        "trade_id": "785358c5",
+        "trade_id": "fea51e83",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-27T16:41:00Z",
@@ -136534,7 +136544,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1278.01 <= stop=1278.49)"
       },
       {
-        "trade_id": "bd053d58",
+        "trade_id": "c006e997",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T15:17:00Z",
@@ -136554,7 +136564,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=818.62 >= target=818.04)"
       },
       {
-        "trade_id": "967d1dc8",
+        "trade_id": "08fc915a",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T15:37:00Z",
@@ -136574,7 +136584,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1111.90 >= target=1108.06)"
       },
       {
-        "trade_id": "d31ca330",
+        "trade_id": "d9673201",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T15:37:00Z",
@@ -136594,7 +136604,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1096.01 <= stop=1097.90)"
       },
       {
-        "trade_id": "7ea44cd5",
+        "trade_id": "f4e07420",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T15:47:00Z",
@@ -136614,7 +136624,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1096.01 <= stop=1097.90)"
       },
       {
-        "trade_id": "dcb477ee",
+        "trade_id": "34cac06f",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T19:14:00Z",
@@ -136634,7 +136644,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1045.00 <= stop=1060.77)"
       },
       {
-        "trade_id": "a76250f5",
+        "trade_id": "200cabb4",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T15:17:00Z",
@@ -136654,7 +136664,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=808.00 <= stop=809.60)"
       },
       {
-        "trade_id": "56055fe3",
+        "trade_id": "27704e2e",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-28T15:22:00Z",
@@ -136674,7 +136684,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=808.00 <= stop=809.60)"
       },
       {
-        "trade_id": "e0bb33b3",
+        "trade_id": "4408aa07",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T14:19:00Z",
@@ -136694,7 +136704,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=130.00 <= stop=130.76)"
       },
       {
-        "trade_id": "925ac20d",
+        "trade_id": "3af4bd6e",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:05:00Z",
@@ -136714,7 +136724,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=781.98 >= target=781.90)"
       },
       {
-        "trade_id": "1c6e00db",
+        "trade_id": "1b361ac6",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:05:00Z",
@@ -136734,7 +136744,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=130.85 >= target=130.72)"
       },
       {
-        "trade_id": "e145e800",
+        "trade_id": "6f7e230b",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:05:00Z",
@@ -136754,7 +136764,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1080.18 >= target=1078.07)"
       },
       {
-        "trade_id": "ffd359da",
+        "trade_id": "d52dedd7",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:05:00Z",
@@ -136774,7 +136784,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=774.06 <= stop=774.40)"
       },
       {
-        "trade_id": "0ed7a0eb",
+        "trade_id": "e04e58f5",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:08:00Z",
@@ -136794,7 +136804,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=774.06 <= stop=774.40)"
       },
       {
-        "trade_id": "08668701",
+        "trade_id": "f8354539",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:05:00Z",
@@ -136814,7 +136824,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1062.99 <= stop=1063.10)"
       },
       {
-        "trade_id": "d94b993f",
+        "trade_id": "8a0112f8",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:09:00Z",
@@ -136834,7 +136844,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1062.99 <= stop=1063.10)"
       },
       {
-        "trade_id": "07a80670",
+        "trade_id": "0389149c",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:05:00Z",
@@ -136854,7 +136864,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=129.16 <= stop=129.40)"
       },
       {
-        "trade_id": "e5a55939",
+        "trade_id": "3e289650",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-29T18:08:00Z",
@@ -136874,7 +136884,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=129.16 <= stop=129.40)"
       },
       {
-        "trade_id": "4ccb5069",
+        "trade_id": "fc513475",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-30T17:43:00Z",
@@ -136894,7 +136904,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1252.02 <= stop=1253.92)"
       },
       {
-        "trade_id": "96cd5d99",
+        "trade_id": "29796d06",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-31T16:47:00Z",
@@ -136914,7 +136924,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=148.40 >= target=148.31)"
       },
       {
-        "trade_id": "4cd6c813",
+        "trade_id": "451690c1",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-31T16:49:00Z",
@@ -136934,7 +136944,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1243.10 >= target=1242.93)"
       },
       {
-        "trade_id": "d6f7c8f0",
+        "trade_id": "fe6034fd",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-31T16:47:00Z",
@@ -136954,7 +136964,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=147.33 <= stop=147.40)"
       },
       {
-        "trade_id": "039e6e5e",
+        "trade_id": "0e4cd9d7",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-31T16:52:00Z",
@@ -136974,7 +136984,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=147.33 <= stop=147.40)"
       },
       {
-        "trade_id": "6519f07d",
+        "trade_id": "f7b14812",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-31T16:49:00Z",
@@ -136994,7 +137004,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1231.00 <= stop=1232.25)"
       },
       {
-        "trade_id": "5e0be7cd",
+        "trade_id": "cc633810",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-07-31T16:53:00Z",
@@ -137014,7 +137024,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1231.00 <= stop=1232.25)"
       },
       {
-        "trade_id": "43bf67c6",
+        "trade_id": "2c0ddf44",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-03T15:17:00Z",
@@ -137034,7 +137044,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1242.68 <= stop=1243.76)"
       },
       {
-        "trade_id": "1ce5a3e7",
+        "trade_id": "7cb43a6d",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-04T14:06:00Z",
@@ -137054,7 +137064,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=151.75 >= target=151.73)"
       },
       {
-        "trade_id": "0a3d173a",
+        "trade_id": "eb252ba6",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-05T15:50:00Z",
@@ -137074,7 +137084,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1400.67 <= stop=1400.95)"
       },
       {
-        "trade_id": "12e6a267",
+        "trade_id": "0e407e6e",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-04T14:06:00Z",
@@ -137094,7 +137104,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=138.40 <= stop=148.60)"
       },
       {
-        "trade_id": "d1a0e4f6",
+        "trade_id": "53586a26",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-04T16:21:00Z",
@@ -137114,7 +137124,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=138.40 <= stop=148.60)"
       },
       {
-        "trade_id": "f5de1398",
+        "trade_id": "593eeed3",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-06T14:45:00Z",
@@ -137134,7 +137144,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=144.32 <= stop=144.52)"
       },
       {
-        "trade_id": "688ada0e",
+        "trade_id": "368f009d",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-06T14:44:00Z",
@@ -137154,7 +137164,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=889.01 <= stop=890.72)"
       },
       {
-        "trade_id": "223eb02c",
+        "trade_id": "71e231f8",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-06T15:25:00Z",
@@ -137174,7 +137184,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=144.90 <= stop=145.06)"
       },
       {
-        "trade_id": "ca25851c",
+        "trade_id": "a2d5bf5e",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-07T15:46:00Z",
@@ -137194,7 +137204,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=878.70 >= target=877.62)"
       },
       {
-        "trade_id": "8acedb20",
+        "trade_id": "f435133d",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-07T15:48:00Z",
@@ -137214,7 +137224,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1244.79 >= target=1242.22)"
       },
       {
-        "trade_id": "8e34e71b",
+        "trade_id": "aafd839e",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-07T15:48:00Z",
@@ -137234,7 +137244,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1230.00 <= stop=1231.22)"
       },
       {
-        "trade_id": "3155d4d7",
+        "trade_id": "4b92b90d",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-07T16:09:00Z",
@@ -137254,7 +137264,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1230.00 <= stop=1231.22)"
       },
       {
-        "trade_id": "78f1ce04",
+        "trade_id": "dcd248c7",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-07T15:46:00Z",
@@ -137274,7 +137284,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=869.09 <= stop=871.59)"
       },
       {
-        "trade_id": "919681ba",
+        "trade_id": "dc9c257e",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-07T16:08:00Z",
@@ -137294,7 +137304,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=869.09 <= stop=871.59)"
       },
       {
-        "trade_id": "1a01cd1c",
+        "trade_id": "b82ead56",
         "symbol": "SKHY",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-11T13:52:00Z",
@@ -137314,7 +137324,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=139.85 >= target=139.64)"
       },
       {
-        "trade_id": "31374549",
+        "trade_id": "1cd9255b",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-11T15:15:00Z",
@@ -137334,7 +137344,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1274.09 >= target=1272.87)"
       },
       {
-        "trade_id": "2b6bb507",
+        "trade_id": "39d5559f",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-11T15:15:00Z",
@@ -137354,7 +137364,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1264.08 <= stop=1264.23)"
       },
       {
-        "trade_id": "47152ccb",
+        "trade_id": "87a5319d",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-11T15:23:00Z",
@@ -137374,7 +137384,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1264.08 <= stop=1264.23)"
       },
       {
-        "trade_id": "9f7b3c35",
+        "trade_id": "ebaeb8ce",
         "symbol": "SNDK",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-12T13:43:00Z",
@@ -137394,7 +137404,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1357.60 >= target=1355.70)"
       },
       {
-        "trade_id": "271925fe",
+        "trade_id": "86bbf37b",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-14T13:47:00Z",
@@ -137414,7 +137424,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=980.00 >= target=977.99)"
       },
       {
-        "trade_id": "a591a704",
+        "trade_id": "18b7b7a2",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-14T13:47:00Z",
@@ -137434,7 +137444,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=965.36 <= stop=966.57)"
       },
       {
-        "trade_id": "68f62d04",
+        "trade_id": "af6e7a1a",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-14T14:06:00Z",
@@ -137454,7 +137464,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=965.36 <= stop=966.57)"
       },
       {
-        "trade_id": "e2e8d8a9",
+        "trade_id": "231bb553",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-17T14:14:00Z",
@@ -137474,7 +137484,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1026.90 >= target=1025.32)"
       },
       {
-        "trade_id": "fd08ad1f",
+        "trade_id": "ae63665d",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-17T14:14:00Z",
@@ -137494,7 +137504,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1016.88 <= stop=1016.89)"
       },
       {
-        "trade_id": "f6a5d94b",
+        "trade_id": "3e2c5297",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-17T14:49:00Z",
@@ -137514,7 +137524,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1016.88 <= stop=1016.89)"
       },
       {
-        "trade_id": "167ac631",
+        "trade_id": "cd7a88cb",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-19T15:01:00Z",
@@ -137534,7 +137544,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=939.32 >= target=937.50)"
       },
       {
-        "trade_id": "38cab946",
+        "trade_id": "8480336e",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-19T15:01:00Z",
@@ -137554,7 +137564,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=930.07 <= stop=930.70)"
       },
       {
-        "trade_id": "9fa56fe1",
+        "trade_id": "68dc5863",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-19T15:46:00Z",
@@ -137574,7 +137584,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=930.07 <= stop=930.70)"
       },
       {
-        "trade_id": "65eb698a",
+        "trade_id": "b11f7b56",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-21T13:44:00Z",
@@ -137594,7 +137604,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=985.59 >= target=985.27)"
       },
       {
-        "trade_id": "87aeb754",
+        "trade_id": "3608a86d",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-21T13:44:00Z",
@@ -137614,7 +137624,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=974.16 <= stop=974.79)"
       },
       {
-        "trade_id": "1dd1ead1",
+        "trade_id": "6b256942",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-21T13:48:00Z",
@@ -137634,7 +137644,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=974.16 <= stop=974.79)"
       },
       {
-        "trade_id": "9e272786",
+        "trade_id": "9b58adeb",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-25T13:44:00Z",
@@ -137654,7 +137664,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=922.50 <= stop=922.70)"
       },
       {
-        "trade_id": "ef4aa71e",
+        "trade_id": "c07decc4",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-31T13:44:00Z",
@@ -137674,7 +137684,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=948.30 >= target=948.01)"
       },
       {
-        "trade_id": "30c73466",
+        "trade_id": "159cdb1c",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-31T13:44:00Z",
@@ -137694,7 +137704,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=939.02 <= stop=939.91)"
       },
       {
-        "trade_id": "07a7ff48",
+        "trade_id": "32fea687",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-08-31T13:58:00Z",
@@ -137714,7 +137724,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=939.02 <= stop=939.91)"
       },
       {
-        "trade_id": "bfe27c33",
+        "trade_id": "d445ae89",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-04T14:17:00Z",
@@ -137734,7 +137744,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=1003.58 >= target=1002.60)"
       },
       {
-        "trade_id": "7df2d947",
+        "trade_id": "0a5935e0",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-04T14:17:00Z",
@@ -137754,7 +137764,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=993.70 <= stop=994.93)"
       },
       {
-        "trade_id": "e44c9159",
+        "trade_id": "bfa427e6",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-04T14:39:00Z",
@@ -137774,7 +137784,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=993.70 <= stop=994.93)"
       },
       {
-        "trade_id": "7eb895eb",
+        "trade_id": "bf709a39",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-08T13:37:00Z",
@@ -137794,7 +137804,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1009.16 <= stop=1014.00)"
       },
       {
-        "trade_id": "bb5b588e",
+        "trade_id": "ab37baba",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-08T13:50:00Z",
@@ -137814,7 +137824,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1008.00 <= stop=1008.05)"
       },
       {
-        "trade_id": "8e6f5e59",
+        "trade_id": "edd5795c",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-15T13:45:00Z",
@@ -137834,7 +137844,7 @@
         "exit_reason": "v2_rebound_50pct_partial_exit (high=940.50 >= target=939.88)"
       },
       {
-        "trade_id": "c40ee8e3",
+        "trade_id": "ad3c4094",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-15T13:45:00Z",
@@ -137854,7 +137864,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=931.36 <= stop=931.87)"
       },
       {
-        "trade_id": "61d9e38d",
+        "trade_id": "c0644539",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-15T14:02:00Z",
@@ -137874,7 +137884,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=931.36 <= stop=931.87)"
       },
       {
-        "trade_id": "0891ea9e",
+        "trade_id": "b531714e",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-21T16:17:00Z",
@@ -137894,7 +137904,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1030.02 <= stop=1037.05)"
       },
       {
-        "trade_id": "1a06ec55",
+        "trade_id": "65fc89f9",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-25T13:50:00Z",
@@ -137914,7 +137924,7 @@
         "exit_reason": "v2_local_low_stop_hit (price=1081.67 <= stop=1084.84)"
       },
       {
-        "trade_id": "337ca40c",
+        "trade_id": "b7a29445",
         "symbol": "MU",
         "sleeve": "TACTICAL",
         "entry_time": "2026-09-29T13:41:00Z",
