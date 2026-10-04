@@ -45,6 +45,8 @@ class V2TradeRecord(BaseModel):
     realized_pnl: float
     commission: float
     slippage: float
+    entry_slippage: float = 0.0
+    exit_slippage: float = 0.0
     holding_time_minutes: float
     exit_reason: str
 
@@ -67,11 +69,25 @@ class V2BacktestResult(BaseModel):
     core_realized_pnl: float = 0.0
     core_unrealized_pnl: float = 0.0
 
+    # Phase L.1 Closed vs Open Attribution Fields
+    closed_reference_pnl: float = 0.0
+    closed_entry_slippage: float = 0.0
+    closed_exit_slippage: float = 0.0
+    closed_slippage: float = 0.0
+    closed_commissions: float = 0.0
+    closed_net_realized_pnl: float = 0.0
+
+    open_reference_mtm: float = 0.0
+    open_entry_slippage: float = 0.0
+    open_entry_commissions: float = 0.0
+    open_net_terminal_contribution: float = 0.0
+    total_tactical_economic_contribution: float = 0.0
+    tactical_total_economic_contribution: float = 0.0
+
     # Tactical metrics
     tactical_trade_count: int = 0
     tactical_closed_realized_pnl: float = 0.0
     tactical_terminal_unrealized_pnl: float = 0.0
-    tactical_total_economic_contribution: float = 0.0
     tactical_realized_pnl: float = 0.0
     tactical_unrealized_pnl: float = 0.0
     tactical_win_rate_pct: float = 0.0
@@ -334,18 +350,22 @@ def run_v2_backtest(
                             entry_ref = first_entry["entry_reference_price"]
                             pre_pnl = match_qty * (exit_ref - entry_ref)
 
-                            # Execution P&L
-                            diff_p = fill.price - first_entry["entry_price"]
-                            trade_realized_pnl = match_qty * diff_p
-
                             # Proportional slippage & commission
                             prop_entry = match_qty / first_entry["orig_quantity"]
                             prop_exit = match_qty / fill.quantity
                             entry_slip = first_entry["slippage"] * prop_entry
                             exit_slip = fill.slippage * prop_exit
-                            trade_slip = entry_slip + exit_slip
                             trade_comm = (first_entry["commission"] * prop_entry) + (
                                 fill.commission * prop_exit
+                            )
+
+                            pre_pnl_rounded = round(pre_pnl, 4)
+                            entry_slip_rounded = round(entry_slip, 4)
+                            exit_slip_rounded = round(exit_slip, 4)
+                            trade_slip_rounded = round(entry_slip_rounded + exit_slip_rounded, 4)
+                            trade_comm_rounded = round(trade_comm, 4)
+                            trade_realized_pnl_rounded = round(
+                                pre_pnl_rounded - trade_slip_rounded, 4
                             )
 
                             trade_records.append(
@@ -360,10 +380,12 @@ def run_v2_backtest(
                                     entry_reference_price=entry_ref,
                                     exit_reference_price=exit_ref,
                                     quantity=match_qty,
-                                    pre_slippage_pnl=round(pre_pnl, 4),
-                                    realized_pnl=round(trade_realized_pnl, 4),
-                                    commission=round(trade_comm, 4),
-                                    slippage=round(trade_slip, 4),
+                                    pre_slippage_pnl=pre_pnl_rounded,
+                                    realized_pnl=trade_realized_pnl_rounded,
+                                    commission=trade_comm_rounded,
+                                    slippage=trade_slip_rounded,
+                                    entry_slippage=entry_slip_rounded,
+                                    exit_slippage=exit_slip_rounded,
                                     holding_time_minutes=hold_mins,
                                     exit_reason=order.tag,
                                 )
@@ -488,13 +510,54 @@ def run_v2_backtest(
     hold_times = [tr.holding_time_minutes for tr in trade_records]
     median_hold = float(np.median(hold_times)) if hold_times else 0.0
 
-    open_tact_lots = sum(len(lots) for lots in tactical_entry_meta.values())
-    open_tact_shares = sum(
-        sum(lot["quantity"] for lot in lots) for lots in tactical_entry_meta.values()
+    open_tact_lots = sum(
+        1 for lots in tactical_entry_meta.values() for lot in lots if lot["quantity"] > 1e-6
     )
-    tact_closed_realized = recon["tactical_realized_pnl"]
-    tact_terminal_unrealized = recon["tactical_unrealized_pnl"]
-    tact_total_contrib = tact_closed_realized + tact_terminal_unrealized
+    open_tact_shares = sum(
+        sum(lot["quantity"] for lot in lots if lot["quantity"] > 1e-6)
+        for lots in tactical_entry_meta.values()
+    )
+
+    # Closed tactical totals
+    closed_ref_pnl = round(sum(tr.pre_slippage_pnl for tr in trade_records), 4)
+    closed_entry_slip = round(sum(tr.entry_slippage for tr in trade_records), 4)
+    closed_exit_slip = round(sum(tr.exit_slippage for tr in trade_records), 4)
+    closed_slip = round(sum(tr.slippage for tr in trade_records), 4)
+    closed_comm = round(sum(tr.commission for tr in trade_records), 4)
+    closed_net_realized = round(closed_ref_pnl - closed_slip - closed_comm, 4)
+
+    # Open tactical totals
+    open_ref_mtm = 0.0
+    open_entry_slip = 0.0
+    open_entry_comm = 0.0
+    for sym, lots in tactical_entry_meta.items():
+        market_p = latest_prices.get(sym, 0.0)
+        for lot in lots:
+            rem_qty = lot["quantity"]
+            if rem_qty <= 1e-6:
+                continue
+            prop_open = rem_qty / lot["orig_quantity"] if lot["orig_quantity"] > 0 else 1.0
+            lot_entry_slip = lot["slippage"] * prop_open
+            lot_entry_comm = lot["commission"] * prop_open
+            ref_p = lot["entry_reference_price"]
+            open_ref_mtm += rem_qty * (market_p - ref_p)
+            open_entry_slip += lot_entry_slip
+            open_entry_comm += lot_entry_comm
+
+    open_ref_mtm = round(open_ref_mtm, 4)
+    open_entry_slip = round(open_entry_slip, 4)
+    open_entry_comm = round(open_entry_comm, 4)
+    open_net_terminal = round(open_ref_mtm - open_entry_slip - open_entry_comm, 4)
+
+    # Total tactical economic contribution
+    tact_total_contrib = round(
+        closed_net_realized + open_net_terminal - portfolio.financing_interest_paid, 4
+    )
+
+    core_net_contribution = round(recon["core_realized_pnl"] + recon["core_unrealized_pnl"], 4)
+    total_calculated_pnl = round(core_net_contribution + tact_total_contrib, 4)
+    accounting_pnl = round(ending_equity - initial_cash + portfolio.total_withdrawals, 4)
+    discrepancy = abs(accounting_pnl - total_calculated_pnl)
 
     margin_exercised = peak_margin_debt > 0 or portfolio.financing_interest_paid > 0
 
@@ -514,11 +577,22 @@ def run_v2_backtest(
         core_realized_pnl=recon["core_realized_pnl"],
         core_unrealized_pnl=recon["core_unrealized_pnl"],
         tactical_trade_count=len(trade_records),
-        tactical_closed_realized_pnl=tact_closed_realized,
-        tactical_terminal_unrealized_pnl=tact_terminal_unrealized,
+        closed_reference_pnl=closed_ref_pnl,
+        closed_entry_slippage=closed_entry_slip,
+        closed_exit_slippage=closed_exit_slip,
+        closed_slippage=closed_slip,
+        closed_commissions=closed_comm,
+        closed_net_realized_pnl=closed_net_realized,
+        open_reference_mtm=open_ref_mtm,
+        open_entry_slippage=open_entry_slip,
+        open_entry_commissions=open_entry_comm,
+        open_net_terminal_contribution=open_net_terminal,
+        total_tactical_economic_contribution=tact_total_contrib,
         tactical_total_economic_contribution=tact_total_contrib,
-        tactical_realized_pnl=tact_closed_realized,
-        tactical_unrealized_pnl=tact_terminal_unrealized,
+        tactical_closed_realized_pnl=closed_net_realized,
+        tactical_terminal_unrealized_pnl=open_net_terminal,
+        tactical_realized_pnl=closed_net_realized,
+        tactical_unrealized_pnl=open_net_terminal,
         tactical_win_rate_pct=win_rate,
         tactical_median_holding_minutes=median_hold,
         signals_generated_count=signals_generated_count,
@@ -539,11 +613,11 @@ def run_v2_backtest(
         tactical_reloads_count=reload_fills_count,
         tactical_partial_exits_count=partial_exit_fills_count,
         tactical_full_exits_count=full_exit_fills_count,
-        pre_slippage_pnl=sum(tr.pre_slippage_pnl for tr in trade_records),
+        pre_slippage_pnl=closed_ref_pnl,
         total_commission_paid=portfolio.commissions_paid,
         total_slippage_paid=portfolio.slippage_paid,
-        reconciliation_discrepancy=recon["discrepancy"],
-        reconciles_cleanly=recon["reconciles"],
+        reconciliation_discrepancy=discrepancy,
+        reconciles_cleanly=discrepancy < 1e-2,
         timestamps=timestamp_strings,
         equity_curve=equity_curve,
         trades=trade_records,

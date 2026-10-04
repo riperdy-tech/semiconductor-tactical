@@ -53,6 +53,7 @@ class V2HistoricalComparisonResult(BaseModel):
     evaluation_end_timestamp: str = "2026-09-30T19:59:00Z"
     evaluation_status: str = "POST_HOC_HOLDOUT / NOT_PRISTINE_OOS"
     phase_l_accounting_status: str = "PHASE_L_ACCOUNTING_CORRECTED"
+    phase_l1_accounting_status: str = "PHASE_L1_ACCOUNTING_CORRECTED"
     pre_core_interval_status: str = (
         "UNINITIALIZED / NOT_IN_SAMPLE "
         "(2026-07-01 to 2026-07-10 excluded due to SKHY start disparity)"
@@ -66,6 +67,11 @@ class V2HistoricalComparisonResult(BaseModel):
     phase_k_v2_c_return_pct: float = 7.38
     phase_k_tactical_spread_pct: float = 0.90
     phase_k_preservation_path: str = "reports/fidelity_runs/phase_k_baseline_1eda7cc/"
+
+    # Preserved Phase L Baseline Evidence
+    phase_l_baseline_run_id: str = "bc19e12e"
+    phase_l_baseline_git_sha: str = "0ce2208"
+    phase_l_preservation_path: str = "reports/fidelity_runs/phase_l_baseline_0ce2208/"
 
     # Epistemic Data Gates
     full_reddit_strategy_replication: str = "NOT_ESTABLISHED"
@@ -145,10 +151,16 @@ def format_v2_markdown_report(result: V2HistoricalComparisonResult) -> str:
         f"**Effective Evaluation Start:** `{result.effective_evaluation_start}`  ",
         f"**Evaluation Status:** `{result.evaluation_status}`  ",
         f"**Phase L Accounting Status:** `{result.phase_l_accounting_status}`  ",
+        f"**Phase L.1 Accounting Status:** `{result.phase_l1_accounting_status}`  ",
         (
             f"**Preserved Phase K Baseline:** Run ID `{result.phase_k_baseline_run_id}` "
             f"(Commit `{result.phase_k_baseline_git_sha}`) preserved at "
             f"`{result.phase_k_preservation_path}`  "
+        ),
+        (
+            f"**Preserved Phase L Baseline:** Run ID `{result.phase_l_baseline_run_id}` "
+            f"(Commit `{result.phase_l_baseline_git_sha}`) preserved at "
+            f"`{result.phase_l_preservation_path}`  "
         ),
         "",
         "---",
@@ -468,28 +480,58 @@ def format_v2_markdown_report(result: V2HistoricalComparisonResult) -> str:
             f"{c.margin_call_count} / {c.forced_liquidation_count}",
         ),
         _row(
-            "Gross Reference P&L (Pre-Slippage)",
+            "Gross Closed Reference P&L",
             "$0.00",
-            f"${b.pre_slippage_pnl:+,.2f}",
-            f"${c.pre_slippage_pnl:+,.2f}",
+            f"${b.closed_reference_pnl:+,.2f}",
+            f"${c.closed_reference_pnl:+,.2f}",
         ),
         _row(
-            "Slippage Paid",
+            "Closed Trades Slippage Paid",
+            "$0.00",
+            f"${b.closed_slippage:,.2f}",
+            f"${c.closed_slippage:,.2f}",
+        ),
+        _row(
+            "Open Positions Entry Slippage",
+            "$0.00",
+            f"${b.open_entry_slippage:,.2f}",
+            f"${c.open_entry_slippage:,.2f}",
+        ),
+        _row(
+            "Total Slippage Paid (Closed + Open)",
             f"${a.total_slippage_paid:,.2f}",
             f"${b.total_slippage_paid:,.2f}",
             f"${c.total_slippage_paid:,.2f}",
         ),
         _row(
-            "Commissions Paid",
+            "Closed Commissions Paid",
+            "$0.00",
+            f"${b.closed_commissions:,.2f}",
+            f"${c.closed_commissions:,.2f}",
+        ),
+        _row(
+            "Open Entry Commissions Paid",
+            "$0.00",
+            f"${b.open_entry_commissions:,.2f}",
+            f"${c.open_entry_commissions:,.2f}",
+        ),
+        _row(
+            "Total Commissions Paid",
             f"${a.total_commission_paid:,.2f}",
             f"${b.total_commission_paid:,.2f}",
             f"${c.total_commission_paid:,.2f}",
         ),
         _row(
-            "Net Realized Trade P&L",
+            "Net Realized Closed Trade P&L",
             "$0.00",
-            f"${b.tactical_realized_pnl:+,.2f}",
-            f"${c.tactical_realized_pnl:+,.2f}",
+            f"${b.closed_net_realized_pnl:+,.2f}",
+            f"${c.closed_net_realized_pnl:+,.2f}",
+        ),
+        _row(
+            "Open Tactical Terminal Contribution",
+            "$0.00",
+            f"${b.open_net_terminal_contribution:+,.2f}",
+            f"${c.open_net_terminal_contribution:+,.2f}",
         ),
         _row(
             "Accounting Invariant Check",
@@ -506,33 +548,66 @@ def format_v2_markdown_report(result: V2HistoricalComparisonResult) -> str:
         "",
         "### A. Tactical Closed Round-Trip Layer",
         "```text",
-        f"Gross Reference Trade P&L (Ref Prices):  ${b.pre_slippage_pnl:+,.2f}",
-        f"Less Execution Slippage:                -${b.total_slippage_paid:,.2f}",
-        f"Less Brokerage Commissions:             -${b.total_commission_paid:,.2f}",
+        f"Gross Reference Trade P&L (Ref Prices):  ${b.closed_reference_pnl:+,.2f}",
+        f"Less Closed Execution Slippage:         -${b.closed_slippage:,.2f}",
+        f"  (Entry Slippage:                      -${b.closed_entry_slippage:,.2f})",
+        f"  (Exit Slippage:                       -${b.closed_exit_slippage:,.2f})",
+        f"Less Closed Brokerage Commissions:      -${b.closed_commissions:,.2f}",
         "-------------------------------------------------------------------------",
-        f"Net Realized Closed Tactical P&L:       ${b.tactical_realized_pnl:+,.2f}",
+        f"Net Realized Closed Tactical P&L:       ${b.closed_net_realized_pnl:+,.2f}",
         "```",
         "",
-        "### B. Terminal Mark-to-Market Layer",
+        "### B. Terminal Open Tactical Inventory Layer",
         "```text",
-        f"Ending Open Tactical Lots MTM:          ${b.tactical_terminal_unrealized_pnl:+,.2f}",
-        f"Persistent Core Holdings MTM:           ${b.core_unrealized_pnl:+,.2f}",
+        f"Ending Open Tactical Reference MTM:     ${b.open_reference_mtm:+,.2f}",
+        f"Less Open Positions Entry Slippage:     -${b.open_entry_slippage:,.2f}",
+        f"Less Open Positions Entry Commissions:  -${b.open_entry_commissions:,.2f}",
         "-------------------------------------------------------------------------",
-        f"Total Terminal Unrealized P&L:          "
-        f"${b.tactical_terminal_unrealized_pnl + b.core_unrealized_pnl:+,.2f}",
+        f"Net Open Terminal Tactical Contribution:${b.open_net_terminal_contribution:+,.2f}",
+        (
+            f"Open Tactical Inventory:                {b.open_tactical_lots_count} lots "
+            f"({b.open_tactical_shares_count:,.0f} shares)"
+        ),
         "```",
         "",
-        "### C. Financing & Account Balance Layer",
+        "### C. Persistent Core Holdings Layer",
         "```text",
-        f"Net Realized Tactical P&L:              ${b.tactical_realized_pnl:+,.2f}",
-        f"Plus Terminal Unrealized P&L:           "
-        f"${b.tactical_terminal_unrealized_pnl + b.core_unrealized_pnl:+,.2f}",
+        f"Starting Core Value (59.22% Target):    ${b.core_starting_value:,.2f}",
+        f"Ending Core Market Value:               ${b.core_ending_value:,.2f}",
+        f"Core Realized P&L:                      ${b.core_realized_pnl:+,.2f}",
+        f"Core Unrealized MTM P&L:                ${b.core_unrealized_pnl:+,.2f}",
+        "-------------------------------------------------------------------------",
+        (
+            f"Total Persistent Core Contribution:     "
+            f"${b.core_realized_pnl + b.core_unrealized_pnl:+,.2f}"
+        ),
+        "```",
+        "",
+        "### D. Account Equity & Slippage Reconciliation Layer",
+        "```text",
+        f"Closed Net Realized Tactical P&L:       ${b.closed_net_realized_pnl:+,.2f}",
+        f"Plus Open Net Terminal Contribution:    ${b.open_net_terminal_contribution:+,.2f}",
         f"Less Financing Margin Interest:         -${b.total_margin_interest:,.2f}",
+        "-------------------------------------------------------------------------",
+        f"Total Tactical Economic Contribution:   ${b.total_tactical_economic_contribution:+,.2f}",
+        (
+            f"Plus Persistent Core Contribution:      "
+            f"${b.core_realized_pnl + b.core_unrealized_pnl:+,.2f}"
+        ),
         "-------------------------------------------------------------------------",
         f"Calculated Total Net Strategy P&L:      ${b.total_net_pnl:+,.2f}",
         f"Ending Equity minus Initial Cash:       ${b.final_equity - b.initial_cash:+,.2f}",
         f"Reconciliation Discrepancy:             ${b.reconciliation_discrepancy:.6f}",
         f"Invariant Status:                       Clean ({b.reconciles_cleanly})",
+        "",
+        "Slippage Single-Count Reconciliation:",
+        f"  Closed-Trade Slippage:                ${b.closed_slippage:,.2f}",
+        f"  Open-Position Entry Slippage:         ${b.open_entry_slippage:,.2f}",
+        f"  Total Portfolio Slippage:             ${b.total_slippage_paid:,.2f}",
+        (
+            f"  Slippage Discrepancy:                 "
+            f"${abs((b.closed_slippage + b.open_entry_slippage) - b.total_slippage_paid):.6f}"
+        ),
         "```",
         "",
         "---",
@@ -549,9 +624,12 @@ def format_v2_markdown_report(result: V2HistoricalComparisonResult) -> str:
             f"2. **Tactical Sleeve Uplift (V2-B vs V2-A):** Added "
             f"**{b.total_return_pct - a.total_return_pct:+.2f}%** net return spread "
             f"(${result.tactical_net_contribution_unlevered:+,.2f} net tactical contribution). "
-            f"Win rate {b.tactical_win_rate_pct:.1f}% with median hold "
-            f"{b.tactical_median_holding_minutes:.1f}m across "
-            f"{b.completed_round_trips_count} completed FIFO round trips."
+            f"Consists of ${b.closed_net_realized_pnl:+,.2f} closed realized P&L across "
+            f"{b.completed_round_trips_count} completed FIFO round trips "
+            f"(win rate {b.tactical_win_rate_pct:.1f}%, "
+            f"median hold {b.tactical_median_holding_minutes:.1f}m) plus "
+            f"${b.open_net_terminal_contribution:+,.2f} terminal open tactical MTM across "
+            f"{b.open_tactical_lots_count} open lots ({b.open_tactical_shares_count:,.0f} shares)."
         ),
         (
             "3. **Margin Capability Impact (V2-C vs V2-B):** Margin capability was active but "

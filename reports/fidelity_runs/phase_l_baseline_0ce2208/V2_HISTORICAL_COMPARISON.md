@@ -1,17 +1,15 @@
 # Reddit Behavioral Replication V2 — Historical Comparison Report
 
-**Run ID:** `e7c88bde`  
-**Date Generated:** `2026-10-04T09:38:52.102088+00:00`  
-**Git Commit SHA:** `7819c4a`  
+**Run ID:** `bc19e12e`  
+**Date Generated:** `2026-10-04T02:04:12.997367+00:00`  
+**Git Commit SHA:** `dce8ac4`  
 **Dataset ID:** `massive_stocks_1m_51e9b529de55`  
 **Dataset SHA256:** `51e9b529de5556002bc3a0e1bc4fd1ee7eef06061b54c11457703d9af39b13e8`  
 **Nominal Date Range:** `2026-07-01T00:00:00Z to 2026-09-30T23:59:59Z`  
 **Effective Evaluation Start:** `2026-07-13T13:30:00+00:00`  
 **Evaluation Status:** `POST_HOC_HOLDOUT / NOT_PRISTINE_OOS`  
 **Phase L Accounting Status:** `PHASE_L_ACCOUNTING_CORRECTED`  
-**Phase L.1 Accounting Status:** `PHASE_L1_ACCOUNTING_CORRECTED`  
 **Preserved Phase K Baseline:** Run ID `5080f859` (Commit `1eda7cc`) preserved at `reports/fidelity_runs/phase_k_baseline_1eda7cc/`  
-**Preserved Phase L Baseline:** Run ID `bc19e12e` (Commit `0ce2208`) preserved at `reports/fidelity_runs/phase_l_baseline_0ce2208/`  
 
 ---
 
@@ -96,15 +94,10 @@ PRISTINE_OOS                     = UNAVAILABLE
 | **Peak Margin Debt** | $0.00 | $0.00 | $0.00 |
 | **Margin Interest Paid** | $0.00 | $0.00 | $0.00 |
 | **Margin Calls / Liquidations** | 0 / 0 | 0 / 0 | 0 / 0 |
-| **Gross Closed Reference P&L** | $0.00 | $-3,185.67 | $-3,185.67 |
-| **Closed Trades Slippage Paid** | $0.00 | $644.47 | $644.47 |
-| **Open Positions Entry Slippage** | $0.00 | $14.60 | $14.60 |
-| **Total Slippage Paid (Closed + Open)** | $0.00 | $659.07 | $659.07 |
-| **Closed Commissions Paid** | $0.00 | $0.00 | $0.00 |
-| **Open Entry Commissions Paid** | $0.00 | $0.00 | $0.00 |
-| **Total Commissions Paid** | $0.00 | $0.00 | $0.00 |
-| **Net Realized Closed Trade P&L** | $0.00 | $-3,830.14 | $-3,830.14 |
-| **Open Tactical Terminal Contribution** | $0.00 | $+5,276.83 | $+5,276.83 |
+| **Gross Reference P&L (Pre-Slippage)** | $0.00 | $-3,185.67 | $-3,185.67 |
+| **Slippage Paid** | $0.00 | $659.07 | $659.07 |
+| **Commissions Paid** | $0.00 | $0.00 | $0.00 |
+| **Net Realized Trade P&L** | $0.00 | $-3,830.14 | $-3,830.14 |
 | **Accounting Invariant Check** | Clean (`True`) | Clean (`True`) | Clean (`True`) |
 
 ---
@@ -116,53 +109,30 @@ Every dollar of performance is reconciled across four distinct non-overlapping l
 ### A. Tactical Closed Round-Trip Layer
 ```text
 Gross Reference Trade P&L (Ref Prices):  $-3,185.67
-Less Closed Execution Slippage:         -$644.47
-  (Entry Slippage:                      -$323.80)
-  (Exit Slippage:                       -$320.67)
-Less Closed Brokerage Commissions:      -$0.00
+Less Execution Slippage:                -$659.07
+Less Brokerage Commissions:             -$0.00
 -------------------------------------------------------------------------
 Net Realized Closed Tactical P&L:       $-3,830.14
 ```
 
-### B. Terminal Open Tactical Inventory Layer
+### B. Terminal Mark-to-Market Layer
 ```text
-Ending Open Tactical Reference MTM:     $+5,291.43
-Less Open Positions Entry Slippage:     -$14.60
-Less Open Positions Entry Commissions:  -$0.00
+Ending Open Tactical Lots MTM:          $+5,276.83
+Persistent Core Holdings MTM:           $+6,482.16
 -------------------------------------------------------------------------
-Net Open Terminal Tactical Contribution:$+5,276.83
-Open Tactical Inventory:                6 lots (79 shares)
+Total Terminal Unrealized P&L:          $+11,758.99
 ```
 
-### C. Persistent Core Holdings Layer
+### C. Financing & Account Balance Layer
 ```text
-Starting Core Value (59.22% Target):    $59,223.68
-Ending Core Market Value:               $65,705.84
-Core Realized P&L:                      $+0.00
-Core Unrealized MTM P&L:                $+6,482.16
--------------------------------------------------------------------------
-Total Persistent Core Contribution:     $+6,482.16
-```
-
-### D. Account Equity & Slippage Reconciliation Layer
-```text
-Closed Net Realized Tactical P&L:       $-3,830.14
-Plus Open Net Terminal Contribution:    $+5,276.83
+Net Realized Tactical P&L:              $-3,830.14
+Plus Terminal Unrealized P&L:           $+11,758.99
 Less Financing Margin Interest:         -$0.00
--------------------------------------------------------------------------
-Total Tactical Economic Contribution:   $+1,446.69
-Plus Persistent Core Contribution:      $+6,482.16
 -------------------------------------------------------------------------
 Calculated Total Net Strategy P&L:      $+7,928.85
 Ending Equity minus Initial Cash:       $+7,928.85
-Reconciliation Discrepancy:             $0.000200
+Reconciliation Discrepancy:             $0.000000
 Invariant Status:                       Clean (True)
-
-Slippage Single-Count Reconciliation:
-  Closed-Trade Slippage:                $644.47
-  Open-Position Entry Slippage:         $14.60
-  Total Portfolio Slippage:             $659.07
-  Slippage Discrepancy:                 $0.000000
 ```
 
 ---
@@ -171,7 +141,7 @@ Slippage Single-Count Reconciliation:
 
 ### Key Findings:
 1. **Core Static Holding (V2-A):** Delivered **+6.48%** return ($+6,482.16 net P&L) across July 13–Sept 30, with max drawdown of 20.82%. Core shares were never sold or contaminated.
-2. **Tactical Sleeve Uplift (V2-B vs V2-A):** Added **+1.45%** net return spread ($+1,446.69 net tactical contribution). Consists of $-3,830.14 closed realized P&L across 108 completed FIFO round trips (win rate 32.4%, median hold 17.0m) plus $+5,276.83 terminal open tactical MTM across 6 open lots (79 shares).
+2. **Tactical Sleeve Uplift (V2-B vs V2-A):** Added **+1.45%** net return spread ($+1,446.69 net tactical contribution). Win rate 32.4% with median hold 17.0m across 108 completed FIFO round trips.
 3. **Margin Capability Impact (V2-C vs V2-B):** Margin capability was active but unexercised historically because the $40,776.32 tactical cash sleeve funded all 108 positions without borrowing. Peak margin debt was $0.00; margin interest was $0.00. Margin calls/liquidations were 0.
 4. **Synthetic Margin Capability Validation:** A separate synthetic test (`test_v2_c_margin_activation_synthetic`) verifies that under forced severe cash constraints, margin debt, interest accrual, maintenance constraints, and tactical-first liquidation execute deterministically.
 5. **Core Isolation Integrity:** Persistent core inventory remained 100% isolated from tactical stop and profit exits across all 22,230 bars.
