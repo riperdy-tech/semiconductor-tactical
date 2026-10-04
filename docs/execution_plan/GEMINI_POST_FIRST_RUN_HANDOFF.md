@@ -276,3 +276,46 @@ HISTORICAL_OPTION_CHAIN_STATUS = UNVALIDATED
 DIRECT_ASIA_REPLICATION_STATUS = OUT_OF_SCOPE_FOR_V2
 PRISTINE_OOS = UNAVAILABLE
 
+
+
+## Phase L — Reddit Behavioral V2 Post-Run Audit & Accounting Correction
+
+After Phase K, execute:
+
+docs/execution_plan/REDDIT_V2_POST_RUN_AUDIT_AND_ACCOUNTING_PLAN.md
+
+This phase is a narrow research-integrity audit of the completed V2-A/B/C implementation. It is not a strategy-improvement or optimization phase.
+
+The Phase K historical result must remain preserved as the original evidence artifact. Phase L may correct implementation/accounting defects and rerun the same frozen historical experiment, but it must not retune the Reddit-inspired behavior.
+
+Phase L must specifically audit and, where necessary, correct:
+
+- the true V2 evaluation start because SKHY begins later than MU/SNDK;
+- the semantics of the normalized 60% core starting state;
+- reference-price versus execution-price semantics in the ExecutionSimulator;
+- the current pre_slippage_pnl field, which must be based on an unadjusted reference price rather than an already-slippage-adjusted execution price;
+- exact single-count treatment of slippage, commissions, and financing;
+- separation of closed tactical P&L from terminal open tactical mark-to-market P&L;
+- reconciliation of entry fills, reloads, exits, completed round trips, and open tactical inventory;
+- no-lookahead buying-power and capital checks for orders filled at the next bar open;
+- no-lookahead timing for margin-triggered liquidation;
+- peak margin debt measurement after transactions/financing, not only before them;
+- core/tactical attribution and core isolation.
+
+Important interpretation rule:
+
+A historical V2-C result identical to V2-B is acceptable when margin was never actually required. Do not modify historical sizing to force leverage. Instead, add a synthetic engine test proving that V2-C margin debt, financing, maintenance, and tactical-first liquidation machinery works when deliberately exercised.
+
+Phase L must preserve:
+
+FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED
+TRUE_LEVEL2_REPLICATION = UNVALIDATED
+HISTORICAL_OPTION_CHAIN_STATUS = UNVALIDATED
+DIRECT_ASIA_REPLICATION_STATUS = OUT_OF_SCOPE_FOR_V2
+PRISTINE_OOS = UNAVAILABLE
+
+After Phase L acceptance criteria pass:
+
+STOP SOFTWARE CHANGES.
+
+The next step is a separately approved research-analysis phase.
