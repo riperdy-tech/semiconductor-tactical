@@ -150,7 +150,6 @@ def validate_resolution_cadence(
     return True, ""
 
 
-
 def validate_symbol_bars(
     symbol: str,
     bars: list[Bar],
@@ -251,4 +250,3 @@ def validate_symbol_bars(
         gaps_count=len(calendar_gaps),
         duplicates_count=len(dupes),
     )
-

@@ -30,4 +30,3 @@ def test_create_run_manifest():
         data_status="SYNTHETIC_SAMPLE_FIXTURE",
     )
     assert fixture_manifest.data_status == "SYNTHETIC_SAMPLE_FIXTURE"
-

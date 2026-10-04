@@ -63,7 +63,7 @@ def get_massive_api_key() -> str:
     """
     key = os.environ.get("MASSIVE_API_KEY")
     if key and key.strip():
-        return key.strip().strip('"\'')
+        return key.strip().strip("\"'")
 
     # Fallback to local .env file
     env_paths = [Path(".env"), Path(__file__).resolve().parents[3] / ".env"]
@@ -74,7 +74,7 @@ def get_massive_api_key() -> str:
                     for line in f:
                         line = line.strip()
                         if line.startswith("MASSIVE_API_KEY="):
-                            val = line.split("=", 1)[1].strip().strip('"\'')
+                            val = line.split("=", 1)[1].strip().strip("\"'")
                             if val:
                                 return val
             except Exception:
@@ -342,9 +342,7 @@ def validate_converted_bars(bars: list[dict[str, Any]], symbol: str) -> dict[str
 
     # Standard RTH session has 390 minutes (09:30 to 15:59 inclusive)
     expected_total_bars = len(trading_days) * 390
-    coverage_ratio = (
-        round(len(bars) / expected_total_bars, 4) if expected_total_bars > 0 else 0.0
-    )
+    coverage_ratio = round(len(bars) / expected_total_bars, 4) if expected_total_bars > 0 else 0.0
 
     is_valid = len(errors) == 0
 
@@ -557,12 +555,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Massive 1-Minute Historical Market Data Ingestion"
     )
-    parser.add_argument(
-        "--start", type=str, default="2026-06-01", help="Start date (YYYY-MM-DD)"
-    )
-    parser.add_argument(
-        "--end", type=str, default="2026-09-30", help="End date (YYYY-MM-DD)"
-    )
+    parser.add_argument("--start", type=str, default="2026-06-01", help="Start date (YYYY-MM-DD)")
+    parser.add_argument("--end", type=str, default="2026-09-30", help="End date (YYYY-MM-DD)")
     parser.add_argument(
         "--data-dir", type=str, default="data/processed", help="Output directory for processed CSVs"
     )

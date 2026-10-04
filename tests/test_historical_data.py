@@ -119,9 +119,7 @@ def test_cadence_mismatch_detected_for_1m_when_daily_provided(tmp_path: Path):
     (tmp_path / "MU.csv").write_text(content, encoding="utf-8")
 
     with pytest.raises(ValueError, match="Resolution cadence mismatch"):
-        load_historical_universe(
-            data_dir=tmp_path, symbols=["MU"], resolution="1m"
-        )
+        load_historical_universe(data_dir=tmp_path, symbols=["MU"], resolution="1m")
 
 
 def test_cadence_mismatch_detected_for_1d_when_intraday_provided():
@@ -133,4 +131,3 @@ def test_cadence_mismatch_detected_for_1d_when_intraday_provided():
     val = validate_symbol_bars("TEST", [b1, b2], expected_interval="1d")
     assert val.is_valid is False
     assert any("Resolution cadence mismatch" in e for e in val.errors)
-

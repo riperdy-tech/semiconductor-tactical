@@ -314,9 +314,7 @@ class V2PortfolioEngine:
                 0.0, pos.encumbered_shares_for_calls - call.shares_covered
             )
 
-        opt_pnl = (
-            call.entry_premium_per_share - buyback_premium_per_share
-        ) * call.shares_covered
+        opt_pnl = (call.entry_premium_per_share - buyback_premium_per_share) * call.shares_covered
         call.exit_time = exit_time
         call.exit_premium_per_share = buyback_premium_per_share
         call.exit_reason = reason
@@ -520,8 +518,9 @@ class V2PortfolioEngine:
         # If tactical is depleted and deficit remains, liquidate unencumbered core positions
         sorted_core = sorted(
             self.core_positions.items(),
-            key=lambda item: item[1].available_shares_for_calls
-            * current_prices.get(item[0], item[1].avg_price),
+            key=lambda item: (
+                item[1].available_shares_for_calls * current_prices.get(item[0], item[1].avg_price)
+            ),
             reverse=True,
         )
         for sym, pos in sorted_core:
@@ -564,9 +563,7 @@ class V2PortfolioEngine:
                 f"Cannot withdraw ${amount:,.2f}: available cash is only ${self.cash:,.2f}"
             )
         self.cash -= amount
-        self.withdrawals.append(
-            V2ProfitWithdrawal(timestamp=timestamp, amount=amount, note=note)
-        )
+        self.withdrawals.append(V2ProfitWithdrawal(timestamp=timestamp, amount=amount, note=note))
 
     @property
     def total_withdrawals(self) -> float:

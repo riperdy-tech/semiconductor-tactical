@@ -126,7 +126,6 @@ def strategy_return_bootstrap(
             ),
         )
 
-
     # 4. Construct complete daily return array (inactive sessions receive 0.0)
     daily_returns = np.array(
         [day_pnls.get(s, 0.0) / initial_cash for s in all_sessions], dtype=float
@@ -199,7 +198,6 @@ def stationary_block_bootstrap(
             ci_upper_pct=0.0,
             prob_positive=0.0,
         )
-
 
     closes = np.array([b.close for b in bars], dtype=float)
     log_returns = np.diff(np.log(closes))
@@ -277,13 +275,9 @@ def run_ticker_exclusion_test(
             continue
 
         cfg_copy = config.model_dump()
-        cfg_copy["strategy"]["universe"] = [
-            s for s in config.strategy.universe if s != sym
-        ]
+        cfg_copy["strategy"]["universe"] = [s for s in config.strategy.universe if s != sym]
         if config.strategy.two_x_etfs:
-            cfg_copy["strategy"]["two_x_etfs"] = [
-                s for s in config.strategy.two_x_etfs if s != sym
-            ]
+            cfg_copy["strategy"]["two_x_etfs"] = [s for s in config.strategy.two_x_etfs if s != sym]
         sub_cfg = EngineConfig.model_validate(cfg_copy)
 
         res = run_backtest(data=sub_data, config=sub_cfg)

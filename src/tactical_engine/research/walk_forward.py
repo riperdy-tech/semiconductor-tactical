@@ -59,9 +59,7 @@ def split_data_train_val_test(
     Test partition begins at or after test_start.
     """
     if not (
-        research_config.train_end
-        and research_config.validation_end
-        and research_config.test_start
+        research_config.train_end and research_config.validation_end and research_config.test_start
     ):
         return TrainValTestSplitResult(
             is_available=False,
@@ -115,9 +113,7 @@ def split_data_train_val_test(
             if (start_dt is None or b.timestamp >= start_dt) and b.timestamp < train_end
         ]
         val_split[sym] = [
-            b
-            for b in bars
-            if train_end <= b.timestamp < test_start and b.timestamp <= val_end
+            b for b in bars if train_end <= b.timestamp < test_start and b.timestamp <= val_end
         ]
         test_split[sym] = [
             b

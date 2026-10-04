@@ -51,6 +51,7 @@ def run_fidelity_pipeline(config_path: Path, data_dir: Path) -> Path:
     git_sha = "981232a"
     try:
         import subprocess
+
         proc = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
             capture_output=True,

@@ -102,8 +102,7 @@ def run_historical_comparison(
     # Setup isolated run output directory
     timestamp_str = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     run_dir = (
-        Path(config.outputs.root)
-        / f"historical_comparison_{manifest.run_id[:8]}_{timestamp_str}"
+        Path(config.outputs.root) / f"historical_comparison_{manifest.run_id[:8]}_{timestamp_str}"
     )
     run_dir.mkdir(parents=True, exist_ok=True)
     manifest.output_artifacts = [
@@ -181,4 +180,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

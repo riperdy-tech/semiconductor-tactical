@@ -83,6 +83,7 @@ class Fill(BaseModel, frozen=True):
     side: OrderSide
     quantity: float
     price: float
+    reference_price: float = 0.0
     commission: float = 0.0
     slippage: float = 0.0
 

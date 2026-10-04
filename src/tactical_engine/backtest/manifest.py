@@ -68,4 +68,3 @@ def create_manifest(
         oos_scope_classification=oos_scope_classification,
         pristine_oos_status=pristine_oos_status,
     )
-

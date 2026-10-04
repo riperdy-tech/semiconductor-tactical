@@ -54,7 +54,6 @@ class DatasetManifest(BaseModel):
     verification: dict = Field(default_factory=dict)
 
 
-
 def assert_research_dataset_verified(
     dataset_manifest: DatasetManifest | None,
     config: object = None,
@@ -312,9 +311,7 @@ def load_historical_universe(
     for sym in symbols:
         sym_upper = sym.upper()
         bars = provider.load_bars(sym_upper, start=start, end=end)
-        validation_res = validate_symbol_bars(
-            sym_upper, bars, expected_interval=resolution
-        )
+        validation_res = validate_symbol_bars(sym_upper, bars, expected_interval=resolution)
         if not validation_res.is_valid:
             raise ValueError(
                 f"Historical data validation failed for symbol '{sym_upper}': "

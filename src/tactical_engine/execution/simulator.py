@@ -95,6 +95,7 @@ class ExecutionSimulator:
             side=order.side,
             quantity=fill_qty,
             price=fill_price,
+            reference_price=base_price,
             commission=round(commission, 4),
             slippage=round(slippage_dollars, 4),
         )

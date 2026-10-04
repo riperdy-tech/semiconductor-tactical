@@ -274,6 +274,42 @@
 
 **Reason:** Fulfills all requirements from `docs/execution_plan/REDDIT_V2_END_TO_END_IMPLEMENTATION_PLAN.md` and Phase K of `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`.
 
+## 2026-10-04 — Phase L: Reddit Behavioral V2 Post-Run Audit & Accounting Correction
+
+**Decision:**
+1. **Preservation of Phase K Baseline Evidence:**
+   - Preserved original Phase K run (`5080f859`, commit `1eda7cc`) and artifacts (`reports/fidelity_runs/phase_k_baseline_1eda7cc/`) intact without deletion or silent overwriting.
+2. **Effective Evaluation Start Date Audit (SKHY Start Disparity):**
+   - Established that SKHY 1-minute historical data starts on `2026-07-13T13:30:00Z` (22,230 bars), while MU and SNDK start on `2026-07-01` (24,960 bars).
+   - Confined the common 3-asset evaluation window strictly to `2026-07-13T13:30:00Z` through `2026-09-30T19:59:00Z`.
+   - Classified the pre-core interval (July 1 to July 10, 2026; 2,730 bars) as `UNINITIALIZED / NOT_IN_SAMPLE`. Eliminated pre-core tactical trading prior to SKHY and core portfolio availability.
+3. **Exogenous Normalized 60% Core Allocation Semantics:**
+   - Established 60% core at effective start open prices as an exogenous baseline state setup: 151 shares MU ($19,874.62), 505 shares SNDK ($19,977.80), and 1,131 shares SKHY ($19,984.77). Total starting core value is $59,223.68 (59.22% actual allocation), leaving $40,776.32 residual tactical cash.
+   - Initial state setup incurs zero commissions and zero slippage.
+4. **Fill Reference Price vs Execution Price & Pre-Slippage P&L Invariant:**
+   - Added `reference_price` to `Fill` and simulator (`reference_price = base_price`).
+   - Corrected `pre_slippage_pnl` on trade records to be calculated strictly from unadjusted fill reference prices rather than post-slippage fill prices.
+   - Enforced exact mathematical invariant: `pre_slippage_pnl - slippage == realized_pnl`.
+5. **Separation of Closed Tactical Realized P&L from Terminal Open Mark-to-Market P&L:**
+   - Explicitly decoupled completed FIFO round-trip realized P&L from terminal mark-to-market open position P&L in reports and metrics models.
+6. **Granular Trade State and Order Accounting:**
+   - Separated and reported detailed counts: signals generated, order attempts, entry fills, reload fills, partial exit fills, full exit fills, completed FIFO round trips, and ending open tactical lots/shares.
+7. **Lookahead Elimination in Risk Checks & Liquidation Timing:**
+   - Valuation for execution-time buying power checks uses bar open prices (`execution_valuation_prices`), eliminating bar close price lookahead.
+   - Margin liquidation orders triggered at bar close are scheduled for execution at next bar open rather than same-bar close.
+8. **Peak Margin Debt & Financing Accounting:**
+   - Sampled peak margin debt after intra-bar transactions and financing accrual.
+   - Evaluated historical V2-C margin behavior: the $40,776.32 tactical cash sleeve was sufficient to fund all 108 tactical positions historically without margin borrowing ($0 peak debt, $0 financing interest). Classified as `CAPABILITY PRESENT / NOT EXERCISED HISTORICALLY`.
+   - Added synthetic integration test `test_v2_c_margin_activation_synthetic` to verify leverage capacity, daily interest accrual, maintenance margin constraints, and tactical-first liquidation logic.
+9. **Layered Accounting Invariant Reconciliation:**
+   - Reconciled performance across reference layer, execution layer, financing layer, and terminal open mark-to-market layer, proving zero-discrepancy reconciliation to ending account equity.
+10. **Zero Parameter Tuning & Scope Integrity:**
+    - Directional parameters remained 100% frozen; zero parameter sweeps or optimizations performed.
+    - Global epistemic statuses preserved: `FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED`, `DIRECT_ASIA_REPLICATION_STATUS = OUT_OF_SCOPE_FOR_V2`, `TRUE_LEVEL2_REPLICATION = UNVALIDATED`, `HISTORICAL_OPTION_CHAIN_STATUS = UNVALIDATED`, `PRISTINE_OOS = UNAVAILABLE`.
+
+**Reason:** Fulfills all requirements from `docs/execution_plan/REDDIT_V2_POST_RUN_AUDIT_AND_ACCOUNTING_PLAN.md` and Phase L of `docs/execution_plan/GEMINI_POST_FIRST_RUN_HANDOFF.md`.
+
+
 
 
 

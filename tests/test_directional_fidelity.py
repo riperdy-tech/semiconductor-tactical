@@ -31,47 +31,55 @@ def test_trend_predicate():
 
 def test_pullback_predicate():
     # Valid pullback: 1.5% dip from high, closing in upper half of bar
-    row_valid = pd.Series({
-        "dist_high": -0.015,
-        "high": 100.0,
-        "low": 98.0,
-        "close": 99.2,  # (99.2 - 98) / 2 = 0.60 > 0.35 threshold
-        "returns": 0.001,
-    })
+    row_valid = pd.Series(
+        {
+            "dist_high": -0.015,
+            "high": 100.0,
+            "low": 98.0,
+            "close": 99.2,  # (99.2 - 98) / 2 = 0.60 > 0.35 threshold
+            "returns": 0.001,
+        }
+    )
     ok, msg = check_pullback_predicate(row_valid, 0.005, 0.030, 0.35)
     assert ok
     assert "pullback_confirmed" in msg
 
     # Too shallow dip (< 0.5%)
-    row_shallow = pd.Series({
-        "dist_high": -0.002,
-        "high": 100.0,
-        "low": 99.5,
-        "close": 99.8,
-        "returns": 0.001,
-    })
+    row_shallow = pd.Series(
+        {
+            "dist_high": -0.002,
+            "high": 100.0,
+            "low": 99.5,
+            "close": 99.8,
+            "returns": 0.001,
+        }
+    )
     ok, _ = check_pullback_predicate(row_shallow, 0.005, 0.030, 0.35)
     assert not ok
 
     # Too deep dip (> 3.0% falling knife)
-    row_deep = pd.Series({
-        "dist_high": -0.045,
-        "high": 100.0,
-        "low": 95.0,
-        "close": 95.5,
-        "returns": -0.02,
-    })
+    row_deep = pd.Series(
+        {
+            "dist_high": -0.045,
+            "high": 100.0,
+            "low": 95.0,
+            "close": 95.5,
+            "returns": -0.02,
+        }
+    )
     ok, _ = check_pullback_predicate(row_deep, 0.005, 0.030, 0.35)
     assert not ok
 
     # Dip within range but unstabilized (closing at dead low, negative return)
-    row_unstabilized = pd.Series({
-        "dist_high": -0.020,
-        "high": 100.0,
-        "low": 98.0,
-        "close": 98.05,  # (98.05 - 98) / 2 = 0.025 < 0.35
-        "returns": -0.008,
-    })
+    row_unstabilized = pd.Series(
+        {
+            "dist_high": -0.020,
+            "high": 100.0,
+            "low": 98.0,
+            "close": 98.05,  # (98.05 - 98) / 2 = 0.025 < 0.35
+            "returns": -0.008,
+        }
+    )
     ok, msg = check_pullback_predicate(row_unstabilized, 0.005, 0.030, 0.35)
     assert not ok
     assert msg == "pullback_not_stabilized"
@@ -89,23 +97,26 @@ def test_strength_predicate():
 
 def test_generate_directional_fidelity_signals():
     ts = datetime(2026, 7, 10, 14, 0, tzinfo=UTC)
-    df = pd.DataFrame([
-        {
-            "symbol": "MU",
-            "open": 98.5,
-            "high": 100.0,
-            "low": 98.0,
-            "close": 99.0,
-            "volume": 10000.0,
-            "rel_volume": 1.2,
-            "trend_ok": True,
-            "trend_slope": 0.015,
-            "dist_high": -0.010,
-            "returns": 0.002,
-            "atr": 0.50,
-            "is_event_blackout": False,
-        }
-    ], index=[ts])
+    df = pd.DataFrame(
+        [
+            {
+                "symbol": "MU",
+                "open": 98.5,
+                "high": 100.0,
+                "low": 98.0,
+                "close": 99.0,
+                "volume": 10000.0,
+                "rel_volume": 1.2,
+                "trend_ok": True,
+                "trend_slope": 0.015,
+                "dist_high": -0.010,
+                "returns": 0.002,
+                "atr": 0.50,
+                "is_event_blackout": False,
+            }
+        ],
+        index=[ts],
+    )
 
     cfg = SignalConfig(
         signal_family="directional_fidelity",

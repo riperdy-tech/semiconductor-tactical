@@ -50,40 +50,74 @@ def test_filter_and_convert_bars_rth_filtering():
         # 12:00 UTC = 08:00 ET (Pre-market -> FILTER OUT)
         {
             "t": int(datetime(2026, 7, 15, 12, 0, tzinfo=UTC).timestamp() * 1000),
-            "o": 100, "h": 101, "l": 99, "c": 100.5, "v": 1000, "vw": 100.2,
+            "o": 100,
+            "h": 101,
+            "l": 99,
+            "c": 100.5,
+            "v": 1000,
+            "vw": 100.2,
         },
         # 13:29 UTC = 09:29 ET (Pre-market -> FILTER OUT)
         {
             "t": int(datetime(2026, 7, 15, 13, 29, tzinfo=UTC).timestamp() * 1000),
-            "o": 100.5, "h": 101, "l": 100, "c": 100.8, "v": 1200, "vw": 100.6,
+            "o": 100.5,
+            "h": 101,
+            "l": 100,
+            "c": 100.8,
+            "v": 1200,
+            "vw": 100.6,
         },
         # 13:30 UTC = 09:30 ET (RTH start -> RETAIN)
         {
             "t": int(datetime(2026, 7, 15, 13, 30, tzinfo=UTC).timestamp() * 1000),
-            "o": 101, "h": 102, "l": 100.5, "c": 101.5, "v": 5000, "vw": 101.2,
+            "o": 101,
+            "h": 102,
+            "l": 100.5,
+            "c": 101.5,
+            "v": 5000,
+            "vw": 101.2,
         },
         # 16:00 UTC = 12:00 ET (RTH -> RETAIN)
         {
             "t": int(datetime(2026, 7, 15, 16, 0, tzinfo=UTC).timestamp() * 1000),
-            "o": 102, "h": 103, "l": 101.5, "c": 102.5, "v": 4000, "vw": 102.1,
+            "o": 102,
+            "h": 103,
+            "l": 101.5,
+            "c": 102.5,
+            "v": 4000,
+            "vw": 102.1,
         },
         # 19:59 UTC = 15:59 ET (RTH last bar -> RETAIN)
         {
             "t": int(datetime(2026, 7, 15, 19, 59, tzinfo=UTC).timestamp() * 1000),
-            "o": 103, "h": 103.5, "l": 102.8, "c": 103.2, "v": 6000, "vw": 103.0,
+            "o": 103,
+            "h": 103.5,
+            "l": 102.8,
+            "c": 103.2,
+            "v": 6000,
+            "vw": 103.0,
         },
         # 20:00 UTC = 16:00 ET (Post-market -> FILTER OUT)
         {
             "t": int(datetime(2026, 7, 15, 20, 0, tzinfo=UTC).timestamp() * 1000),
-            "o": 103.2, "h": 103.3, "l": 103.0, "c": 103.1, "v": 500, "vw": 103.1,
+            "o": 103.2,
+            "h": 103.3,
+            "l": 103.0,
+            "c": 103.1,
+            "v": 500,
+            "vw": 103.1,
         },
         # Saturday 2026-07-18 13:30 UTC -> Weekend (FILTER OUT)
         {
             "t": int(datetime(2026, 7, 18, 13, 30, tzinfo=UTC).timestamp() * 1000),
-            "o": 103, "h": 103.5, "l": 102.8, "c": 103.2, "v": 100, "vw": 103.0,
+            "o": 103,
+            "h": 103.5,
+            "l": 102.8,
+            "c": 103.2,
+            "v": 100,
+            "vw": 103.0,
         },
     ]
-
 
     converted = filter_and_convert_bars(raw_bars, "MU")
     # Only 3 bars should be retained: 09:30, 12:00, 15:59 ET
@@ -246,11 +280,22 @@ def test_ingest_massive_universe_end_to_end_mocked(tmp_path: Path):
     t0_ms = int(datetime(2026, 7, 15, 13, 30, tzinfo=UTC).timestamp() * 1000)
     fake_bars = [
         {
-            "t": t0_ms, "o": 100.0, "h": 105.0, "l": 95.0, "c": 102.0, "v": 50000.0, "vw": 101.0,
+            "t": t0_ms,
+            "o": 100.0,
+            "h": 105.0,
+            "l": 95.0,
+            "c": 102.0,
+            "v": 50000.0,
+            "vw": 101.0,
         },
         {
             "t": t0_ms + 60000,
-            "o": 102.0, "h": 106.0, "l": 101.0, "c": 104.0, "v": 60000.0, "vw": 103.0,
+            "o": 102.0,
+            "h": 106.0,
+            "l": 101.0,
+            "c": 104.0,
+            "v": 60000.0,
+            "vw": 103.0,
         },
     ]
 

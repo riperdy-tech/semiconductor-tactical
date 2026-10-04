@@ -54,13 +54,15 @@ def test_v2_predicates_progression() -> None:
     p = 100.0
     for i in range(70):
         p += 0.10
-        records.append({
-            "timestamp": base_time + timedelta(minutes=i),
-            "open": p - 0.05,
-            "high": p + 0.10,
-            "low": p - 0.10,
-            "close": p,
-        })
+        records.append(
+            {
+                "timestamp": base_time + timedelta(minutes=i),
+                "open": p - 0.05,
+                "high": p + 0.10,
+                "low": p - 0.10,
+                "close": p,
+            }
+        )
     df = pd.DataFrame(records)
 
     regime_ok, reason = check_regime_context_predicate(df, current_idx=68, trend_filter=True)
@@ -133,13 +135,15 @@ def test_v2_signal_generator_sequence() -> None:
             volume=1000,
         )
         bars.append(b)
-        records.append({
-            "timestamp": t,
-            "open": b.open,
-            "high": b.high,
-            "low": b.low,
-            "close": b.close,
-        })
+        records.append(
+            {
+                "timestamp": t,
+                "open": b.open,
+                "high": b.high,
+                "low": b.low,
+                "close": b.close,
+            }
+        )
 
     df = pd.DataFrame(records)
     for idx, b in enumerate(bars):
@@ -160,13 +164,15 @@ def test_v2_signal_generator_sequence() -> None:
             volume=2000,
         )
         bars.append(b)
-        records.append({
-            "timestamp": t,
-            "open": b.open,
-            "high": b.high,
-            "low": b.low,
-            "close": b.close,
-        })
+        records.append(
+            {
+                "timestamp": t,
+                "open": b.open,
+                "high": b.high,
+                "low": b.low,
+                "close": b.close,
+            }
+        )
 
     df = pd.DataFrame(records)
     for idx in range(10, 15):
@@ -191,13 +197,15 @@ def test_v2_signal_generator_sequence() -> None:
         volume=1500,
     )
     bars.append(b)
-    records.append({
-        "timestamp": t,
-        "open": b.open,
-        "high": b.high,
-        "low": b.low,
-        "close": b.close,
-    })
+    records.append(
+        {
+            "timestamp": t,
+            "open": b.open,
+            "high": b.high,
+            "low": b.low,
+            "close": b.close,
+        }
+    )
     df = pd.DataFrame(records)
     gen.process_bar(b, df, current_idx=15, current_tactical_shares=0)
     assert tracker.state == V2SignalState.PULLBACK_OBSERVED
@@ -217,13 +225,15 @@ def test_v2_signal_generator_sequence() -> None:
             volume=1200,
         )
         bars.append(b)
-        records.append({
-            "timestamp": t,
-            "open": b.open,
-            "high": b.high,
-            "low": b.low,
-            "close": b.close,
-        })
+        records.append(
+            {
+                "timestamp": t,
+                "open": b.open,
+                "high": b.high,
+                "low": b.low,
+                "close": b.close,
+            }
+        )
         df = pd.DataFrame(records)
         sig = gen.process_bar(b, df, current_idx=len(bars) - 1, current_tactical_shares=0)
         if sig is not None:
@@ -248,17 +258,17 @@ def test_v2_signal_generator_sequence() -> None:
         volume=2500,
     )
     bars.append(b_exit)
-    records.append({
-        "timestamp": t,
-        "open": b_exit.open,
-        "high": b_exit.high,
-        "low": b_exit.low,
-        "close": b_exit.close,
-    })
-    df = pd.DataFrame(records)
-    sig_exit = gen.process_bar(
-        b_exit, df, current_idx=len(bars) - 1, current_tactical_shares=100
+    records.append(
+        {
+            "timestamp": t,
+            "open": b_exit.open,
+            "high": b_exit.high,
+            "low": b_exit.low,
+            "close": b_exit.close,
+        }
     )
+    df = pd.DataFrame(records)
+    sig_exit = gen.process_bar(b_exit, df, current_idx=len(bars) - 1, current_tactical_shares=100)
     assert sig_exit is not None
     assert sig_exit.action == "EXIT_LONG"
     assert sig_exit.strength == 0.50
@@ -275,8 +285,7 @@ def test_v2_core_isolation_under_tactical_orders() -> None:
     portfolio.open_or_add_core("MU", quantity=200, price=100.0)
     assert portfolio.core_positions["MU"].quantity == 200
     assert (
-        "MU" not in portfolio.tactical_positions
-        or portfolio.tactical_positions["MU"].quantity == 0
+        "MU" not in portfolio.tactical_positions or portfolio.tactical_positions["MU"].quantity == 0
     )
 
     # Tactical add: 100 shares
@@ -341,8 +350,7 @@ def test_v2_backtest_normalized_core_initialization_and_reconciliation() -> None
     bars_by_symbol = {
         "MU": [_make_bar("MU", base_time + timedelta(minutes=i), 100.0 + i) for i in range(15)],
         "SNDK": [
-            _make_bar("SNDK", base_time + timedelta(minutes=i), 50.0 + (i * 0.5))
-            for i in range(15)
+            _make_bar("SNDK", base_time + timedelta(minutes=i), 50.0 + (i * 0.5)) for i in range(15)
         ],
         "SKHY": [
             _make_bar("SKHY", base_time + timedelta(minutes=i), 25.0 + (i * 0.25))
@@ -375,8 +383,7 @@ def test_v2_backtest_tactical_and_margin_modes() -> None:
     # Synthetic bars over 80 minutes to allow SMA warm-up
     bars_by_symbol = {
         "MU": [
-            _make_bar("MU", base_time + timedelta(minutes=i), 100.0 + (i * 0.05))
-            for i in range(80)
+            _make_bar("MU", base_time + timedelta(minutes=i), 100.0 + (i * 0.05)) for i in range(80)
         ],
         "SNDK": [
             _make_bar("SNDK", base_time + timedelta(minutes=i), 50.0 + (i * 0.02))

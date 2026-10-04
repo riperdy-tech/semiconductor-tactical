@@ -195,4 +195,3 @@ def run_strategy_comparison(
         oos_strategy_bootstrap=oos_strat_boot,
         oos_comparison=legacy_oos_comp,
     )
-

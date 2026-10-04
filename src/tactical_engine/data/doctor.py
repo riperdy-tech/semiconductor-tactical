@@ -43,9 +43,7 @@ def run_data_doctor(
         try:
             bars = provider.load_bars(sym_upper)
             prov = provider.get_provenance(sym_upper)
-            val = validate_symbol_bars(
-                sym_upper, bars, expected_interval=expected_interval
-            )
+            val = validate_symbol_bars(sym_upper, bars, expected_interval=expected_interval)
 
             status = "VALID" if val.is_valid else "INVALID"
             if not val.is_valid:
@@ -116,7 +114,6 @@ def main() -> None:
         expected_interval=cfg.strategy.bar_interval,
     )
     sys.exit(0 if success else 1)
-
 
 
 if __name__ == "__main__":

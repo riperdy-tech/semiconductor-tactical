@@ -458,9 +458,7 @@ def run_backtest(
                             order_type=order_type,
                             quantity=qty,
                             stop_price=(
-                                round(stop_trigger_p, 4)
-                                if stop_trigger_p is not None
-                                else None
+                                round(stop_trigger_p, 4) if stop_trigger_p is not None else None
                             ),
                             limit_price=limit_p,
                             stop_loss_price=round(stop_loss_p, 4),
@@ -479,9 +477,7 @@ def run_backtest(
     trades_per_day = round(len(tracker.closed_trades) / n_days, 2)
     trades_per_symbol_per_day = round(trades_per_day / n_symbols, 2)
 
-    durations = [
-        (t.exit_time - t.entry_time).total_seconds() / 60.0 for t in tracker.closed_trades
-    ]
+    durations = [(t.exit_time - t.entry_time).total_seconds() / 60.0 for t in tracker.closed_trades]
     median_holding = round(float(np.median(durations)), 1) if durations else 0.0
 
     time_in_market_pct = (
@@ -495,9 +491,7 @@ def run_backtest(
 
     gross_pnl_total = sum(t.gross_pnl for t in tracker.closed_trades)
     costs_pct_gross = (
-        round((total_cost_paid / abs(gross_pnl_total)) * 100.0, 2)
-        if gross_pnl_total != 0
-        else 0.0
+        round((total_cost_paid / abs(gross_pnl_total)) * 100.0, 2) if gross_pnl_total != 0 else 0.0
     )
 
     total_signals = sum(len(sigs) for sigs in signals_by_sym.values())

@@ -154,9 +154,7 @@ def test_a4_no_path_name_spoofing(tmp_path: Path):
         provider="generator",
         is_verified_market_data=False,
     )
-    (spoof_dir / "dataset_manifest.json").write_text(
-        manifest.model_dump_json(), encoding="utf-8"
-    )
+    (spoof_dir / "dataset_manifest.json").write_text(manifest.model_dump_json(), encoding="utf-8")
 
     loaded_manifest = load_dataset_manifest(spoof_dir)
     assert loaded_manifest.data_status == "SYNTHETIC_SAMPLE_FIXTURE"
@@ -188,9 +186,9 @@ def test_b1_b2_b3_train_val_test_splits_disjoint():
     # Day 0 to 49 (Train), Day 50 to 74 (Validation), Day 75 to 99 (Test)
     research_cfg = ResearchConfig(
         start="2026-01-01T00:00:00+00:00",
-        train_end="2026-02-20T00:00:00+00:00",       # Day 50
+        train_end="2026-02-20T00:00:00+00:00",  # Day 50
         validation_end="2026-03-17T00:00:00+00:00",  # Day 75
-        test_start="2026-03-17T00:00:00+00:00",      # Day 75
+        test_start="2026-03-17T00:00:00+00:00",  # Day 75
         end="2026-04-11T00:00:00+00:00",
     )
 
@@ -367,7 +365,6 @@ def test_d5_oos_insufficient_sample_handled():
     assert "FULL SAMPLE" in report or "FULL" in report
     assert "TEST_OOS" in report
     assert "Observation Definition" in report
-
 
 
 # ==============================================================================
