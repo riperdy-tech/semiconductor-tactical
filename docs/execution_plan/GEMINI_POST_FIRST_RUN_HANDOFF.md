@@ -529,3 +529,91 @@ After Phase L.2.1.1 passes:
 **STOP SOFTWARE CHANGES.**
 
 The next step is a separately approved research-analysis phase.
+
+# Post-L.2 Research Analysis Tracks
+
+The software engineering/audit freeze is complete.
+
+The next work is research-only and is governed by:
+docs/execution_plan/REDDIT_V2_THREE_TRACK_RESEARCH_COORDINATION_PLAN.md
+
+Detailed execution instructions:
+
+## Phase M — Frozen Prospective OOS Validation
+
+Execute:
+docs/execution_plan/REDDIT_V2_FROZEN_PROSPECTIVE_OOS_EXECUTION_PLAN.md
+
+Primary question:
+
+Does the frozen V2 directional/core/margin hypothesis generalize to genuinely unseen U.S.-market data after 2026-09-30?
+
+Hard rule:
+Do not tune after OOS data exposure.
+
+The historical Run 24a9e783 remains immutable.
+
+## Phase N — V2-D Covered-Call Reconstruction
+
+Execute:
+docs/execution_plan/REDDIT_V2_V2D_OPTIONS_EXECUTION_PLAN.md
+
+Primary question:
+
+What incremental economics and risk are produced by the covered-call behavior described by the source, using authentic point-in-time historical option quotes?
+
+Hard rules:
+- real historical bid/ask data only;
+- no synthetic Black-Scholes headline fills;
+- no parameter tuning after performance exposure;
+- V2-C remains the immutable control.
+
+## Phase O — V2-F Genuine Level-2 Information-Set Ablation
+
+Execute:
+docs/execution_plan/REDDIT_V2_V2F_LEVEL2_EXECUTION_PLAN.md
+
+Primary question:
+
+Does genuine order-book information add decision value to the already-frozen V2 sequence?
+
+Hard rules:
+- genuine historical Level-2/order-book data only;
+- no synthetic order book from OHLCV;
+- primary experiment changes only decision information;
+- keep execution economics identical between control and treatment;
+- no OOS threshold tuning.
+
+## Cross-track contamination rule
+
+Before viewing new OOS performance, freeze all three research specifications.
+
+Data acquisition and structural data validation may proceed in parallel.
+
+Performance-driven parameter changes are prohibited.
+
+Do not use Phase M results to choose Phase N or O parameters.
+Do not use Phase N results to choose Phase O parameters.
+Do not shift the common OOS period because one dataset has better results.
+
+If a genuine implementation defect is discovered after performance exposure:
+1. preserve the failed run;
+2. document the defect;
+3. repair it;
+4. create a new execution commit;
+5. rerun with a new run ID;
+6. do not overwrite the previous artifact.
+
+Global statuses remain:
+
+FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED
+TRUE_LEVEL2_REPLICATION = UNVALIDATED
+HISTORICAL_OPTION_CHAIN_STATUS = UNVALIDATED
+DIRECT_ASIA_REPLICATION_STATUS = OUT_OF_SCOPE_FOR_V2
+PRISTINE_OOS = UNAVAILABLE until an unseen chronological period is actually evaluated.
+
+After Phases M/N/O pass their individual gates:
+
+STOP SOFTWARE CHANGES.
+
+The next step is cross-track synthesis and falsification analysis.
