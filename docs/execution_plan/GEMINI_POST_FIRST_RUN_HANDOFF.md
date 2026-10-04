@@ -369,3 +369,74 @@ After Phase L.1 acceptance criteria pass:
 STOP SOFTWARE CHANGES.
 
 The next step is a separately approved research-analysis phase.
+
+
+## Phase L.2 — Final Provenance, Margin-Test, and Accounting-Tolerance Fix
+
+After Phase L.1 review, execute:
+
+`docs/execution_plan/REDDIT_V2_PHASE_L2_FINAL_PROVENANCE_AND_MARGIN_TEST_FIX_PLAN.md`
+
+This is the final research-integrity cleanup before the separate research-analysis phase.
+
+Phase L.2 is strictly limited to:
+
+- strengthening the peak-margin-debt test so the reported `result.peak_margin_debt` is causally produced by an actual transaction/execution path;
+- adding a negative-control case showing the test does not report debt when the same transaction is cash-funded;
+- separating `EXECUTION_CODE_SHA` from `ARTIFACT_COMMIT_SHA` so the report does not contain self-referential or ambiguous Git provenance;
+- making Markdown and JSON carry the same explicit provenance;
+- making accounting tolerance explicit and aligning report wording with the declared tolerance;
+- adding a Phase L preservation-note erratum without modifying the preserved `PHASE_L_PRESERVATION_NOTE.md`;
+- performing a frozen reproducibility rerun only when necessary to establish the final provenance chain.
+
+The following are forbidden in Phase L.2:
+
+- changing any V2 signal parameter;
+- changing the 60% normalized core allocation;
+- changing MU/SNDK/SKHY scope;
+- changing tactical sizing;
+- changing slippage, commission, financing, maintenance, or leverage assumptions;
+- forcing historical margin usage;
+- adding options or Level-2;
+- expanding the universe;
+- tuning against the July–September result, Reddit-reported P&L, or reported trade count.
+
+### Provenance convention
+
+Use:
+
+`EXECUTION_CODE_SHA` = the exact committed code/test SHA used to execute the historical run.
+
+`ARTIFACT_COMMIT_SHA` = the later commit containing the final generated report/JSON and evidence artifacts.
+
+Do not attempt to place the final artifact commit SHA inside the artifact that defines that same commit.
+
+### Historical preservation
+
+The Phase L preserved note at:
+
+`reports/fidelity_runs/phase_l_baseline_0ce2208/PHASE_L_PRESERVATION_NOTE.md`
+
+must remain unchanged as historical evidence.
+
+Create an adjacent erratum identifying its stale accounting metadata and reconciling it to the preserved Phase L canonical report/JSON.
+
+### Acceptance requirement
+
+Phase L.2 is accepted only when:
+
+- the peak-margin test creates debt through the actual execution path and the backtest result captures it;
+- the negative control does not falsely report positive peak debt;
+- execution-code and artifact commit SHAs are explicit and consistent;
+- accounting tolerance is explicit and tested;
+- Markdown and JSON agree;
+- preserved Phase K, Phase L, and Phase L.1 evidence remains distinguishable;
+- the full test suite and Ruff pass;
+- the frozen historical rerun, if required, is deterministic;
+- global epistemic statuses remain unchanged.
+
+After Phase L.2 passes:
+
+**STOP SOFTWARE CHANGES.**
+
+The next step is a separately approved research-analysis phase.
