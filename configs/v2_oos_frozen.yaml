@@ -1,0 +1,55 @@
+project:
+  name: reddit-behavioral-v2-oos
+  timezone_report: America/New_York
+  random_seed: 42
+
+strategy:
+  variant: risk_controlled
+  universe:
+    - MU
+    - SNDK
+    - SKHY
+  bar_interval: 1m
+
+signals:
+  pullback_zscore: -1.5
+  trend_window: 60
+  sector_filter: true
+  relative_volume_filter: true
+  event_filter: false
+
+exits:
+  family: atr
+  target_atr: 1.0
+  stop_atr: 1.0
+  max_hold_minutes: 120
+
+portfolio:
+  max_symbol_weight: 0.25
+  max_gross_leverage: 2.0
+  max_layers: 2
+  risk_per_trade_pct: 0.25
+
+costs:
+  equity_commission_bps: 0.0
+  equity_slippage_bps: 5.0
+  option_slippage_bps: 10.0
+  market_impact_bps_per_1pct_volume: 10.0
+  margin_rate_annual: 0.05
+
+options:
+  enabled: false
+  max_dte: 14
+  min_dte: 1
+  moneyness: otm
+  repurchase_rule: pullback
+
+research:
+  start: "2026-10-01T00:00:00Z"
+  end: "2026-10-31T23:59:59Z"
+  train_end: "2026-10-15T00:00:00Z"
+  validation_end: "2026-10-20T00:00:00Z"
+  test_start: "2026-10-01T00:00:00Z"
+
+outputs:
+  root: reports/v2_oos

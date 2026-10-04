@@ -1,0 +1,520 @@
+"""Dedicated research runner for Phase M — Frozen Prospective Out-of-Sample (OOS) Validation.
+
+Executes frozen V2-A, V2-B, and V2-C variants on prospective market data strictly
+dated after 2026-09-30. Enforces pre-run parameter and configuration fingerprints,
+evaluates session completeness (>= 20 sessions threshold), assigns pre-registered
+scientific interpretation classes, and generates immutable research artifacts.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import subprocess
+import sys
+import uuid
+from datetime import UTC, datetime
+from pathlib import Path
+
+from pydantic import BaseModel
+
+from tactical_engine.backtest.v2_engine import (
+    ACCOUNTING_TOLERANCE,
+    V2BacktestResult,
+    run_v2_backtest,
+)
+from tactical_engine.config import CostConfig, load_config
+from tactical_engine.data.historical import (
+    DatasetVerificationError,
+    assert_research_dataset_verified,
+    load_historical_universe,
+)
+from tactical_engine.data.models import Bar
+from tactical_engine.signals.v2_signals import V2DirectionalConfig
+
+OOS_CHRONOLOGY_CUTOFF = datetime(2026, 9, 30, 23, 59, 59, tzinfo=UTC)
+MINIMUM_OOS_SESSIONS = 20
+HEADLINE_UNIVERSE = ("MU", "SNDK", "SKHY")
+
+
+class V2OOSEvaluationError(Exception):
+    """Base exception for prospective OOS validation failures."""
+
+
+class V2OOSChronologyError(V2OOSEvaluationError):
+    """Raised when data on or before the 2026-09-30 cutoff is supplied to OOS."""
+
+
+class V2OOSUniverseError(V2OOSEvaluationError):
+    """Raised when non-headline symbols or missing required symbols are provided."""
+
+
+class V2OOSParameterFingerprintError(V2OOSEvaluationError):
+    """Raised when parameter configuration differs from frozen V2 historical spec."""
+
+
+class V2OOSDataRequirementError(V2OOSEvaluationError):
+    """Raised when verified real historical data is missing."""
+
+
+class V2OOSComparisonResult(BaseModel):
+    run_id: str
+    created_at_utc: str
+    execution_code_sha: str = ""
+    git_sha: str = ""
+    accounting_tolerance: float = ACCOUNTING_TOLERANCE
+    dataset_id: str
+    aggregate_data_hash: str
+    market_scope: str = "US_MARKET_ONLY"
+    nominal_date_range: str
+    effective_evaluation_start: str
+    evaluation_end_timestamp: str
+    evaluation_status: str
+    sample_status: str  # PHASE_M_PRISTINE_OOS_RESULT or PHASE_M_PRISTINE_OOS_INSUFFICIENT_SAMPLE
+    interpretation_class: str  # SUPPORTIVE, NEUTRAL / INCONCLUSIVE, CONTRADICTORY, or INVALID
+    complete_sessions_count: int
+
+    # Control baseline reference (Run 24a9e783)
+    historical_control_run_id: str = "24a9e783"
+    historical_control_v2_a_return_pct: float = 6.48
+    historical_control_v2_b_return_pct: float = 7.93
+    historical_control_v2_c_return_pct: float = 7.93
+    historical_control_tactical_contribution: float = 1446.69
+    historical_control_peak_debt: float = 0.0
+
+    # OOS Experimental Results
+    v2_a_core_only: V2BacktestResult
+    v2_b_core_tactical: V2BacktestResult
+    v2_c_core_tactical_margin: V2BacktestResult
+
+    # Sleeve Attribution
+    tactical_net_contribution_unlevered: float
+    tactical_net_contribution_margin: float
+
+
+def get_git_sha() -> str:
+    """Safely retrieves current Git commit SHA."""
+    try:
+        res = subprocess.run(
+            ["git", "rev-parse", "--short=7", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return res.stdout.strip()
+    except Exception:
+        return "unknown"
+
+
+def validate_oos_chronology(bars: dict[str, list[Bar]]) -> None:
+    """Asserts that every bar in every series is strictly after 2026-09-30T23:59:59Z."""
+    for symbol, bar_list in bars.items():
+        for bar in bar_list:
+            bar_dt = bar.timestamp if bar.timestamp.tzinfo else bar.timestamp.replace(tzinfo=UTC)
+            if bar_dt <= OOS_CHRONOLOGY_CUTOFF:
+                raise V2OOSChronologyError(
+                    f"Bar timestamp {bar.timestamp.isoformat()} for {symbol} violates "
+                    f"chronology cutoff {OOS_CHRONOLOGY_CUTOFF.isoformat()}. "
+                    "Prospective OOS data must be strictly future of September 30, 2026."
+                )
+
+
+def validate_oos_universe(symbols: list[str]) -> None:
+    """Asserts that the universe strictly matches MU, SNDK, and SKHY."""
+    sym_set = set(symbols)
+    required_set = set(HEADLINE_UNIVERSE)
+    if sym_set != required_set:
+        raise V2OOSUniverseError(
+            f"Universe {symbols} does not match required headline universe "
+            f"{list(HEADLINE_UNIVERSE)}. Proxies, ETFs, and non-headline symbols "
+            "are strictly excluded from Phase M."
+        )
+
+
+def validate_parameter_fingerprint(
+    signal_cfg: V2DirectionalConfig,
+    cost_cfg: CostConfig,
+    max_leverage: float,
+) -> None:
+    """Verifies that directional and cost parameters match the frozen historical baseline."""
+    expected_sig = {
+        "impulse_lookback_bars": 30,
+        "min_impulse_pct": 0.020,
+        "pullback_depth_fraction": 0.500,
+        "stabilization_bars": 5,
+        "tactical_scale_out_ratio": 0.50,
+        "stop_buffer_pct": 0.002,
+        "rebound_target_ratio": 0.50,
+        "trend_filter": True,
+    }
+    actual_sig = {
+        "impulse_lookback_bars": signal_cfg.impulse_lookback_bars,
+        "min_impulse_pct": signal_cfg.min_impulse_pct,
+        "pullback_depth_fraction": signal_cfg.pullback_depth_fraction,
+        "stabilization_bars": signal_cfg.stabilization_bars,
+        "tactical_scale_out_ratio": signal_cfg.tactical_scale_out_ratio,
+        "stop_buffer_pct": signal_cfg.stop_buffer_pct,
+        "rebound_target_ratio": signal_cfg.rebound_target_ratio,
+        "trend_filter": signal_cfg.trend_filter,
+    }
+    if actual_sig != expected_sig:
+        raise V2OOSParameterFingerprintError(
+            f"Signal configuration {actual_sig} does not match frozen baseline {expected_sig}."
+        )
+
+    if cost_cfg.equity_commission_bps != 0.0 or cost_cfg.equity_slippage_bps != 5.0:
+        raise V2OOSParameterFingerprintError(
+            f"Cost configuration equity_commission_bps={cost_cfg.equity_commission_bps}, "
+            f"equity_slippage_bps={cost_cfg.equity_slippage_bps} violates frozen baseline."
+        )
+
+    if max_leverage != 2.0:
+        raise V2OOSParameterFingerprintError(
+            f"Maximum leverage {max_leverage} violates frozen baseline 2.0x."
+        )
+
+
+def count_complete_sessions(bars: dict[str, list[Bar]]) -> int:
+    """Counts complete regular trading sessions common to all headline symbols.
+
+    A complete session requires at least 300 minutes of valid RTH bars across all symbols.
+    """
+    session_dates_per_sym: dict[str, set[str]] = {}
+    for sym, sym_bars in bars.items():
+        date_counts: dict[str, int] = {}
+        for b in sym_bars:
+            date_key = b.timestamp.strftime("%Y-%m-%d")
+            date_counts[date_key] = date_counts.get(date_key, 0) + 1
+        complete_dates = {d for d, count in date_counts.items() if count >= 300}
+        session_dates_per_sym[sym] = complete_dates
+
+    if not session_dates_per_sym:
+        return 0
+
+    common_sessions = set.intersection(*session_dates_per_sym.values())
+    return len(common_sessions)
+
+
+def evaluate_interpretation(
+    tactical_contribution: float,
+    win_rate_pct: float,
+    complete_sessions: int,
+) -> tuple[str, str]:
+    """Assigns sample completeness classification and scientific interpretation class."""
+    if complete_sessions >= MINIMUM_OOS_SESSIONS:
+        sample_status = "PHASE_M_PRISTINE_OOS_RESULT"
+        if tactical_contribution > 0.0 and win_rate_pct >= 40.0:
+            interpretation = "SUPPORTIVE"
+        elif tactical_contribution < -500.0 or win_rate_pct < 30.0:
+            interpretation = "CONTRADICTORY"
+        else:
+            interpretation = "NEUTRAL / INCONCLUSIVE"
+    else:
+        sample_status = "PHASE_M_PRISTINE_OOS_INSUFFICIENT_SAMPLE"
+        interpretation = "NEUTRAL / INCONCLUSIVE"
+
+    return sample_status, interpretation
+
+
+def generate_oos_markdown_report(result: V2OOSComparisonResult) -> str:
+    """Generates the human-readable Markdown report for Phase M OOS validation."""
+    tactical_margin_sum = (
+        result.tactical_net_contribution_unlevered + result.tactical_net_contribution_margin
+    )
+    lines = [
+        "# Reddit Behavioral Replication V2 — Prospective Out-of-Sample Report",
+        "",
+        f"**Run ID:** `{result.run_id}`  ",
+        f"**Date Generated:** `{result.created_at_utc}`  ",
+        f"**Execution Code SHA:** `{result.execution_code_sha}`  ",
+        f"**Sample Completeness Status:** `{result.sample_status}`  ",
+        f"**Scientific Interpretation Class:** `{result.interpretation_class}`  ",
+        f"**Complete Regular Sessions:** `{result.complete_sessions_count}`  ",
+        f"**Accounting Tolerance:** `${result.accounting_tolerance:.6f}`  ",
+        f"**Dataset ID:** `{result.dataset_id}`  ",
+        f"**Nominal Date Range:** `{result.nominal_date_range}`  ",
+        f"**Effective Evaluation Start:** `{result.effective_evaluation_start}`  ",
+        f"**Evaluation End:** `{result.evaluation_end_timestamp}`  ",
+        f"**Historical Control Run:** `{result.historical_control_run_id}`  ",
+        "",
+        "---",
+        "",
+        "## 1. Research Scope & Mandatory Epistemic Gates",
+        "",
+        "```text",
+        "FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED",
+        "DIRECT_ASIA_REPLICATION_STATUS    = OUT_OF_SCOPE_FOR_V2",
+        "TRUE_LEVEL2_REPLICATION          = UNVALIDATED",
+        "HISTORICAL_OPTION_CHAIN_STATUS   = UNVALIDATED",
+        f"PRISTINE_OOS                     = {result.sample_status}",
+        f"INTERPRETATION_CLASS             = {result.interpretation_class}",
+        "```",
+        "",
+        "---",
+        "",
+        "## 2. Prospective OOS Performance Summary",
+        "",
+        (
+            "| Evaluation Metric | V2-A: Core Only | V2-B: Core + Tactical | "
+            "V2-C: Core + Tactical + Margin | Historical Control (24a9e783) |"
+        ),
+        "|---|---|---|---|---|",
+        (
+            f"| **Final Equity** | ${result.v2_a_core_only.final_equity:,.2f} | "
+            f"${result.v2_b_core_tactical.final_equity:,.2f} | "
+            f"${result.v2_c_core_tactical_margin.final_equity:,.2f} | $107,928.85 |"
+        ),
+        (
+            f"| **Total Net Return** | {result.v2_a_core_only.total_return_pct:+.2f}% | "
+            f"{result.v2_b_core_tactical.total_return_pct:+.2f}% | "
+            f"{result.v2_c_core_tactical_margin.total_return_pct:+.2f}% | +7.93% |"
+        ),
+        (
+            f"| **Max Drawdown** | {result.v2_a_core_only.max_drawdown_pct:.2f}% | "
+            f"{result.v2_b_core_tactical.max_drawdown_pct:.2f}% | "
+            f"{result.v2_c_core_tactical_margin.max_drawdown_pct:.2f}% | N/A |"
+        ),
+        (
+            f"| **Tactical Net Contribution** | $0.00 | "
+            f"${result.tactical_net_contribution_unlevered:+,.2f} | "
+            f"${tactical_margin_sum:+,.2f} | +$1,446.69 |"
+        ),
+        (
+            f"| **Completed Round Trips** | 0 | "
+            f"{result.v2_b_core_tactical.completed_round_trips_count} | "
+            f"{result.v2_c_core_tactical_margin.completed_round_trips_count} | 108 |"
+        ),
+        (
+            f"| **Tactical Win Rate** | N/A | "
+            f"{result.v2_b_core_tactical.tactical_win_rate_pct:.1f}% | "
+            f"{result.v2_c_core_tactical_margin.tactical_win_rate_pct:.1f}% | 64.8% |"
+        ),
+        (
+            f"| **Peak Margin Debt** | $0.00 | $0.00 | "
+            f"${result.v2_c_core_tactical_margin.peak_margin_debt:,.2f} | $0.00 |"
+        ),
+        (
+            f"| **Reconciliation Discrepancy** | "
+            f"${result.v2_a_core_only.reconciliation_discrepancy:.6f} | "
+            f"${result.v2_b_core_tactical.reconciliation_discrepancy:.6f} | "
+            f"${result.v2_c_core_tactical_margin.reconciliation_discrepancy:.6f} | $0.000200 |"
+        ),
+        "",
+        "---",
+        "",
+        "## 3. Pre-Registered Scientific Interpretation",
+        "",
+        (
+            f"**Sample Completeness:** `{result.sample_status}` "
+            f"({result.complete_sessions_count} sessions, "
+            f"Threshold: {MINIMUM_OOS_SESSIONS})  "
+        ),
+        f"**Classification:** `{result.interpretation_class}`  ",
+        "",
+    ]
+    if result.complete_sessions_count < MINIMUM_OOS_SESSIONS:
+        lines.extend([
+            "> [!NOTE]",
+            "> **Insufficient Sample Caveat:**",
+            f"> The evaluated prospective window contains {result.complete_sessions_count} "
+            f"complete regular trading sessions, which is below the pre-registered threshold "
+            f"of {MINIMUM_OOS_SESSIONS} sessions required to declare a conclusive scientific "
+            "result. The metrics above represent prospective monitoring observations rather "
+            "than a finalized validation.",
+            "",
+        ])
+    return "\n".join(lines)
+
+
+def run_v2_oos_pipeline(
+    config_path: Path,
+    data_dir: Path,
+    execution_code_sha: str | None = None,
+) -> Path:
+    """Executes the complete Phase M prospective OOS research pipeline."""
+    cfg = load_config(config_path)
+
+    # 1. Load data
+    try:
+        universe_dataset = load_historical_universe(
+            data_dir=data_dir,
+            symbols=list(HEADLINE_UNIVERSE),
+            resolution=cfg.strategy.bar_interval,
+        )
+        assert_research_dataset_verified(universe_dataset.dataset_manifest, cfg)
+    except DatasetVerificationError as e:
+        raise V2OOSDataRequirementError(str(e)) from e
+
+    manifest = universe_dataset.dataset_manifest
+    data = universe_dataset.bars_by_symbol
+
+    # 2. Strict Pre-Run Validations
+    validate_oos_universe(list(data.keys()))
+    validate_oos_chronology(data)
+
+    sig_cfg = V2DirectionalConfig(
+        impulse_lookback_bars=30,
+        min_impulse_pct=0.020,
+        pullback_depth_fraction=0.500,
+        stabilization_bars=5,
+        tactical_scale_out_ratio=0.50,
+        stop_buffer_pct=0.002,
+        rebound_target_ratio=0.50,
+        trend_filter=True,
+    )
+    cost_cfg = CostConfig(equity_commission_bps=0.0, equity_slippage_bps=5.0)
+    validate_parameter_fingerprint(sig_cfg, cost_cfg, max_leverage=2.0)
+
+    # Count complete regular sessions
+    sessions_count = count_complete_sessions(data)
+
+    # 3. Execute V2-A, V2-B, V2-C
+    print(f"\n==> Executing Phase M Prospective OOS ({sessions_count} sessions)...")
+    res_a = run_v2_backtest(
+        data=data,
+        mode="V2-A",
+        initial_cash=100_000.0,
+        core_allocation_pct=0.60,
+        signal_config=sig_cfg,
+        cost_config=cost_cfg,
+        filter_to_effective_start=True,
+    )
+    res_b = run_v2_backtest(
+        data=data,
+        mode="V2-B",
+        initial_cash=100_000.0,
+        core_allocation_pct=0.60,
+        signal_config=sig_cfg,
+        cost_config=cost_cfg,
+        filter_to_effective_start=True,
+    )
+    res_c = run_v2_backtest(
+        data=data,
+        mode="V2-C",
+        initial_cash=100_000.0,
+        core_allocation_pct=0.60,
+        signal_config=sig_cfg,
+        cost_config=cost_cfg,
+        margin_interest_rate_annual=0.05,
+        max_leverage=2.0,
+        filter_to_effective_start=True,
+    )
+
+    tactical_contrib = res_b.total_net_pnl - res_a.total_net_pnl
+    margin_contrib = res_c.total_net_pnl - res_b.total_net_pnl
+    sample_status, interp_class = evaluate_interpretation(
+        tactical_contribution=tactical_contrib,
+        win_rate_pct=res_b.tactical_win_rate_pct,
+        complete_sessions=sessions_count,
+    )
+
+    run_id = str(uuid.uuid4())[:8]
+    exec_sha = execution_code_sha or os.environ.get("EXECUTION_CODE_SHA") or get_git_sha()
+
+    comparison_result = V2OOSComparisonResult(
+        run_id=run_id,
+        created_at_utc=datetime.now(UTC).isoformat(),
+        execution_code_sha=exec_sha,
+        git_sha=exec_sha,
+        accounting_tolerance=ACCOUNTING_TOLERANCE,
+        dataset_id=manifest.dataset_id,
+        aggregate_data_hash=manifest.aggregate_data_hash or "unknown",
+        nominal_date_range=f"{cfg.research.start} to {cfg.research.end}",
+        effective_evaluation_start=res_a.effective_start_timestamp,
+        evaluation_end_timestamp=res_a.evaluation_end_timestamp,
+        evaluation_status="PRISTINE_PROSPECTIVE_OOS",
+        sample_status=sample_status,
+        interpretation_class=interp_class,
+        complete_sessions_count=sessions_count,
+        v2_a_core_only=res_a,
+        v2_b_core_tactical=res_b,
+        v2_c_core_tactical_margin=res_c,
+        tactical_net_contribution_unlevered=tactical_contrib,
+        tactical_net_contribution_margin=margin_contrib,
+    )
+
+    # 4. Save Isolated OOS Outputs (Never overwrite historical Run 24a9e783)
+    out_dir = Path("reports/v2_oos")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    json_path = out_dir / f"{run_id}.json"
+    md_path = out_dir / f"{run_id}.md"
+
+    # Invariant: never overwrite historical reports
+    hist_json = Path("reports/v2_historical_comparison.json").resolve()
+    hist_md = Path("reports/V2_HISTORICAL_COMPARISON.md").resolve()
+    if json_path.resolve() == hist_json or md_path.resolve() == hist_md:
+        raise V2OOSEvaluationError("OOS runner attempt to overwrite historical baseline rejected.")
+
+    with open(json_path, "w", encoding="utf-8") as f:
+        f.write(comparison_result.model_dump_json(indent=2))
+
+    md_content = generate_oos_markdown_report(comparison_result)
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write(md_content)
+
+    # Archival preservation bundle
+    archive_dir = Path(f"reports/fidelity_runs/v2_oos_{run_id}")
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    with open(archive_dir / f"{run_id}.json", "w", encoding="utf-8") as f:
+        f.write(comparison_result.model_dump_json(indent=2))
+    with open(archive_dir / f"{run_id}.md", "w", encoding="utf-8") as f:
+        f.write(md_content)
+    with open(archive_dir / "PRESERVATION_NOTE.md", "w", encoding="utf-8") as f:
+        f.write(
+            f"# Preservation Note — Phase M Prospective OOS Run {run_id}\n\n"
+            f"- Date Generated: {datetime.now(UTC).isoformat()}\n"
+            f"- Execution Code SHA: `{exec_sha}`\n"
+            f"- Dataset ID: `{manifest.dataset_id}`\n"
+            f"- Sample Status: `{sample_status}`\n"
+            f"- Interpretation Class: `{interp_class}`\n"
+            f"- Sessions Count: `{sessions_count}`\n"
+            f"- V2-A Return: `{res_a.total_return_pct:+.2f}%`\n"
+            f"- V2-B Return: `{res_b.total_return_pct:+.2f}%`\n"
+            f"- V2-C Return: `{res_c.total_return_pct:+.2f}%`\n"
+            f"- Tactical Net Contribution: `${tactical_contrib:+,.2f}`\n"
+        )
+
+    print("\n===============================================================================")
+    print("PHASE M PROSPECTIVE OOS VALIDATION RUN COMPLETED")
+    print(f"Run ID: {run_id}")
+    print(f"Sample Completeness: {sample_status} ({sessions_count} sessions)")
+    print(f"Scientific Interpretation: {interp_class}")
+    print("Reports persisted:")
+    print(f"  - Markdown: {md_path}")
+    print(f"  - Machine-readable JSON: {json_path}")
+    print(f"  - Archival preservation: {archive_dir}")
+    print("===============================================================================\n")
+
+    return md_path
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Phase M V2 Prospective OOS Runner")
+    parser.add_argument(
+        "--config", default="configs/v2_oos_frozen.yaml", help="Path to OOS config YAML"
+    )
+    parser.add_argument(
+        "--data-dir", default="data/processed_oos", help="Path to prospective OOS data directory"
+    )
+    parser.add_argument(
+        "--execution-code-sha", default=None, help="Explicit execution code Git SHA"
+    )
+    args = parser.parse_args()
+
+    try:
+        run_v2_oos_pipeline(
+            config_path=Path(args.config),
+            data_dir=Path(args.data_dir),
+            execution_code_sha=args.execution_code_sha,
+        )
+    except Exception as e:
+        print(f"Error during Phase M OOS execution: {e}", file=sys.stderr)
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,5 @@
 param(
-    [ValidateSet("full","test","backtest","research","comparison","comparison-historical","doctor","doctor-data","historical","ingest-massive","fidelity-historical","fidelity-v2-historical")]
+    [ValidateSet("full","test","backtest","research","comparison","comparison-historical","doctor","doctor-data","historical","ingest-massive","fidelity-historical","fidelity-v2-historical","fidelity-v2-oos")]
     [string]$Mode = "full",
     [int]$Bars = 200,
     [string]$DataDir = "data/processed",
@@ -16,7 +16,7 @@ $Root = $PSScriptRoot
 $Python = Join-Path $Root ".venv\Scripts\python.exe"
 
 # Never silently fall back to sample fixtures for historical research commands
-if ($Mode -notin @("historical", "comparison-historical", "doctor-data", "ingest-massive", "fidelity-historical", "fidelity-v2-historical")) {
+if ($Mode -notin @("historical", "comparison-historical", "doctor-data", "ingest-massive", "fidelity-historical", "fidelity-v2-historical", "fidelity-v2-oos")) {
     if ($DataDir -eq "data/processed" -and -not (Test-Path (Join-Path $Root $DataDir)) -and (Test-Path (Join-Path $Root "data/sample_historical"))) {
         $DataDir = "data/sample_historical"
     }
@@ -24,7 +24,7 @@ if ($Mode -notin @("historical", "comparison-historical", "doctor-data", "ingest
 
 
 # If Config is base.yaml and running historical commands, choose 1m or daily config based on dataset manifest
-if ($Config -eq "configs/base.yaml" -and ($Mode -in "historical", "doctor-data", "comparison-historical", "fidelity-historical", "fidelity-v2-historical")) {
+if ($Config -eq "configs/base.yaml" -and ($Mode -in "historical", "doctor-data", "comparison-historical", "fidelity-historical", "fidelity-v2-historical", "fidelity-v2-oos")) {
     $manifestPath = Join-Path $Root (Join-Path $DataDir "dataset_manifest.json")
     if (Test-Path $manifestPath) {
         try {
@@ -111,6 +111,12 @@ switch ($Mode) {
     "fidelity-v2-historical" {
         Write-Step "Historical Reddit Behavioral V2 research execution (V2-A, V2-B, V2-C)"
         Invoke-Python -m tactical_engine.research.v2_historical_runner --config $Config --data-dir $DataDir
+        break
+    }
+
+    "fidelity-v2-oos" {
+        Write-Step "Prospective Reddit Behavioral V2 OOS research execution (V2-A, V2-B, V2-C)"
+        Invoke-Python -m tactical_engine.research.v2_oos_runner --config $Config --data-dir $DataDir
         break
     }
 
