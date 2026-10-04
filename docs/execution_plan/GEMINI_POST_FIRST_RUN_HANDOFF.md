@@ -495,3 +495,37 @@ After L.2.1 acceptance criteria pass:
 **STOP SOFTWARE CHANGES.**
 
 The next step is a separately approved research-analysis phase.
+
+## Phase L.2.1.1 — Final Artifact Schema Cleanup
+
+After Phase L.2.1 review, execute:
+
+`docs/execution_plan/REDDIT_V2_PHASE_L2_1_1_FINAL_ARTIFACT_SCHEMA_CLEANUP.md`
+
+This is a final, surgical schema cleanup.
+
+The only remaining defect is that the active result model/JSON still retains the ambiguous generic field:
+
+`artifact_commit_sha`
+
+Remove it completely from the active model, serialization, report-generation path, canonical JSON, and active tests.
+
+The final active provenance contract is:
+
+- `execution_code_sha = c10f91c`
+- `artifact_content_commit_sha = d617f53`
+- `provenance_finalization_commit_sha = aaa10b5`
+- `git_sha = c10f91c` only as an explicitly deprecated compatibility alias, if retained
+- `artifact_commit_sha = ABSENT`
+
+The package contains the exact required searches, expected diff, targeted/full verification commands, historical invariants, commit discipline, and completion-report format.
+
+Do NOT rerun `fidelity-v2-historical`.
+
+Do NOT change any historical economics, strategy logic, parameters, universe, costs, margin behavior, dataset, or preserved artifacts.
+
+After Phase L.2.1.1 passes:
+
+**STOP SOFTWARE CHANGES.**
+
+The next step is a separately approved research-analysis phase.
