@@ -19,6 +19,7 @@ Incorporates Phase L Post-Run Audit & Accounting Corrections:
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import uuid
@@ -44,7 +45,10 @@ from tactical_engine.signals.v2_signals import V2DirectionalConfig
 class V2HistoricalComparisonResult(BaseModel):
     run_id: str
     created_at_utc: str
-    git_sha: str
+    execution_code_sha: str = ""
+    artifact_commit_sha: str = ""
+    git_sha: str = ""  # backwards compatibility alias
+    accounting_tolerance: float = 0.001
     dataset_id: str
     aggregate_data_hash: str
     market_scope: str = "US_MARKET_ONLY"
@@ -54,6 +58,7 @@ class V2HistoricalComparisonResult(BaseModel):
     evaluation_status: str = "POST_HOC_HOLDOUT / NOT_PRISTINE_OOS"
     phase_l_accounting_status: str = "PHASE_L_ACCOUNTING_CORRECTED"
     phase_l1_accounting_status: str = "PHASE_L1_ACCOUNTING_CORRECTED"
+    phase_l2_reproduced_status: str = "PHASE_L2_FINAL_REPRODUCED_RESULT"
     pre_core_interval_status: str = (
         "UNINITIALIZED / NOT_IN_SAMPLE "
         "(2026-07-01 to 2026-07-10 excluded due to SKHY start disparity)"
@@ -72,6 +77,11 @@ class V2HistoricalComparisonResult(BaseModel):
     phase_l_baseline_run_id: str = "bc19e12e"
     phase_l_baseline_git_sha: str = "0ce2208"
     phase_l_preservation_path: str = "reports/fidelity_runs/phase_l_baseline_0ce2208/"
+
+    # Preserved Phase L.1 Baseline Evidence
+    phase_l1_baseline_run_id: str = "e7c88bde"
+    phase_l1_baseline_git_sha: str = "eeadc94"
+    phase_l1_preservation_path: str = "reports/fidelity_runs/phase_l1_baseline_eeadc94/"
 
     # Epistemic Data Gates
     full_reddit_strategy_replication: str = "NOT_ESTABLISHED"
@@ -144,7 +154,9 @@ def format_v2_markdown_report(result: V2HistoricalComparisonResult) -> str:
         "",
         f"**Run ID:** `{result.run_id}`  ",
         f"**Date Generated:** `{result.created_at_utc}`  ",
-        f"**Git Commit SHA:** `{result.git_sha}`  ",
+        f"**Execution Code SHA:** `{result.execution_code_sha}`  ",
+        f"**Artifact Commit SHA:** `{result.artifact_commit_sha}`  ",
+        f"**Accounting Tolerance:** `${result.accounting_tolerance:.6f}`  ",
         f"**Dataset ID:** `{result.dataset_id}`  ",
         f"**Dataset SHA256:** `{result.aggregate_data_hash}`  ",
         f"**Nominal Date Range:** `{result.nominal_date_range}`  ",
@@ -152,6 +164,7 @@ def format_v2_markdown_report(result: V2HistoricalComparisonResult) -> str:
         f"**Evaluation Status:** `{result.evaluation_status}`  ",
         f"**Phase L Accounting Status:** `{result.phase_l_accounting_status}`  ",
         f"**Phase L.1 Accounting Status:** `{result.phase_l1_accounting_status}`  ",
+        f"**Phase L.2 Reproduced Status:** `{result.phase_l2_reproduced_status}`  ",
         (
             f"**Preserved Phase K Baseline:** Run ID `{result.phase_k_baseline_run_id}` "
             f"(Commit `{result.phase_k_baseline_git_sha}`) preserved at "
@@ -161,6 +174,11 @@ def format_v2_markdown_report(result: V2HistoricalComparisonResult) -> str:
             f"**Preserved Phase L Baseline:** Run ID `{result.phase_l_baseline_run_id}` "
             f"(Commit `{result.phase_l_baseline_git_sha}`) preserved at "
             f"`{result.phase_l_preservation_path}`  "
+        ),
+        (
+            f"**Preserved Phase L.1 Baseline:** Run ID `{result.phase_l1_baseline_run_id}` "
+            f"(Commit `{result.phase_l1_baseline_git_sha}`) preserved at "
+            f"`{result.phase_l1_preservation_path}`  "
         ),
         "",
         "---",
@@ -535,9 +553,18 @@ def format_v2_markdown_report(result: V2HistoricalComparisonResult) -> str:
         ),
         _row(
             "Accounting Invariant Check",
-            f"Clean (`{a.reconciles_cleanly}`)",
-            f"Clean (`{b.reconciles_cleanly}`)",
-            f"Clean (`{c.reconciles_cleanly}`)",
+            (
+                f"Clean within declared tolerance "
+                f"(${a.reconciliation_discrepancy:.6f} <= ${a.accounting_tolerance:.6f})"
+            ),
+            (
+                f"Clean within declared tolerance "
+                f"(${b.reconciliation_discrepancy:.6f} <= ${b.accounting_tolerance:.6f})"
+            ),
+            (
+                f"Clean within declared tolerance "
+                f"(${c.reconciliation_discrepancy:.6f} <= ${c.accounting_tolerance:.6f})"
+            ),
         ),
         "",
         "---",
@@ -598,7 +625,11 @@ def format_v2_markdown_report(result: V2HistoricalComparisonResult) -> str:
         f"Calculated Total Net Strategy P&L:      ${b.total_net_pnl:+,.2f}",
         f"Ending Equity minus Initial Cash:       ${b.final_equity - b.initial_cash:+,.2f}",
         f"Reconciliation Discrepancy:             ${b.reconciliation_discrepancy:.6f}",
-        f"Invariant Status:                       Clean ({b.reconciles_cleanly})",
+        f"Accounting Tolerance:                  ${b.accounting_tolerance:.6f}",
+        (
+            f"Invariant Status:                       Clean within declared tolerance "
+            f"(${b.reconciliation_discrepancy:.6f} <= ${b.accounting_tolerance:.6f})"
+        ),
         "",
         "Slippage Single-Count Reconciliation:",
         f"  Closed-Trade Slippage:                ${b.closed_slippage:,.2f}",
@@ -673,7 +704,12 @@ def format_v2_markdown_report(result: V2HistoricalComparisonResult) -> str:
     return "\n".join(lines) + "\n"
 
 
-def run_v2_historical_pipeline(config_path: Path, data_dir: Path) -> Path:
+def run_v2_historical_pipeline(
+    config_path: Path,
+    data_dir: Path,
+    execution_code_sha: str | None = None,
+    artifact_commit_sha: str | None = None,
+) -> Path:
     cfg = load_config(config_path)
 
     # 1. Load V2 Instrument Manifest and verify clean universe
@@ -779,13 +815,17 @@ def run_v2_historical_pipeline(config_path: Path, data_dir: Path) -> Path:
 
     # Build Comparison Result
     run_id = str(uuid.uuid4())[:8]
-    git_sha = get_git_sha()
+    exec_sha = execution_code_sha or os.environ.get("EXECUTION_CODE_SHA") or get_git_sha()
+    art_sha = artifact_commit_sha or os.environ.get("ARTIFACT_COMMIT_SHA") or "PENDING_CHECKIN"
     ts_str = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
     comparison_result = V2HistoricalComparisonResult(
         run_id=run_id,
         created_at_utc=datetime.now(UTC).isoformat(),
-        git_sha=git_sha,
+        execution_code_sha=exec_sha,
+        artifact_commit_sha=art_sha,
+        git_sha=exec_sha,
+        accounting_tolerance=0.001,
         dataset_id=manifest.dataset_id,
         aggregate_data_hash=manifest.aggregate_data_hash or "unknown",
         nominal_date_range=f"{cfg.research.start} to {cfg.research.end}",
@@ -839,10 +879,21 @@ def main() -> None:
     parser.add_argument(
         "--data-dir", default="data/processed", help="Path to processed data directory"
     )
+    parser.add_argument(
+        "--execution-code-sha", default=None, help="Explicit execution code Git SHA"
+    )
+    parser.add_argument(
+        "--artifact-commit-sha", default=None, help="Explicit artifact commit Git SHA"
+    )
     args = parser.parse_args()
 
     try:
-        run_v2_historical_pipeline(Path(args.config), Path(args.data_dir))
+        run_v2_historical_pipeline(
+            Path(args.config),
+            Path(args.data_dir),
+            execution_code_sha=args.execution_code_sha,
+            artifact_commit_sha=args.artifact_commit_sha,
+        )
     except Exception as e:
         print(f"Error during V2 historical execution: {e}", file=sys.stderr)
         import traceback

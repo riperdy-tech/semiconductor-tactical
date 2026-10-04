@@ -51,6 +51,9 @@ class V2TradeRecord(BaseModel):
     exit_reason: str
 
 
+ACCOUNTING_TOLERANCE: float = 0.001  # $0.001 (one tenth of a cent)
+
+
 class V2BacktestResult(BaseModel):
     mode: Literal["V2-A", "V2-B", "V2-C"]
     initial_cash: float
@@ -115,6 +118,7 @@ class V2BacktestResult(BaseModel):
     pre_slippage_pnl: float = 0.0
     total_commission_paid: float = 0.0
     total_slippage_paid: float = 0.0
+    accounting_tolerance: float = ACCOUNTING_TOLERANCE
     reconciliation_discrepancy: float = 0.0
     reconciles_cleanly: bool = True
 
@@ -616,8 +620,9 @@ def run_v2_backtest(
         pre_slippage_pnl=closed_ref_pnl,
         total_commission_paid=portfolio.commissions_paid,
         total_slippage_paid=portfolio.slippage_paid,
+        accounting_tolerance=ACCOUNTING_TOLERANCE,
         reconciliation_discrepancy=discrepancy,
-        reconciles_cleanly=discrepancy < 1e-2,
+        reconciles_cleanly=discrepancy <= ACCOUNTING_TOLERANCE,
         timestamps=timestamp_strings,
         equity_curve=equity_curve,
         trades=trade_records,
