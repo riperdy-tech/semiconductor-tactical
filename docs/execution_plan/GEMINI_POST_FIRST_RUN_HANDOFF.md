@@ -440,3 +440,58 @@ After Phase L.2 passes:
 **STOP SOFTWARE CHANGES.**
 
 The next step is a separately approved research-analysis phase.
+
+
+## Phase L.2.1 — Final Provenance Taxonomy & Accounting-Tolerance Test Fix
+
+After Phase L.2 review, execute:
+
+`docs/execution_plan/REDDIT_V2_PHASE_L2_1_FINAL_PROVENANCE_TAXONOMY_AND_TOLERANCE_TEST_PLAN.md`
+
+This is the final cleanup for two narrow issues only:
+
+1. replace the ambiguous generic artifact SHA with three explicit provenance concepts:
+   - `EXECUTION_CODE_SHA` = exact implementation/test commit executed;
+   - `ARTIFACT_CONTENT_COMMIT_SHA` = commit that published the generated historical artifacts;
+   - `PROVENANCE_FINALIZATION_COMMIT_SHA` = later commit that finalized the embedded provenance metadata;
+2. strengthen the accounting-tolerance regression test so it proves all three cases:
+   - below tolerance -> accepted;
+   - exactly at tolerance -> accepted;
+   - above tolerance -> rejected.
+
+Current Phase L.2 provenance values are:
+
+- Execution code: `c10f91c`
+- Artifact content: `d617f53`
+- Provenance finalization: `aaa10b5`
+
+Do not collapse these into one generic artifact SHA.
+
+Do not change:
+
+- any V2 signal parameter;
+- the 60% core assumption;
+- MU/SNDK/SKHY universe;
+- tactical sizing;
+- slippage/commission/financing/margin assumptions;
+- historical dataset;
+- historical run economics;
+- Phase K/L/L.1 preserved artifacts.
+
+A frozen historical rerun is NOT required merely for this taxonomy/test correction. Only regenerate the canonical report/JSON when mechanically required by the schema change, and do not create a new strategy run unnecessarily.
+
+Required unchanged historical values:
+
+- V2-A: +6.48% / $106,482.16
+- V2-B: +7.93% / $107,928.85
+- V2-C: +7.93% / $107,928.85
+- Tactical contribution: +$1,446.69
+- Historical V2-C peak margin debt: $0.00
+- Reconciliation discrepancy: $0.000200
+- Accounting tolerance: $0.001000
+
+After L.2.1 acceptance criteria pass:
+
+**STOP SOFTWARE CHANGES.**
+
+The next step is a separately approved research-analysis phase.
