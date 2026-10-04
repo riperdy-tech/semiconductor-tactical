@@ -690,6 +690,10 @@ def test_canonical_report_and_json_consistency() -> None:
     assert f"**Artifact Content Commit SHA:** `{art_content_sha}`" in md_text
     assert f"**Provenance Finalization Commit SHA:** `{prov_final_sha}`" in md_text
 
+    # Phase L.2.1.1: Ensure ambiguous generic artifact_commit_sha is completely absent
+    assert "artifact_commit_sha" not in data
+    assert "Artifact Commit SHA:" not in md_text
+
     # Backwards compatibility check: git_sha == execution_code_sha
     assert data.get("git_sha") == exec_sha
 
@@ -701,3 +705,44 @@ def test_canonical_report_and_json_consistency() -> None:
     ret_str = f"{v2b['total_return_pct']:+.2f}%"
     assert ret_str in md_text
 
+
+def test_v2_historical_comparison_result_model_provenance_schema() -> None:
+    """Phase L.2.1.1 Section 9B: Model serialization does not produce artifact_commit_sha."""
+    from tactical_engine.backtest.v2_engine import V2BacktestResult
+    from tactical_engine.research.v2_historical_runner import V2HistoricalComparisonResult
+
+    dummy_backtest = V2BacktestResult(
+        mode="V2-A",
+        initial_cash=100000.0,
+        final_equity=106482.16,
+        total_net_pnl=6482.16,
+        total_return_pct=6.48,
+        max_drawdown_pct=2.5,
+        core_starting_value=59223.68,
+        core_ending_value=65705.84,
+        effective_start_timestamp="2026-07-13T13:30:00Z",
+        evaluation_end_timestamp="2026-09-30T19:59:00Z",
+    )
+    result = V2HistoricalComparisonResult(
+        run_id="test_run",
+        created_at_utc="2026-10-04T00:00:00Z",
+        execution_code_sha="c10f91c",
+        artifact_content_commit_sha="d617f53",
+        provenance_finalization_commit_sha="aaa10b5",
+        git_sha="c10f91c",
+        dataset_id="test_ds",
+        aggregate_data_hash="test_hash",
+        nominal_date_range="2026-07-01 to 2026-09-30",
+        v2_a_core_only=dummy_backtest,
+        v2_b_core_tactical=dummy_backtest,
+        v2_c_core_tactical_margin=dummy_backtest,
+        tactical_net_contribution_unlevered=0.0,
+        tactical_net_contribution_margin=0.0,
+    )
+    dumped = result.model_dump()
+    assert "artifact_commit_sha" not in dumped
+    assert dumped["execution_code_sha"] == "c10f91c"
+    assert dumped["artifact_content_commit_sha"] == "d617f53"
+    assert dumped["provenance_finalization_commit_sha"] == "aaa10b5"
+    assert dumped["git_sha"] == "c10f91c"
+    assert "artifact_commit_sha" not in result.model_dump_json()

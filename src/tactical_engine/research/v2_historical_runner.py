@@ -48,7 +48,6 @@ class V2HistoricalComparisonResult(BaseModel):
     execution_code_sha: str = ""
     artifact_content_commit_sha: str = ""
     provenance_finalization_commit_sha: str = ""
-    artifact_commit_sha: str = ""  # deprecated alias of artifact_content_commit_sha
     git_sha: str = ""  # deprecated alias of execution_code_sha
     accounting_tolerance: float = 0.001
     dataset_id: str
@@ -838,7 +837,6 @@ def run_v2_historical_pipeline(
         execution_code_sha=exec_sha,
         artifact_content_commit_sha=art_content_sha,
         provenance_finalization_commit_sha=prov_final_sha,
-        artifact_commit_sha=art_content_sha,
         git_sha=exec_sha,
         accounting_tolerance=0.001,
         dataset_id=manifest.dataset_id,
