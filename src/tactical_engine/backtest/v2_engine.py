@@ -54,6 +54,11 @@ class V2TradeRecord(BaseModel):
 ACCOUNTING_TOLERANCE: float = 0.001  # $0.001 (one tenth of a cent)
 
 
+def is_within_accounting_tolerance(discrepancy: float) -> bool:
+    """Check if an accounting discrepancy is strictly within the declared tolerance."""
+    return discrepancy <= ACCOUNTING_TOLERANCE
+
+
 class V2BacktestResult(BaseModel):
     mode: Literal["V2-A", "V2-B", "V2-C"]
     initial_cash: float
@@ -622,7 +627,7 @@ def run_v2_backtest(
         total_slippage_paid=portfolio.slippage_paid,
         accounting_tolerance=ACCOUNTING_TOLERANCE,
         reconciliation_discrepancy=discrepancy,
-        reconciles_cleanly=discrepancy <= ACCOUNTING_TOLERANCE,
+        reconciles_cleanly=is_within_accounting_tolerance(discrepancy),
         timestamps=timestamp_strings,
         equity_curve=equity_curve,
         trades=trade_records,

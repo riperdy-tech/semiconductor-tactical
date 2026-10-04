@@ -21,7 +21,11 @@ REDDIT_V2_POST_RUN_AUDIT_AND_ACCOUNTING_PLAN.md:
 
 from datetime import UTC, datetime, timedelta
 
-from tactical_engine.backtest.v2_engine import ACCOUNTING_TOLERANCE, run_v2_backtest
+from tactical_engine.backtest.v2_engine import (
+    ACCOUNTING_TOLERANCE,
+    is_within_accounting_tolerance,
+    run_v2_backtest,
+)
 from tactical_engine.config import CostConfig
 from tactical_engine.data.models import Bar, Order, OrderSide, OrderType
 from tactical_engine.execution.simulator import ExecutionSimulator
@@ -602,15 +606,42 @@ def test_phase_l1_exact_algebraic_reconciliation() -> None:
 
 
 def test_accounting_tolerance_boundary() -> None:
-    """Phase L.2 Section 5: Verify accounting tolerance boundary behavior."""
-    assert ACCOUNTING_TOLERANCE == 0.001
+    """Phase L.2.1 Section 4: Explicit boundary test of accounting tolerance acceptance.
 
+    Tests the exact boundary predicate:
+      reconciles_cleanly = discrepancy <= ACCOUNTING_TOLERANCE
+
+    Verifies:
+      Case A (below tolerance): discrepancy = tolerance - epsilon -> True
+      Case B (exact boundary): discrepancy = tolerance -> True
+      Case C (above tolerance): discrepancy = tolerance + epsilon -> False
+    """
+    assert ACCOUNTING_TOLERANCE == 0.001
+    epsilon = 1e-9
+
+    # Case A: Below tolerance
+    below_tol = ACCOUNTING_TOLERANCE - epsilon
+    assert is_within_accounting_tolerance(below_tol) is True
+
+    # Case B: Exactly at tolerance (critical boundary condition)
+    exact_tol = ACCOUNTING_TOLERANCE
+    assert is_within_accounting_tolerance(exact_tol) is True
+
+    # Case C: Above tolerance
+    above_tol = ACCOUNTING_TOLERANCE + epsilon
+    assert is_within_accounting_tolerance(above_tol) is False
+
+    # Zero discrepancy is strictly within tolerance
+    assert is_within_accounting_tolerance(0.0) is True
+
+    # Negative discrepancy (should not occur, but <= tol holds mathematically)
+    assert is_within_accounting_tolerance(-0.001) is True
+
+    # Verify integration with portfolio reconciliation and backtest result
     portfolio = V2PortfolioEngine(initial_cash=100000.0)
     recon = portfolio.reconcile_pnl_attribution({"MU": 100.0})
-    # Must be strictly within declared tolerance
-    assert recon["discrepancy"] <= ACCOUNTING_TOLERANCE
+    assert is_within_accounting_tolerance(recon["discrepancy"]) is True
 
-    # Synthetic backtest result tolerance check
     base = datetime(2026, 7, 13, 9, 30, tzinfo=UTC)
     bars = {
         "MU": [_make_bar("MU", base + timedelta(minutes=i), 100.0) for i in range(5)],
@@ -618,12 +649,12 @@ def test_accounting_tolerance_boundary() -> None:
         "SKHY": [_make_bar("SKHY", base + timedelta(minutes=i), 25.0) for i in range(5)],
     }
     res = run_v2_backtest(data=bars, mode="V2-A", initial_cash=100000.0)
-    assert res.reconciliation_discrepancy <= res.accounting_tolerance
+    assert is_within_accounting_tolerance(res.reconciliation_discrepancy) is True
     assert res.reconciles_cleanly is True
 
 
 def test_canonical_report_and_json_consistency() -> None:
-    """Phase L.1 / L.2: Verify Markdown report and JSON describe identical metrics."""
+    """Phase L.2.1 Section 3: Verify Markdown and JSON metrics & 3-SHA provenance."""
     import json
     from pathlib import Path
 
@@ -642,11 +673,25 @@ def test_canonical_report_and_json_consistency() -> None:
     run_id = data["run_id"]
     assert f"`{run_id}`" in md_text
 
-    # Verify Execution Code SHA if present
-    if "execution_code_sha" in data and data["execution_code_sha"]:
-        assert f"`{data['execution_code_sha']}`" in md_text
-    elif "git_sha" in data and data["git_sha"]:
-        assert f"`{data['git_sha']}`" in md_text
+    # Verify explicit 3-SHA provenance taxonomy
+    assert "execution_code_sha" in data
+    assert "artifact_content_commit_sha" in data
+    assert "provenance_finalization_commit_sha" in data
+
+    exec_sha = data["execution_code_sha"]
+    art_content_sha = data["artifact_content_commit_sha"]
+    prov_final_sha = data["provenance_finalization_commit_sha"]
+
+    assert exec_sha == "c10f91c"
+    assert art_content_sha == "d617f53"
+    assert prov_final_sha == "aaa10b5"
+
+    assert f"**Execution Code SHA:** `{exec_sha}`" in md_text
+    assert f"**Artifact Content Commit SHA:** `{art_content_sha}`" in md_text
+    assert f"**Provenance Finalization Commit SHA:** `{prov_final_sha}`" in md_text
+
+    # Backwards compatibility check: git_sha == execution_code_sha
+    assert data.get("git_sha") == exec_sha
 
     # Verify V2-B final equity and return
     v2b = data["v2_b_core_tactical"]

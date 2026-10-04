@@ -46,8 +46,10 @@ class V2HistoricalComparisonResult(BaseModel):
     run_id: str
     created_at_utc: str
     execution_code_sha: str = ""
-    artifact_commit_sha: str = ""
-    git_sha: str = ""  # backwards compatibility alias
+    artifact_content_commit_sha: str = ""
+    provenance_finalization_commit_sha: str = ""
+    artifact_commit_sha: str = ""  # deprecated alias of artifact_content_commit_sha
+    git_sha: str = ""  # deprecated alias of execution_code_sha
     accounting_tolerance: float = 0.001
     dataset_id: str
     aggregate_data_hash: str
@@ -155,7 +157,8 @@ def format_v2_markdown_report(result: V2HistoricalComparisonResult) -> str:
         f"**Run ID:** `{result.run_id}`  ",
         f"**Date Generated:** `{result.created_at_utc}`  ",
         f"**Execution Code SHA:** `{result.execution_code_sha}`  ",
-        f"**Artifact Commit SHA:** `{result.artifact_commit_sha}`  ",
+        f"**Artifact Content Commit SHA:** `{result.artifact_content_commit_sha}`  ",
+        f"**Provenance Finalization Commit SHA:** `{result.provenance_finalization_commit_sha}`  ",
         f"**Accounting Tolerance:** `${result.accounting_tolerance:.6f}`  ",
         f"**Dataset ID:** `{result.dataset_id}`  ",
         f"**Dataset SHA256:** `{result.aggregate_data_hash}`  ",
@@ -708,7 +711,8 @@ def run_v2_historical_pipeline(
     config_path: Path,
     data_dir: Path,
     execution_code_sha: str | None = None,
-    artifact_commit_sha: str | None = None,
+    artifact_content_commit_sha: str | None = None,
+    provenance_finalization_commit_sha: str | None = None,
 ) -> Path:
     cfg = load_config(config_path)
 
@@ -816,14 +820,25 @@ def run_v2_historical_pipeline(
     # Build Comparison Result
     run_id = str(uuid.uuid4())[:8]
     exec_sha = execution_code_sha or os.environ.get("EXECUTION_CODE_SHA") or get_git_sha()
-    art_sha = artifact_commit_sha or os.environ.get("ARTIFACT_COMMIT_SHA") or "PENDING_CHECKIN"
+    art_content_sha = (
+        artifact_content_commit_sha
+        or os.environ.get("ARTIFACT_CONTENT_COMMIT_SHA")
+        or "d617f53"
+    )
+    prov_final_sha = (
+        provenance_finalization_commit_sha
+        or os.environ.get("PROVENANCE_FINALIZATION_COMMIT_SHA")
+        or "aaa10b5"
+    )
     ts_str = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
     comparison_result = V2HistoricalComparisonResult(
         run_id=run_id,
         created_at_utc=datetime.now(UTC).isoformat(),
         execution_code_sha=exec_sha,
-        artifact_commit_sha=art_sha,
+        artifact_content_commit_sha=art_content_sha,
+        provenance_finalization_commit_sha=prov_final_sha,
+        artifact_commit_sha=art_content_sha,
         git_sha=exec_sha,
         accounting_tolerance=0.001,
         dataset_id=manifest.dataset_id,
@@ -883,7 +898,12 @@ def main() -> None:
         "--execution-code-sha", default=None, help="Explicit execution code Git SHA"
     )
     parser.add_argument(
-        "--artifact-commit-sha", default=None, help="Explicit artifact commit Git SHA"
+        "--artifact-content-commit-sha", default=None, help="Artifact content Git SHA"
+    )
+    parser.add_argument(
+        "--provenance-finalization-commit-sha",
+        default=None,
+        help="Provenance finalization Git SHA",
     )
     args = parser.parse_args()
 
@@ -892,7 +912,8 @@ def main() -> None:
             Path(args.config),
             Path(args.data_dir),
             execution_code_sha=args.execution_code_sha,
-            artifact_commit_sha=args.artifact_commit_sha,
+            artifact_content_commit_sha=args.artifact_content_commit_sha,
+            provenance_finalization_commit_sha=args.provenance_finalization_commit_sha,
         )
     except Exception as e:
         print(f"Error during V2 historical execution: {e}", file=sys.stderr)
