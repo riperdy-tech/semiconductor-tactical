@@ -319,3 +319,53 @@ After Phase L acceptance criteria pass:
 STOP SOFTWARE CHANGES.
 
 The next step is a separately approved research-analysis phase.
+
+
+## Phase L.1 — V2 Accounting Reconciliation & Reproducibility Fix
+
+Phase L implementation exposed a remaining research-accounting defect: the canonical Phase L report can include slippage on terminal open tactical inventory in a total slippage figure while comparing that total against closed FIFO reference P&L. This can create a mismatch between closed gross reference P&L, reported slippage, and closed realized P&L.
+
+Execute:
+
+docs/execution_plan/REDDIT_V2_PHASE_L1_RECONCILIATION_FIX_PLAN.md
+
+This is a strict accounting/reproducibility correction only.
+
+Do not change:
+- any frozen V2 signal parameter;
+- the 60% core assumption;
+- MU/SNDK/SKHY universe;
+- tactical sizing;
+- slippage/commission assumptions;
+- margin assumptions;
+- research scope.
+
+Phase L.1 must:
+- preserve the Phase K artifact;
+- preserve the Phase L pre-correction artifact;
+- separate closed-trade slippage from open-position entry slippage;
+- reconcile closed reference P&L exactly to closed realized P&L;
+- reconcile open reference MTM exactly to open terminal contribution;
+- count commissions and financing exactly once;
+- make Markdown and JSON agree;
+- eliminate stale contradictory completion-summary metrics;
+- strengthen the buying-power no-lookahead test so it exercises the actual accept/reject decision;
+- strengthen the margin liquidation test so it proves next-bar execution rather than merely order creation;
+- strengthen the peak-margin test so it proves debt created by a transaction is included in peak debt;
+- rerun the historical result only when necessary to produce corrected artifacts, with the exact same frozen strategy configuration.
+
+The checked-in machine-readable artifact is authoritative. The final Gemini report must match it exactly.
+
+Global status remains:
+
+FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED
+TRUE_LEVEL2_REPLICATION = UNVALIDATED
+HISTORICAL_OPTION_CHAIN_STATUS = UNVALIDATED
+DIRECT_ASIA_REPLICATION_STATUS = OUT_OF_SCOPE_FOR_V2
+PRISTINE_OOS = UNAVAILABLE
+
+After Phase L.1 acceptance criteria pass:
+
+STOP SOFTWARE CHANGES.
+
+The next step is a separately approved research-analysis phase.
