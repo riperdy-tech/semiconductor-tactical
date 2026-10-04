@@ -19,4 +19,5 @@ reports/v2_comparison_*/
 *.egg-info/
 data/raw/*
 data/processed/*
+data/processed_oos/*
 
