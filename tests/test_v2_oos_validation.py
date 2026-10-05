@@ -45,6 +45,7 @@ from tactical_engine.research.v2_oos_runner import (
     run_v2_oos_pipeline,
     validate_continuation_chronology,
     validate_continuation_lineage_args,
+    validate_evaluation_window,
     validate_evaluation_window_shift,
     validate_oos_chronology,
     validate_oos_universe,
@@ -786,4 +787,277 @@ def test_25_f11_frozen_strategy_fingerprint_enforced_in_continuation() -> None:
     altered_cost = CostConfig(equity_commission_bps=2.0, equity_slippage_bps=5.0)
     with pytest.raises(V2OOSParameterFingerprintError):
         validate_parameter_fingerprint(frozen_sig, altered_cost, max_leverage=2.0)
+
+
+# ==============================================================================
+# Phase M.1.3 Regression Tests (T1 through T12)
+# ==============================================================================
+
+
+def test_26_m13_t1_initial_dates_default_to_frozen_yaml() -> None:
+    """T1: Initial dates default to frozen YAML when no lineage and no overrides supplied."""
+    start, end = validate_evaluation_window(
+        start=None,
+        end=None,
+        frozen_config_start="2026-10-01T00:00:00Z",
+        frozen_config_end="2026-10-31T23:59:59Z",
+        prior_oos_end_timestamp=None,
+    )
+    assert start == "2026-10-01T00:00:00Z"
+    assert end == "2026-10-31T23:59:59Z"
+
+    parser = build_argument_parser()
+    args = parser.parse_args([])
+    assert args.start is None
+    assert args.end is None
+
+
+def test_27_m13_t2_initial_cli_start_mismatch_rejected() -> None:
+    """T2: No lineage + --start differing from frozen config must fail."""
+    with pytest.raises(V2OOSEvaluationError) as exc_info:
+        validate_evaluation_window(
+            start="2026-10-02",
+            end=None,
+            frozen_config_start="2026-10-01T00:00:00Z",
+            frozen_config_end="2026-10-31T23:59:59Z",
+            prior_oos_end_timestamp=None,
+        )
+    assert "differs from frozen boundary" in str(exc_info.value)
+
+
+def test_28_m13_t3_initial_cli_end_mismatch_rejected() -> None:
+    """T3: No lineage + --end differing from frozen config must fail."""
+    with pytest.raises(V2OOSEvaluationError) as exc_info:
+        validate_evaluation_window(
+            start=None,
+            end="2026-11-01",
+            frozen_config_start="2026-10-01T00:00:00Z",
+            frozen_config_end="2026-10-31T23:59:59Z",
+            prior_oos_end_timestamp=None,
+        )
+    assert "differs from frozen boundary" in str(exc_info.value)
+
+
+def test_29_m13_t4_continuation_requires_explicit_dates() -> None:
+    """T4: Lineage supplied but --start or --end omitted must fail."""
+    # Both omitted
+    with pytest.raises(V2OOSEvaluationError) as exc_both:
+        validate_evaluation_window(
+            start=None,
+            end=None,
+            prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+        )
+    assert "requires explicit --start and --end" in str(exc_both.value)
+
+    # Start omitted
+    with pytest.raises(V2OOSEvaluationError) as exc_no_start:
+        validate_evaluation_window(
+            start=None,
+            end="2026-10-05T23:59:59Z",
+            prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+        )
+    assert "requires explicit --start and --end" in str(exc_no_start.value)
+
+    # End omitted
+    with pytest.raises(V2OOSEvaluationError) as exc_no_end:
+        validate_evaluation_window(
+            start="2026-10-05T00:00:00Z",
+            end=None,
+            prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+        )
+    assert "requires explicit --start and --end" in str(exc_no_end.value)
+
+
+def test_30_m13_t5_forward_continuation_accepted() -> None:
+    """T5: Forward continuation window is accepted."""
+    start, end = validate_evaluation_window(
+        start="2026-10-05T00:00:00Z",
+        end="2026-10-05T23:59:59Z",
+        prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+    )
+    assert start == "2026-10-05T00:00:00Z"
+    assert end == "2026-10-05T23:59:59Z"
+
+
+def test_31_m13_t6_continuation_start_overlap_rejected() -> None:
+    """T6: Continuation start <= prior endpoint must fail."""
+    # Start exactly equal to prior endpoint
+    with pytest.raises(V2OOSEvaluationError) as exc_eq:
+        validate_evaluation_window(
+            start="2026-10-02T19:59:00Z",
+            end="2026-10-05T23:59:59Z",
+            prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+        )
+    assert "on or before prior accepted OOS endpoint" in str(exc_eq.value)
+
+    # Start before prior endpoint
+    with pytest.raises(V2OOSEvaluationError) as exc_before:
+        validate_evaluation_window(
+            start="2026-10-01T00:00:00Z",
+            end="2026-10-05T23:59:59Z",
+            prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+        )
+    assert "on or before prior accepted OOS endpoint" in str(exc_before.value)
+
+
+def test_32_m13_t7_continuation_end_before_start_rejected() -> None:
+    """T7: Continuation end <= start must fail."""
+    # End before start
+    with pytest.raises(V2OOSEvaluationError) as exc_rev:
+        validate_evaluation_window(
+            start="2026-10-06T00:00:00Z",
+            end="2026-10-05T23:59:59Z",
+            prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+        )
+    assert "is on or before continuation start" in str(exc_rev.value)
+
+    # End equal to start
+    with pytest.raises(V2OOSEvaluationError) as exc_same:
+        validate_evaluation_window(
+            start="2026-10-05T12:00:00Z",
+            end="2026-10-05T12:00:00Z",
+            prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+        )
+    assert "is on or before continuation start" in str(exc_same.value)
+
+
+def test_33_m13_t8_historical_cutoff_still_enforced() -> None:
+    """T8: Historical cutoff strictly enforced for continuation runs."""
+    with pytest.raises(V2OOSChronologyError) as exc_cutoff:
+        validate_evaluation_window(
+            start="2026-09-30",
+            end="2026-10-05T23:59:59Z",
+            prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+        )
+    assert "on or before historical cutoff" in str(exc_cutoff.value)
+
+
+def test_34_m13_t9_frozen_yaml_untouched() -> None:
+    """T9: Frozen YAML configs/v2_oos_frozen.yaml is byte-identical and untouched."""
+    import hashlib
+
+    frozen_path = Path("configs/v2_oos_frozen.yaml")
+    expected_sha256 = "be21c7dc0f998cf21310ffb5ffeae39fe039046d80aaa4ee4c656189f44f502a"
+    actual_sha256 = hashlib.sha256(frozen_path.read_bytes()).hexdigest()
+    assert actual_sha256 == expected_sha256
+
+
+def test_35_m13_t10_effective_date_reaches_result_metadata() -> None:
+    """T10: Effective date reaches result metadata in continuation execution."""
+    dummy_res = V2BacktestResult(
+        mode="V2-A",
+        initial_cash=100000.0,
+        final_equity=101000.0,
+        total_net_pnl=1000.0,
+        total_return_pct=1.0,
+        max_drawdown_pct=0.5,
+        core_starting_value=60000.0,
+        core_ending_value=61000.0,
+        effective_start_timestamp="2026-10-05T13:30:00Z",
+        evaluation_end_timestamp="2026-10-05T19:59:00Z",
+    )
+    mock_manifest = MagicMock()
+    mock_manifest.dataset_id = "test_cont_dataset"
+    mock_manifest.aggregate_data_hash = "mock_hash_123"
+
+    oct5_bar = _make_bar("MU", datetime(2026, 10, 5, 13, 30, tzinfo=UTC), 100.0)
+    mock_dataset = MagicMock()
+    mock_dataset.dataset_manifest = mock_manifest
+    mock_dataset.bars_by_symbol = {
+        "MU": [oct5_bar],
+        "SNDK": [_make_bar("SNDK", datetime(2026, 10, 5, 13, 30, tzinfo=UTC), 50.0)],
+        "SKHY": [_make_bar("SKHY", datetime(2026, 10, 5, 13, 30, tzinfo=UTC), 25.0)],
+    }
+
+    test_run_id = "t10_check"
+    json_path = Path(f"reports/v2_oos/{test_run_id}.json")
+    md_path = Path(f"reports/v2_oos/{test_run_id}.md")
+    archive_dir = Path(f"reports/fidelity_runs/v2_oos_{test_run_id}")
+
+    try:
+        with (
+            patch(
+                "tactical_engine.research.v2_oos_runner.load_historical_universe",
+                return_value=mock_dataset,
+            ),
+            patch("tactical_engine.research.v2_oos_runner.assert_research_dataset_verified"),
+            patch(
+                "tactical_engine.research.v2_oos_runner.run_v2_backtest",
+                return_value=dummy_res,
+            ),
+            patch(
+                "tactical_engine.research.v2_oos_runner.count_complete_sessions",
+                return_value=1,
+            ),
+        ):
+            report_path = run_v2_oos_pipeline(
+                config_path=Path("configs/v2_oos_frozen.yaml"),
+                data_dir=Path("data/processed_oos"),
+                prior_oos_run_id="bb0887e4",
+                prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+                run_id=test_run_id,
+                start="2026-10-05T00:00:00Z",
+                end="2026-10-05T23:59:59Z",
+            )
+
+        assert json_path.exists()
+        data = json.loads(json_path.read_text(encoding="utf-8"))
+        assert data["nominal_date_range"] == "2026-10-05T00:00:00Z to 2026-10-05T23:59:59Z"
+        assert data["effective_evaluation_start"] == "2026-10-05T13:30:00Z"
+        assert data["evaluation_end_timestamp"] == "2026-10-05T19:59:00Z"
+        assert data["prior_oos_run_id"] == "bb0887e4"
+        assert data["prior_oos_end_timestamp"] == "2026-10-02T19:59:00Z"
+
+        md_text = report_path.read_text(encoding="utf-8")
+        assert "2026-10-05T00:00:00Z to 2026-10-05T23:59:59Z" in md_text
+    finally:
+        if json_path.exists():
+            json_path.unlink()
+        if md_path.exists():
+            md_path.unlink()
+        if archive_dir.exists():
+            import shutil
+
+            shutil.rmtree(archive_dir)
+
+
+def test_36_m13_t11_strategy_fingerprint_unchanged() -> None:
+    """T11: Date overrides must not affect the frozen signal/cost/leverage fingerprint."""
+    eff_start, eff_end = validate_evaluation_window(
+        start="2026-10-05T00:00:00Z",
+        end="2026-10-05T23:59:59Z",
+        prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+    )
+    assert eff_start == "2026-10-05T00:00:00Z"
+    assert eff_end == "2026-10-05T23:59:59Z"
+
+    altered_sig = V2DirectionalConfig(
+        impulse_lookback_bars=25,  # Altered from 30
+        min_impulse_pct=0.020,
+        pullback_depth_fraction=0.500,
+        stabilization_bars=5,
+        tactical_scale_out_ratio=0.50,
+        stop_buffer_pct=0.002,
+        rebound_target_ratio=0.50,
+        trend_filter=True,
+    )
+    cost = CostConfig(equity_commission_bps=0.0, equity_slippage_bps=5.0)
+    with pytest.raises(V2OOSParameterFingerprintError):
+        validate_parameter_fingerprint(altered_sig, cost, max_leverage=2.0)
+
+
+def test_37_m13_t12_existing_run_protection() -> None:
+    """T12: Continuation date override cannot reuse an accepted run ID."""
+    with pytest.raises(V2OOSEvaluationError) as exc_same:
+        run_v2_oos_pipeline(
+            config_path=Path("configs/v2_oos_frozen.yaml"),
+            data_dir=Path("data/processed_oos"),
+            prior_oos_run_id="bb0887e4",
+            prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+            run_id="bb0887e4",
+            start="2026-10-05T00:00:00Z",
+            end="2026-10-05T23:59:59Z",
+        )
+    assert "cannot equal prior accepted OOS run ID" in str(exc_same.value)
+
 

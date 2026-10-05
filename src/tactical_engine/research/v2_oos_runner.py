@@ -151,6 +151,141 @@ def validate_continuation_chronology(
                     )
 
 
+def _parse_iso_or_date(d: str) -> datetime:
+    """Parses ISO timestamp or YYYY-MM-DD date into UTC datetime."""
+    s = d.strip()
+    try:
+        if "T" in s:
+            dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        else:
+            dt = datetime.fromisoformat(f"{s}T00:00:00+00:00")
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        return dt
+    except Exception as e:
+        raise V2OOSEvaluationError(f"Invalid timestamp/date format '{d}': {e}") from e
+
+
+def validate_evaluation_window(
+    start: str | None = None,
+    end: str | None = None,
+    frozen_config_start: str = "2026-10-01T00:00:00Z",
+    frozen_config_end: str = "2026-10-31T23:59:59Z",
+    prior_oos_end_timestamp: str | None = None,
+    require_continuation_end: bool = True,
+) -> tuple[str, str]:
+    """Validates evaluation window for initial vs continuation runs.
+
+    For initial prospective runs (prior_oos_end_timestamp is None):
+      - Start and end default to frozen config values.
+      - If CLI start/end are supplied, they must match the frozen config date boundaries.
+      - Performance-based window shifting is strictly rejected.
+      - start > historical cutoff (2026-09-30T23:59:59Z).
+      - end > start.
+
+    For continuation prospective runs (prior_oos_end_timestamp is provided):
+      - Both start and end are strictly required (if require_continuation_end is True).
+      - start must be strictly after the historical cutoff.
+      - start must be strictly after prior_oos_end_timestamp (no overlap/backward chronology).
+      - end must be strictly after start.
+
+    Returns:
+        tuple[str, str]: (effective_research_start, effective_research_end)
+    """
+    if prior_oos_end_timestamp is None:
+        if start is not None:
+            s_date = start.split("T")[0] if "T" in start else start
+            f_s_date = (
+                frozen_config_start.split("T")[0]
+                if "T" in frozen_config_start
+                else frozen_config_start
+            )
+            if s_date != f_s_date:
+                raise V2OOSEvaluationError(
+                    f"Nominal evaluation start '{start}' differs from frozen boundary "
+                    f"'{frozen_config_start}'. "
+                    "Performance-based window shifting is strictly prohibited."
+                )
+            eff_start = start
+        else:
+            eff_start = frozen_config_start
+
+        if end is not None:
+            e_date = end.split("T")[0] if "T" in end else end
+            f_e_date = (
+                frozen_config_end.split("T")[0]
+                if "T" in frozen_config_end
+                else frozen_config_end
+            )
+            if e_date != f_e_date:
+                raise V2OOSEvaluationError(
+                    f"Nominal evaluation end '{end}' differs from frozen boundary "
+                    f"'{frozen_config_end}'. "
+                    "Performance-based window shifting is strictly prohibited."
+                )
+            eff_end = end
+        else:
+            eff_end = frozen_config_end
+
+        start_dt = _parse_iso_or_date(eff_start)
+        end_dt = _parse_iso_or_date(eff_end)
+
+        if start_dt <= OOS_CHRONOLOGY_CUTOFF:
+            raise V2OOSChronologyError(
+                f"Evaluation start '{eff_start}' ({start_dt.isoformat()}) "
+                f"is on or before historical cutoff {OOS_CHRONOLOGY_CUTOFF.isoformat()}."
+            )
+        if end_dt <= start_dt:
+            raise V2OOSEvaluationError(
+                f"Evaluation end '{eff_end}' ({end_dt.isoformat()}) "
+                f"is on or before start '{eff_start}' ({start_dt.isoformat()})."
+            )
+        return eff_start, eff_end
+
+    # Continuation run (lineage present)
+    if require_continuation_end:
+        if start is None or end is None:
+            raise V2OOSEvaluationError(
+                "Continuation evaluation requires explicit --start and --end dates/timestamps. "
+                "Lineage continuation cannot leave evaluation boundaries unspecified."
+            )
+        eff_start = start
+        eff_end = end
+    else:
+        if start is None:
+            raise V2OOSEvaluationError(
+                "Continuation evaluation requires an explicit start date/timestamp."
+            )
+        eff_start = start
+        eff_end = end if end is not None else frozen_config_end
+
+    start_dt = _parse_iso_or_date(eff_start)
+    prior_dt = _parse_iso_or_date(prior_oos_end_timestamp)
+
+    if start_dt <= OOS_CHRONOLOGY_CUTOFF:
+        raise V2OOSChronologyError(
+            f"Continuation evaluation start '{eff_start}' ({start_dt.isoformat()}) "
+            f"is on or before historical cutoff {OOS_CHRONOLOGY_CUTOFF.isoformat()}."
+        )
+
+    if start_dt <= prior_dt:
+        raise V2OOSEvaluationError(
+            f"Continuation evaluation start '{eff_start}' ({start_dt.isoformat()}) "
+            f"is on or before prior accepted OOS endpoint {prior_dt.isoformat()}. "
+            "Overlapping or backwards continuation windows are strictly prohibited."
+        )
+
+    if eff_end is not None:
+        end_dt = _parse_iso_or_date(eff_end)
+        if end_dt <= start_dt:
+            raise V2OOSEvaluationError(
+                f"Continuation evaluation end '{eff_end}' ({end_dt.isoformat()}) "
+                f"is on or before continuation start '{eff_start}' ({start_dt.isoformat()})."
+            )
+
+    return eff_start, eff_end
+
+
 def validate_evaluation_window_shift(
     nominal_start: str,
     expected_start: str = "2026-10-01",
@@ -158,51 +293,15 @@ def validate_evaluation_window_shift(
 ) -> None:
     """Prevents performance-based evaluation window shifting.
 
-    For initial prospective runs (no prior lineage), nominal_start must match
-    expected_start ('2026-10-01').
-    For continuation runs, nominal_start must be strictly after the prior accepted
-    OOS endpoint and strictly after the historical cutoff (2026-09-30T23:59:59Z).
+    Backwards-compatible wrapper delegating to validate_evaluation_window.
     """
-    if prior_oos_end_timestamp is None:
-        date_part = nominal_start.split("T")[0] if "T" in nominal_start else nominal_start
-        if date_part != expected_start:
-            raise V2OOSEvaluationError(
-                f"Nominal evaluation start '{nominal_start}' differs from frozen boundary "
-                f"'{expected_start}'. Performance-based window shifting is strictly prohibited."
-            )
-        return
-
-    try:
-        if "T" in nominal_start:
-            start_dt = datetime.fromisoformat(nominal_start.replace("Z", "+00:00"))
-        else:
-            start_dt = datetime.fromisoformat(f"{nominal_start}T00:00:00+00:00")
-        if start_dt.tzinfo is None:
-            start_dt = start_dt.replace(tzinfo=UTC)
-    except Exception as e:
-        raise V2OOSEvaluationError(f"Invalid nominal_start format '{nominal_start}': {e}") from e
-
-    try:
-        prior_dt = datetime.fromisoformat(prior_oos_end_timestamp.replace("Z", "+00:00"))
-        if prior_dt.tzinfo is None:
-            prior_dt = prior_dt.replace(tzinfo=UTC)
-    except Exception as e:
-        raise V2OOSEvaluationError(
-            f"Invalid prior_oos_end_timestamp format '{prior_oos_end_timestamp}': {e}"
-        ) from e
-
-    if start_dt <= OOS_CHRONOLOGY_CUTOFF:
-        raise V2OOSChronologyError(
-            f"Continuation evaluation start '{nominal_start}' ({start_dt.isoformat()}) "
-            f"is on or before historical cutoff {OOS_CHRONOLOGY_CUTOFF.isoformat()}."
-        )
-
-    if start_dt <= prior_dt:
-        raise V2OOSEvaluationError(
-            f"Continuation evaluation start '{nominal_start}' ({start_dt.isoformat()}) "
-            f"is on or before prior accepted OOS endpoint {prior_dt.isoformat()}. "
-            "Overlapping or backwards continuation windows are strictly prohibited."
-        )
+    validate_evaluation_window(
+        start=nominal_start,
+        end=None,
+        frozen_config_start=expected_start,
+        prior_oos_end_timestamp=prior_oos_end_timestamp,
+        require_continuation_end=False,
+    )
 
 
 def validate_continuation_lineage_args(
@@ -503,6 +602,8 @@ def run_v2_oos_pipeline(
     prior_oos_run_id: str | None = None,
     prior_oos_end_timestamp: str | None = None,
     run_id: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
 ) -> Path:
     """Executes the complete Phase M prospective OOS research pipeline."""
     # 0. Early parameter & identity checks
@@ -549,27 +650,33 @@ def run_v2_oos_pipeline(
 
     # 2. Strict Pre-Run Validations
     validate_oos_universe(list(data.keys()))
-    if prior_oos_end_timestamp:
-        try:
-            if "T" in prior_oos_end_timestamp:
-                prior_dt = datetime.fromisoformat(prior_oos_end_timestamp.replace("Z", "+00:00"))
-            else:
-                prior_dt = datetime.fromisoformat(f"{prior_oos_end_timestamp}T00:00:00+00:00")
-            if prior_dt.tzinfo is None:
-                prior_dt = prior_dt.replace(tzinfo=UTC)
-        except Exception as e:
-            raise V2OOSEvaluationError(
-                f"Invalid prior_oos_end_timestamp format '{prior_oos_end_timestamp}': {e}"
-            ) from e
-        validate_continuation_chronology(data, prior_oos_end=prior_dt)
-    else:
-        validate_oos_chronology(data)
 
-    if cfg.research.start:
-        validate_evaluation_window_shift(
-            cfg.research.start,
-            prior_oos_end_timestamp=prior_oos_end_timestamp,
-        )
+    effective_research_start, effective_research_end = validate_evaluation_window(
+        start=start,
+        end=end,
+        frozen_config_start=cfg.research.start or "2026-10-01T00:00:00Z",
+        frozen_config_end=cfg.research.end or "2026-10-31T23:59:59Z",
+        prior_oos_end_timestamp=prior_oos_end_timestamp,
+        require_continuation_end=True,
+    )
+
+    eval_start_dt = _parse_iso_or_date(effective_research_start)
+    eval_end_dt = _parse_iso_or_date(effective_research_end)
+    eval_data: dict[str, list[Bar]] = {}
+    for sym, bar_list in data.items():
+        eval_data[sym] = [
+            b
+            for b in bar_list
+            if eval_start_dt
+            <= (b.timestamp if b.timestamp.tzinfo else b.timestamp.replace(tzinfo=UTC))
+            <= eval_end_dt
+        ]
+
+    if prior_oos_end_timestamp:
+        prior_dt = _parse_iso_or_date(prior_oos_end_timestamp)
+        validate_continuation_chronology(eval_data, prior_oos_end=prior_dt)
+    else:
+        validate_oos_chronology(eval_data)
 
     sig_cfg = V2DirectionalConfig(
         impulse_lookback_bars=30,
@@ -585,12 +692,12 @@ def run_v2_oos_pipeline(
     validate_parameter_fingerprint(sig_cfg, cost_cfg, max_leverage=2.0)
 
     # Count complete regular sessions
-    sessions_count = count_complete_sessions(data)
+    sessions_count = count_complete_sessions(eval_data)
 
     # 3. Execute V2-A, V2-B, V2-C
     print(f"\n==> Executing Phase M Prospective OOS ({sessions_count} sessions)...")
     res_a = run_v2_backtest(
-        data=data,
+        data=eval_data,
         mode="V2-A",
         initial_cash=100_000.0,
         core_allocation_pct=0.60,
@@ -599,7 +706,7 @@ def run_v2_oos_pipeline(
         filter_to_effective_start=True,
     )
     res_b = run_v2_backtest(
-        data=data,
+        data=eval_data,
         mode="V2-B",
         initial_cash=100_000.0,
         core_allocation_pct=0.60,
@@ -608,7 +715,7 @@ def run_v2_oos_pipeline(
         filter_to_effective_start=True,
     )
     res_c = run_v2_backtest(
-        data=data,
+        data=eval_data,
         mode="V2-C",
         initial_cash=100_000.0,
         core_allocation_pct=0.60,
@@ -673,7 +780,7 @@ def run_v2_oos_pipeline(
         dataset_id=manifest.dataset_id,
         aggregate_data_hash=manifest.aggregate_data_hash or "unknown",
         market_scope="US_MARKET_ONLY",
-        nominal_date_range=f"{cfg.research.start} to {cfg.research.end}",
+        nominal_date_range=f"{effective_research_start} to {effective_research_end}",
         effective_evaluation_start=res_a.effective_start_timestamp,
         evaluation_end_timestamp=res_a.evaluation_end_timestamp,
         evaluation_status="PRISTINE_PROSPECTIVE_OOS",
@@ -772,6 +879,24 @@ def build_argument_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional explicit fresh run ID (must not collide with any existing run)",
     )
+    parser.add_argument(
+        "--start",
+        default=None,
+        help=(
+            "Continuation evaluation start timestamp/date. For initial runs this must "
+            "match the frozen config start exactly. For continuation runs it must be "
+            "strictly after prior accepted OOS endpoint and the historical cutoff."
+        ),
+    )
+    parser.add_argument(
+        "--end",
+        default=None,
+        help=(
+            "Continuation evaluation end timestamp/date. For initial runs this must "
+            "match the frozen config end exactly. For continuation runs it must be "
+            "after the supplied start and must not precede the available verified data."
+        ),
+    )
     return parser
 
 
@@ -793,6 +918,8 @@ def main() -> None:
             prior_oos_run_id=args.prior_oos_run_id,
             prior_oos_end_timestamp=args.prior_oos_end_timestamp,
             run_id=args.run_id,
+            start=args.start,
+            end=args.end,
         )
     except Exception as e:
         print(f"Error during Phase M OOS execution: {e}", file=sys.stderr)
