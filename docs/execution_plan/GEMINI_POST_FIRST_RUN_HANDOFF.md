@@ -710,3 +710,21 @@ Hard rules:
 - verification/unit tests only;
 - after M.1.3 acceptance, stop software changes.
 
+# Phase M.1.4 — Exact Initial Freeze-Boundary Repair
+
+M.1.3 is functionally strong, but audit found one remaining freeze-boundary weakness: the initial-run validator compares CLI start/end by calendar date rather than the exact frozen timestamp.
+
+Execute:
+
+docs/execution_plan/REDDIT_V2_PHASE_M1_4_EXACT_INITIAL_FREEZE_BOUNDARY_PLAN.md
+
+Hard rules:
+
+- no performance rerun of bb0887e4;
+- no strategy or cost changes;
+- do not modify configs/v2_oos_frozen.yaml;
+- initial CLI start/end must match frozen instants exactly after normalization;
+- continuation semantics must remain unchanged;
+- verify all tests, Ruff, doctor, and OOS doctor-data;
+- after M.1.4 acceptance, STOP SOFTWARE CHANGES.
+
