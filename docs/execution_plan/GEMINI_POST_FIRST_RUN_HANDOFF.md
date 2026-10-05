@@ -617,3 +617,28 @@ After Phases M/N/O pass their individual gates:
 STOP SOFTWARE CHANGES.
 
 The next step is cross-track synthesis and falsification analysis.
+
+# Phase M Post-Run Audit / Provenance Repair
+
+The first prospective run `bb0887e4` is a valid chronological observation but has only two complete sessions and is therefore **NEUTRAL / INCONCLUSIVE**.
+
+Before continuing prospective monitoring, execute:
+
+`docs/execution_plan/REDDIT_V2_PHASE_M_POST_RUN_AUDIT_AND_PROVENANCE_REPAIR_PLAN.md`
+
+This is an infrastructure/audit repair only.
+
+Hard rules:
+
+- preserve `bb0887e4` exactly as an observed two-session result;
+- do not rerun the same performance window merely to regenerate artifacts;
+- do not tune any V2 parameter;
+- do not alter the historical control `24a9e783`;
+- use explicit `EXECUTION_CODE_SHA`, `ARTIFACT_CONTENT_COMMIT_SHA`, and `PROVENANCE_FINALIZATION_COMMIT_SHA`;
+- do not introduce or retain a generic active `artifact_commit_sha`;
+- harden chronological continuation and artifact overwrite protections;
+- record exact pytest/Ruff/doctor/doctor-data verification results;
+- future OOS observations must use genuinely new chronology and a new run ID.
+
+After this repair, continue Phase M monitoring only as new market sessions become available. Do not use the two-session OOS result to tune Phase N or Phase O.
+
