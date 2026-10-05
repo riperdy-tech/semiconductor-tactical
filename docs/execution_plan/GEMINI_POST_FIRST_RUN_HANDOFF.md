@@ -664,3 +664,25 @@ Hard rules:
 - Do not overwrite accepted artifacts.
 - After M.1.1 acceptance, stop software changes and continue only with genuinely new prospective chronology.
 
+# Phase M.1.2 — Provenance Seal and Remote Synchronization
+
+M.1.1 implementation appears functionally complete, but its reported final commit `e84e681` is not yet present on the GitHub remote, and the provenance-finalization field requires a non-self-referential sealing convention.
+
+Execute:
+
+`docs/execution_plan/REDDIT_V2_PHASE_M1_2_PROVENANCE_SEAL_AND_REMOTE_SYNC_PLAN.md`
+
+Hard rules:
+
+- no performance rerun of `bb0887e4`;
+- no V2 strategy changes;
+- preserve the two-session economic result exactly;
+- verify actual Git ancestry for all provenance roles;
+- do not claim a commit as finalization if the artifact did not contain that value in that commit;
+- complete a non-self-referential provenance seal;
+- push the final implementation/sealing commits to `origin/main`;
+- verify local HEAD equals remote origin/main;
+- re-run only verification suites and the explicitly targeted OOS `doctor-data`.
+
+After M.1.2 acceptance, freeze the engineering/audit layer and return to genuine new chronological OOS monitoring / Phases N and O.
+
