@@ -420,7 +420,7 @@ def test_12_phase_m1_provenance_taxonomy_in_oos_model_and_artifacts() -> None:
         data = json.loads(json_path.read_text(encoding="utf-8"))
         assert data["execution_code_sha"] == "30473ee"
         assert data["artifact_content_commit_sha"] == "c691672"
-        assert data["provenance_finalization_commit_sha"] == "81d9649"
+        assert data["provenance_finalization_commit_sha"] == "55bea09"
         assert data["git_sha"] == "30473ee"
         assert "artifact_commit_sha" not in data
 
@@ -434,7 +434,7 @@ def test_12_phase_m1_provenance_taxonomy_in_oos_model_and_artifacts() -> None:
         assert "Artifact Commit SHA" not in content
         assert "**Execution Code SHA:** `30473ee`" in content
         assert "**Artifact Content Commit SHA:** `c691672`" in content
-        assert "**Provenance Finalization Commit SHA:** `81d9649`" in content
+        assert "**Provenance Finalization Commit SHA:** `55bea09`" in content
 
 
 def test_13_phase_m1_report_structure_and_two_session_framing() -> None:
@@ -723,7 +723,7 @@ def test_24_f10_provenance_taxonomy_and_semantic_distinction() -> None:
         created_at_utc="2026-10-06T20:00:00Z",
         execution_code_sha="30473ee",
         artifact_content_commit_sha="c691672",
-        provenance_finalization_commit_sha="81d9649",
+        provenance_finalization_commit_sha="55bea09",
         git_sha="30473ee",
         accounting_tolerance=ACCOUNTING_TOLERANCE,
         dataset_id="massive_stocks_1m_oos_test",
@@ -744,7 +744,7 @@ def test_24_f10_provenance_taxonomy_and_semantic_distinction() -> None:
     dumped = result.model_dump()
     assert dumped["execution_code_sha"] == "30473ee"
     assert dumped["artifact_content_commit_sha"] == "c691672"
-    assert dumped["provenance_finalization_commit_sha"] == "81d9649"
+    assert dumped["provenance_finalization_commit_sha"] == "55bea09"
     # Strict semantic distinction (execution != content != finalization)
     assert dumped["execution_code_sha"] != dumped["artifact_content_commit_sha"]
     assert dumped["artifact_content_commit_sha"] != dumped["provenance_finalization_commit_sha"]
