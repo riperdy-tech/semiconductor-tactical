@@ -686,3 +686,27 @@ Hard rules:
 
 After M.1.2 acceptance, freeze the engineering/audit layer and return to genuine new chronological OOS monitoring / Phases N and O.
 
+# Phase M.1.3 — Frozen-Config Continuation Date Override
+
+M.1.2 is functionally sealed, but one operational continuation gap remains: the canonical runner still obtains its observation start/end only from `configs/v2_oos_frozen.yaml`.
+
+Execute:
+
+`docs/execution_plan/REDDIT_V2_PHASE_M1_3_FROZEN_CONFIG_CONTINUATION_DATE_OVERRIDE_PLAN.md`
+
+Goal:
+
+- keep `configs/v2_oos_frozen.yaml` immutable;
+- keep the initial 2026-10-01 boundary immutable;
+- allow future continuation runs to supply explicit forward `--start` / `--end` dates;
+- preserve all strategy/cost/universe/margin parameters;
+- continue using prior-run lineage and new run IDs.
+
+Hard rules:
+
+- no performance rerun of `bb0887e4`;
+- no modification of frozen YAML;
+- no strategy tuning;
+- verification/unit tests only;
+- after M.1.3 acceptance, stop software changes.
+
