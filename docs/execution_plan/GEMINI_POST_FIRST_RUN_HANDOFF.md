@@ -642,3 +642,25 @@ Hard rules:
 
 After this repair, continue Phase M monitoring only as new market sessions become available. Do not use the two-session OOS result to tune Phase N or Phase O.
 
+# Phase M.1.1 — Continuation / Provenance Repair Required
+
+Phase M.1 improved the OOS report/schema but is **not yet accepted**.
+
+Execute:
+`docs/execution_plan/REDDIT_V2_PHASE_M1_1_CONTINUATION_AND_PROVENANCE_FINALIZATION_REPAIR_PLAN.md`
+
+Three concrete repairs are required:
+
+1. Verify and correctly classify the actual post-run provenance-finalization commit; expected to distinguish the original artifact commit from the M.1 finalization commit.
+2. Run `doctor-data` explicitly against `data/processed_oos` with `configs/v2_oos_frozen.yaml`; the default historical-data doctor result is insufficient.
+3. Wire the existing continuation chronology/lineage controls into the canonical CLI and remove the hardcoded 2026-10-01 restriction for legitimate forward continuation runs while preserving the initial-run freeze.
+
+Hard rules:
+
+- **Do not rerun performance for `bb0887e4`.**
+- **Do not change any V2 strategy parameter.**
+- Preserve `bb0887e4` economic results exactly.
+- Preserve historical Run `24a9e783`.
+- Do not overwrite accepted artifacts.
+- After M.1.1 acceptance, stop software changes and continue only with genuinely new prospective chronology.
+
