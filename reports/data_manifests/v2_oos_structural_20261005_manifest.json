@@ -1,0 +1,64 @@
+{
+  "manifest_id": "v2_oos_structural_20261005_manifest",
+  "created_at_utc": "2026-10-05T13:08:00Z",
+  "validation_execution_commit_sha": "0798295f807de3caa9211ce0b58d630a10538da9",
+  "source": "Massive Stocks REST API",
+  "endpoint": "https://api.massive.com/v2/aggs/ticker/{ticker}/range/1/minute/{from}/{to}",
+  "dataset_id": "v2_oos_structural_scan_20261005",
+  "symbols": [
+    "MU",
+    "SNDK",
+    "SKHY"
+  ],
+  "resolution": "1m",
+  "timezone": "UTC",
+  "reporting_session_convention": "America/New_York (09:30:00 to 15:59:59 ET)",
+  "adjustment_policy": "split_adjusted",
+  "prior_accepted_oos_run_id": "bb0887e4",
+  "prior_accepted_oos_endpoint": "2026-10-02T19:59:00Z",
+  "first_eligible_timestamp": "2026-10-05T13:30:00Z",
+  "last_validated_timestamp": null,
+  "complete_sessions_count_beyond_prior_endpoint": 0,
+  "preregistered_minimum_sessions_threshold": 20,
+  "structural_validation_status": "PHASE_M_STRUCTURAL_OOS_INSUFFICIENT_SAMPLE",
+  "performance_gate_ready": false,
+  "symbol_structural_status": {
+    "MU": {
+      "new_completed_sessions": 0,
+      "new_rows": 0,
+      "missing_bars": 0,
+      "duplicates": 0,
+      "status": "AWAITING_CHRONOLOGICAL_ACCUMULATION"
+    },
+    "SNDK": {
+      "new_completed_sessions": 0,
+      "new_rows": 0,
+      "missing_bars": 0,
+      "duplicates": 0,
+      "status": "AWAITING_CHRONOLOGICAL_ACCUMULATION"
+    },
+    "SKHY": {
+      "new_completed_sessions": 0,
+      "new_rows": 0,
+      "missing_bars": 0,
+      "duplicates": 0,
+      "status": "AWAITING_CHRONOLOGICAL_ACCUMULATION"
+    }
+  },
+  "chronology_diagnostics": {
+    "prior_endpoint_respected": true,
+    "overlaps_detected": 0,
+    "pre_cutoff_contamination": false,
+    "backfill_detected": false
+  },
+  "per_symbol_sha256": {},
+  "aggregate_sha256": null,
+  "frozen_config_sha256": "be21c7dc0f998cf21310ffb5ffeae39fe039046d80aaa4ee4c656189f44f502a",
+  "explicit_attestations": {
+    "no_performance_run_executed": true,
+    "no_parameters_or_strategy_logic_changed": true,
+    "no_trade_level_pnl_inspected": true,
+    "no_strategy_returns_calculated": true
+  },
+  "conclusion": "Structural OOS data is valid/usable for continued accumulation, but the preregistered 20-session minimum has not been met. No performance run was executed."
+}
