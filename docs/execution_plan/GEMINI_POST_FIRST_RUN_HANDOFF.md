@@ -728,3 +728,69 @@ Hard rules:
 - verify all tests, Ruff, doctor, and OOS doctor-data;
 - after M.1.4 acceptance, STOP SOFTWARE CHANGES.
 
+
+
+# Phase M.1.4 — ACCEPTED / Engineering Freeze
+
+Phase M.1.4 has been audited against the actual remote implementation and is **ACCEPTED**.
+
+Acceptance record:
+
+`docs/execution_plan/REDDIT_V2_PHASE_M1_4_ACCEPTANCE_RECORD.md`
+
+Implementation commit:
+
+`21ee212fe1321719c7a0c3fbd0da5923a67779fe`
+
+Verified conclusions:
+
+- initial `--start` and `--end` are compared as exact normalized instants against the frozen configuration;
+- same-day intraday initial overrides are rejected;
+- continuation chronology remains strictly forward;
+- frozen YAML and V2 strategy fingerprint remain unchanged;
+- no performance rerun of `bb0887e4` occurred;
+- the remote `main` branch contains the accepted M.1.4 implementation.
+
+**STOP SOFTWARE CHANGES.**
+
+Do not create another M.1.x repair unless a genuinely new implementation defect is discovered.
+
+# Next Step — Phase M Prospective OOS Continuation
+
+Execute:
+
+`docs/execution_plan/REDDIT_V2_PHASE_M_PROSPECTIVE_CONTINUATION_EXECUTION_PLAN.md`
+
+Purpose:
+
+Continue the frozen V2 experiment only with genuinely new chronology after the accepted prospective endpoint:
+
+`2026-10-02T19:59:00Z`
+
+The continuation package preserves the preregistered **20 complete-session minimum**. If fewer than 20 complete sessions are available, perform structural data validation only and **do not launch a performance run**.
+
+Hard rules:
+
+- no strategy/cost/margin/universe changes;
+- no parameter tuning;
+- no rerun of `bb0887e4`;
+- no overlap with the prior OOS endpoint;
+- use a new run ID and explicit continuation lineage;
+- preserve all prior artifacts;
+- do not use new OOS performance to tune Phase N or Phase O.
+
+Global statuses remain:
+
+`FULL_REDDIT_STRATEGY_REPLICATION = NOT_ESTABLISHED`
+
+`TRUE_LEVEL2_REPLICATION = UNVALIDATED`
+
+`HISTORICAL_OPTION_CHAIN_STATUS = UNVALIDATED`
+
+`DIRECT_ASIA_REPLICATION_STATUS = OUT_OF_SCOPE_FOR_V2`
+
+`PRISTINE_OOS = UNAVAILABLE` until a sufficient genuinely unseen chronological period has been evaluated.
+
+After one valid continuation performance run:
+
+**STOP SOFTWARE CHANGES** and proceed to cross-track research interpretation only.
