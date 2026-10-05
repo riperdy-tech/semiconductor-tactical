@@ -14,6 +14,7 @@ Covers all 10 requirements from Section 13 of REDDIT_V2_FROZEN_PROSPECTIVE_OOS_E
 11. Sample completeness classification (<20 sessions vs >=20 sessions).
 """
 
+import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -37,8 +38,10 @@ from tactical_engine.research.v2_oos_runner import (
     V2OOSEvaluationError,
     V2OOSParameterFingerprintError,
     V2OOSUniverseError,
+    build_argument_parser,
     count_complete_sessions,
     evaluate_interpretation,
+    generate_oos_markdown_report,
     run_v2_oos_pipeline,
     validate_oos_chronology,
     validate_oos_universe,
@@ -254,6 +257,9 @@ def test_7_oos_json_provenance_and_hash_schema() -> None:
 
     dumped = result.model_dump()
     assert dumped["execution_code_sha"] == "c10f91c"
+    assert dumped["artifact_content_commit_sha"] is None
+    assert dumped["provenance_finalization_commit_sha"] is None
+    assert dumped["git_sha"] == "c10f91c"
     assert dumped["dataset_id"] == "massive_stocks_1m_oos_test"
     assert dumped["aggregate_data_hash"] == "abc123hash"
     assert dumped["sample_status"] == "PHASE_M_PRISTINE_OOS_INSUFFICIENT_SAMPLE"
@@ -356,3 +362,142 @@ def test_11_sample_completeness_and_interpretation_classification() -> None:
     )
     assert sample_status == "PHASE_M_PRISTINE_OOS_RESULT"
     assert interp == "NEUTRAL / INCONCLUSIVE"
+
+
+def test_12_phase_m1_provenance_taxonomy_in_oos_model_and_artifacts() -> None:
+    """Requirement 12: Validate 3-SHA provenance taxonomy in OOS model and saved artifacts."""
+    dummy_res = V2BacktestResult(
+        mode="V2-A",
+        initial_cash=100000.0,
+        final_equity=105000.0,
+        total_net_pnl=5000.0,
+        total_return_pct=5.0,
+        max_drawdown_pct=1.5,
+        core_starting_value=59000.0,
+        core_ending_value=64000.0,
+        effective_start_timestamp="2026-10-01T13:30:00Z",
+        evaluation_end_timestamp="2026-10-02T19:59:00Z",
+    )
+    result = V2OOSComparisonResult(
+        run_id="oos_provenance_test",
+        created_at_utc="2026-10-04T00:00:00Z",
+        execution_code_sha="30473ee",
+        artifact_content_commit_sha="c691672",
+        provenance_finalization_commit_sha=None,
+        git_sha="30473ee",
+        accounting_tolerance=ACCOUNTING_TOLERANCE,
+        dataset_id="massive_stocks_1m_oos_test",
+        aggregate_data_hash="abc123hash",
+        nominal_date_range="2026-10-01 to 2026-10-31",
+        effective_evaluation_start="2026-10-01T13:30:00Z",
+        evaluation_end_timestamp="2026-10-02T19:59:00Z",
+        evaluation_status="PRISTINE_PROSPECTIVE_OOS",
+        sample_status="PHASE_M_PRISTINE_OOS_INSUFFICIENT_SAMPLE",
+        interpretation_class="NEUTRAL / INCONCLUSIVE",
+        complete_sessions_count=2,
+        v2_a_core_only=dummy_res,
+        v2_b_core_tactical=dummy_res,
+        v2_c_core_tactical_margin=dummy_res,
+        tactical_net_contribution_unlevered=0.0,
+        tactical_net_contribution_margin=0.0,
+    )
+    dumped = result.model_dump()
+    assert dumped["execution_code_sha"] == "30473ee"
+    assert dumped["artifact_content_commit_sha"] == "c691672"
+    assert dumped["provenance_finalization_commit_sha"] is None
+    assert dumped["git_sha"] == "30473ee"
+    assert "artifact_commit_sha" not in dumped
+
+    paths_to_check = [
+        Path("reports/v2_oos/bb0887e4.json"),
+        Path("reports/fidelity_runs/v2_oos_bb0887e4/bb0887e4.json"),
+    ]
+    for json_path in paths_to_check:
+        assert json_path.exists(), f"Missing {json_path}"
+        data = json.loads(json_path.read_text(encoding="utf-8"))
+        assert data["execution_code_sha"] == "30473ee"
+        assert data["artifact_content_commit_sha"] == "c691672"
+        assert data["provenance_finalization_commit_sha"] is None
+        assert data["git_sha"] == "30473ee"
+        assert "artifact_commit_sha" not in data
+
+    md_paths = [
+        Path("reports/v2_oos/bb0887e4.md"),
+        Path("reports/fidelity_runs/v2_oos_bb0887e4/bb0887e4.md"),
+    ]
+    for md_path in md_paths:
+        assert md_path.exists(), f"Missing {md_path}"
+        content = md_path.read_text(encoding="utf-8")
+        assert "Artifact Commit SHA" not in content
+        assert "**Execution Code SHA:** `30473ee`" in content
+        assert "**Artifact Content Commit SHA:** `c691672`" in content
+        assert "**Provenance Finalization Commit SHA:** `UNAVAILABLE`" in content
+
+
+def test_13_phase_m1_report_structure_and_two_session_framing() -> None:
+    """Requirement 13: Validate Phase M.1 structure and two-session framing in bb0887e4.md."""
+    md_path = Path("reports/v2_oos/bb0887e4.md")
+    assert md_path.exists()
+    content = md_path.read_text(encoding="utf-8")
+
+    assert "### 3.1 Observed Monitoring Data" in content
+    assert "### 3.2 Scientific Interpretation & Pre-Registered Gate" in content
+    assert "## 4. Verification Matrix" in content
+
+    assert "PHASE_M_PRISTINE_OOS_INSUFFICIENT_SAMPLE" in content
+    assert "NEUTRAL / INCONCLUSIVE" in content
+    assert "2 complete regular trading sessions" in content
+    assert "$-290.98" in content
+    assert "2 completed round trips" in content
+
+
+def test_14_phase_m1_cli_sha_overrides() -> None:
+    """Requirement 14: CLI parser and markdown generator accept Phase M.1 SHA overrides."""
+    parser = build_argument_parser()
+    args = parser.parse_args([
+        "--artifact-content-commit-sha", "c691672",
+        "--provenance-finalization-commit-sha", "aaa10b5",
+    ])
+    assert args.artifact_content_commit_sha == "c691672"
+    assert args.provenance_finalization_commit_sha == "aaa10b5"
+
+    dummy_res = V2BacktestResult(
+        mode="V2-A",
+        initial_cash=100000.0,
+        final_equity=105000.0,
+        total_net_pnl=5000.0,
+        total_return_pct=5.0,
+        max_drawdown_pct=1.5,
+        core_starting_value=59000.0,
+        core_ending_value=64000.0,
+        effective_start_timestamp="2026-10-01T13:30:00Z",
+        evaluation_end_timestamp="2026-10-02T19:59:00Z",
+    )
+    result = V2OOSComparisonResult(
+        run_id="oos_cli_test",
+        created_at_utc="2026-10-04T00:00:00Z",
+        execution_code_sha="30473ee",
+        artifact_content_commit_sha="c691672",
+        provenance_finalization_commit_sha="aaa10b5",
+        git_sha="30473ee",
+        accounting_tolerance=ACCOUNTING_TOLERANCE,
+        dataset_id="massive_stocks_1m_oos_test",
+        aggregate_data_hash="abc123hash",
+        nominal_date_range="2026-10-01 to 2026-10-31",
+        effective_evaluation_start="2026-10-01T13:30:00Z",
+        evaluation_end_timestamp="2026-10-02T19:59:00Z",
+        evaluation_status="PRISTINE_PROSPECTIVE_OOS",
+        sample_status="PHASE_M_PRISTINE_OOS_INSUFFICIENT_SAMPLE",
+        interpretation_class="NEUTRAL / INCONCLUSIVE",
+        complete_sessions_count=2,
+        v2_a_core_only=dummy_res,
+        v2_b_core_tactical=dummy_res,
+        v2_c_core_tactical_margin=dummy_res,
+        tactical_net_contribution_unlevered=0.0,
+        tactical_net_contribution_margin=0.0,
+    )
+    md = generate_oos_markdown_report(result)
+    assert "**Artifact Content Commit SHA:** `c691672`" in md
+    assert "**Provenance Finalization Commit SHA:** `aaa10b5`" in md
+    assert "### 3.1 Observed Monitoring Data" in md
+    assert "### 3.2 Scientific Interpretation & Pre-Registered Gate" in md

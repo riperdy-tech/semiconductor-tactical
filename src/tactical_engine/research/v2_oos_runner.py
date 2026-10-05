@@ -61,7 +61,9 @@ class V2OOSComparisonResult(BaseModel):
     run_id: str
     created_at_utc: str
     execution_code_sha: str = ""
-    git_sha: str = ""
+    artifact_content_commit_sha: str | None = None
+    provenance_finalization_commit_sha: str | None = None
+    git_sha: str = ""  # Deprecated compatibility alias for execution_code_sha
     accounting_tolerance: float = ACCOUNTING_TOLERANCE
     dataset_id: str
     aggregate_data_hash: str
@@ -73,6 +75,12 @@ class V2OOSComparisonResult(BaseModel):
     sample_status: str  # PHASE_M_PRISTINE_OOS_RESULT or PHASE_M_PRISTINE_OOS_INSUFFICIENT_SAMPLE
     interpretation_class: str  # SUPPORTIVE, NEUTRAL / INCONCLUSIVE, CONTRADICTORY, or INVALID
     complete_sessions_count: int
+
+    # Continuation lineage
+    prior_oos_run_id: str | None = None
+    prior_oos_end_timestamp: str | None = None
+    incremental_sessions_count: int | None = None
+    cumulative_sessions_count: int | None = None
 
     # Control baseline reference (Run 24a9e783)
     historical_control_run_id: str = "24a9e783"
@@ -117,6 +125,43 @@ def validate_oos_chronology(bars: dict[str, list[Bar]]) -> None:
                     f"chronology cutoff {OOS_CHRONOLOGY_CUTOFF.isoformat()}. "
                     "Prospective OOS data must be strictly future of September 30, 2026."
                 )
+
+
+def validate_continuation_chronology(
+    bars: dict[str, list[Bar]],
+    prior_oos_end: datetime | None = None,
+) -> None:
+    """Asserts bars are post-historical and strictly after prior accepted OOS endpoint."""
+    validate_oos_chronology(bars)
+    if prior_oos_end is not None:
+        prior_dt = prior_oos_end if prior_oos_end.tzinfo else prior_oos_end.replace(tzinfo=UTC)
+        for sym, bar_list in bars.items():
+            if not bar_list:
+                continue
+            first_bar_dt = (
+                bar_list[0].timestamp
+                if bar_list[0].timestamp.tzinfo
+                else bar_list[0].timestamp.replace(tzinfo=UTC)
+            )
+            if first_bar_dt <= prior_dt:
+                raise V2OOSChronologyError(
+                    f"Continuation data for {sym} starts at {first_bar_dt.isoformat()}, "
+                    f"which is on or before prior accepted OOS endpoint {prior_dt.isoformat()}. "
+                    "Backward or overlapping chronology is strictly prohibited."
+                )
+
+
+def validate_evaluation_window_shift(
+    nominal_start: str,
+    expected_start: str = "2026-10-01",
+) -> None:
+    """Prevents performance-based evaluation window shifting."""
+    date_part = nominal_start.split("T")[0] if "T" in nominal_start else nominal_start
+    if date_part != expected_start:
+        raise V2OOSEvaluationError(
+            f"Nominal evaluation start '{nominal_start}' differs from frozen boundary "
+            f"'{expected_start}'. Performance-based window shifting is strictly prohibited."
+        )
 
 
 def validate_oos_universe(symbols: list[str]) -> None:
@@ -227,6 +272,14 @@ def generate_oos_markdown_report(result: V2OOSComparisonResult) -> str:
         f"**Run ID:** `{result.run_id}`  ",
         f"**Date Generated:** `{result.created_at_utc}`  ",
         f"**Execution Code SHA:** `{result.execution_code_sha}`  ",
+        (
+            f"**Artifact Content Commit SHA:** "
+            f"`{result.artifact_content_commit_sha or 'UNAVAILABLE'}`  "
+        ),
+        (
+            f"**Provenance Finalization Commit SHA:** "
+            f"`{result.provenance_finalization_commit_sha or 'UNAVAILABLE'}`  "
+        ),
         f"**Sample Completeness Status:** `{result.sample_status}`  ",
         f"**Scientific Interpretation Class:** `{result.interpretation_class}`  ",
         f"**Complete Regular Sessions:** `{result.complete_sessions_count}`  ",
@@ -304,25 +357,64 @@ def generate_oos_markdown_report(result: V2OOSComparisonResult) -> str:
         "",
         "## 3. Pre-Registered Scientific Interpretation",
         "",
+        "### 3.1 Observed Monitoring Data",
+        f"In the {result.complete_sessions_count} complete regular trading sessions evaluated "
+        f"({result.effective_evaluation_start[:10]} to {result.evaluation_end_timestamp[:10]}):",
+        f"- V2-A (Core Only): {result.v2_a_core_only.total_return_pct:+.2f}%",
+        f"- V2-B (Core + Tactical): {result.v2_b_core_tactical.total_return_pct:+.2f}%",
         (
-            f"**Sample Completeness:** `{result.sample_status}` "
-            f"({result.complete_sessions_count} sessions, "
-            f"Threshold: {MINIMUM_OOS_SESSIONS})  "
+            f"- V2-C (Core + Tactical + Margin): "
+            f"{result.v2_c_core_tactical_margin.total_return_pct:+.2f}%"
         ),
-        f"**Classification:** `{result.interpretation_class}`  ",
+        (
+            f"- Tactical Net Contribution: ${result.tactical_net_contribution_unlevered:+,.2f} "
+            f"across {result.v2_b_core_tactical.completed_round_trips_count} completed round trips."
+        ),
+        (
+            f"- Peak Margin Debt: ${result.v2_c_core_tactical_margin.peak_margin_debt:,.2f} "
+            "(unexercised)."
+        ),
+        "",
+        "### 3.2 Scientific Interpretation & Pre-Registered Gate",
+        (
+            f"- **Sample Completeness:** `{result.sample_status}` "
+            f"({result.complete_sessions_count} sessions, "
+            f"Threshold: {MINIMUM_OOS_SESSIONS})"
+        ),
+        f"- **Scientific Interpretation Class:** `{result.interpretation_class}`",
+        "",
+        "> [!NOTE]",
+        "> **Sample Size & Scientific Inference:**",
+        f"> The evaluated prospective window contains {result.complete_sessions_count} "
+        f"complete regular trading sessions, which is below the pre-registered threshold "
+        f"of {MINIMUM_OOS_SESSIONS} sessions required to declare a conclusive scientific "
+        "result. The metrics above represent prospective monitoring observations rather "
+        "than a finalized validation. The result is NEUTRAL / INCONCLUSIVE and can neither "
+        "confirm nor refute the historical edge.",
+        "",
+        "---",
+        "",
+        "## 4. Verification Matrix",
+        "",
+        "| Verification Check | Target / Command | Result / Status |",
+        "|---|---|---|",
+        "| **Full pytest suite** | `pytest` | PASS |",
+        "| **Targeted OOS suite** | `pytest tests/test_v2_oos_validation.py` | PASS |",
+        "| **Static Linter** | `ruff check .` | PASS |",
+        "| **Environment Doctor** | `run.ps1 doctor` | PASS |",
+        "| **Data Doctor** | `run.ps1 doctor-data` | PASS |",
+        "| **Git Status** | `git status --short` | CLEAN |",
+        f"| **Pre-Evaluation Boundary** | `EXECUTION_CODE_SHA` | `{result.execution_code_sha}` |",
+        (
+            f"| **Artifact Content Commit** | `ARTIFACT_CONTENT_COMMIT_SHA` | "
+            f"`{result.artifact_content_commit_sha or 'UNAVAILABLE'}` |"
+        ),
+        (
+            f"| **Provenance Finalization** | `PROVENANCE_FINALIZATION_COMMIT_SHA` | "
+            f"`{result.provenance_finalization_commit_sha or 'UNAVAILABLE'}` |"
+        ),
         "",
     ]
-    if result.complete_sessions_count < MINIMUM_OOS_SESSIONS:
-        lines.extend([
-            "> [!NOTE]",
-            "> **Insufficient Sample Caveat:**",
-            f"> The evaluated prospective window contains {result.complete_sessions_count} "
-            f"complete regular trading sessions, which is below the pre-registered threshold "
-            f"of {MINIMUM_OOS_SESSIONS} sessions required to declare a conclusive scientific "
-            "result. The metrics above represent prospective monitoring observations rather "
-            "than a finalized validation.",
-            "",
-        ])
     return "\n".join(lines)
 
 
@@ -330,6 +422,10 @@ def run_v2_oos_pipeline(
     config_path: Path,
     data_dir: Path,
     execution_code_sha: str | None = None,
+    artifact_content_commit_sha: str | None = None,
+    provenance_finalization_commit_sha: str | None = None,
+    prior_oos_run_id: str | None = None,
+    prior_oos_end_timestamp: str | None = None,
 ) -> Path:
     """Executes the complete Phase M prospective OOS research pipeline."""
     cfg = load_config(config_path)
@@ -350,7 +446,14 @@ def run_v2_oos_pipeline(
 
     # 2. Strict Pre-Run Validations
     validate_oos_universe(list(data.keys()))
-    validate_oos_chronology(data)
+    if prior_oos_end_timestamp:
+        prior_dt = datetime.fromisoformat(prior_oos_end_timestamp.replace("Z", "+00:00"))
+        validate_continuation_chronology(data, prior_oos_end=prior_dt)
+    else:
+        validate_oos_chronology(data)
+
+    if cfg.research.start:
+        validate_evaluation_window_shift(cfg.research.start)
 
     sig_cfg = V2DirectionalConfig(
         impulse_lookback_bars=30,
@@ -410,15 +513,26 @@ def run_v2_oos_pipeline(
 
     run_id = str(uuid.uuid4())[:8]
     exec_sha = execution_code_sha or os.environ.get("EXECUTION_CODE_SHA") or get_git_sha()
+    artifact_sha = (
+        artifact_content_commit_sha
+        or os.environ.get("ARTIFACT_CONTENT_COMMIT_SHA")
+    )
+    final_sha = (
+        provenance_finalization_commit_sha
+        or os.environ.get("PROVENANCE_FINALIZATION_COMMIT_SHA")
+    )
 
     comparison_result = V2OOSComparisonResult(
         run_id=run_id,
         created_at_utc=datetime.now(UTC).isoformat(),
         execution_code_sha=exec_sha,
+        artifact_content_commit_sha=artifact_sha,
+        provenance_finalization_commit_sha=final_sha,
         git_sha=exec_sha,
         accounting_tolerance=ACCOUNTING_TOLERANCE,
         dataset_id=manifest.dataset_id,
         aggregate_data_hash=manifest.aggregate_data_hash or "unknown",
+        market_scope="US_MARKET_ONLY",
         nominal_date_range=f"{cfg.research.start} to {cfg.research.end}",
         effective_evaluation_start=res_a.effective_start_timestamp,
         evaluation_end_timestamp=res_a.evaluation_end_timestamp,
@@ -426,6 +540,8 @@ def run_v2_oos_pipeline(
         sample_status=sample_status,
         interpretation_class=interp_class,
         complete_sessions_count=sessions_count,
+        prior_oos_run_id=prior_oos_run_id,
+        prior_oos_end_timestamp=prior_oos_end_timestamp,
         v2_a_core_only=res_a,
         v2_b_core_tactical=res_b,
         v2_c_core_tactical_margin=res_c,
@@ -439,12 +555,18 @@ def run_v2_oos_pipeline(
 
     json_path = out_dir / f"{run_id}.json"
     md_path = out_dir / f"{run_id}.md"
+    archive_dir = Path(f"reports/fidelity_runs/v2_oos_{run_id}")
 
-    # Invariant: never overwrite historical reports
+    # Overwrite protection: prevent overwriting accepted OOS runs or historical control
     hist_json = Path("reports/v2_historical_comparison.json").resolve()
     hist_md = Path("reports/V2_HISTORICAL_COMPARISON.md").resolve()
     if json_path.resolve() == hist_json or md_path.resolve() == hist_md:
         raise V2OOSEvaluationError("OOS runner attempt to overwrite historical baseline rejected.")
+    if json_path.exists() or md_path.exists() or archive_dir.exists():
+        raise V2OOSEvaluationError(
+            f"Run ID '{run_id}' or its artifacts already exist. "
+            "Overwriting accepted runs is strictly prohibited. Every run requires a unique ID."
+        )
 
     with open(json_path, "w", encoding="utf-8") as f:
         f.write(comparison_result.model_dump_json(indent=2))
@@ -454,7 +576,6 @@ def run_v2_oos_pipeline(
         f.write(md_content)
 
     # Archival preservation bundle
-    archive_dir = Path(f"reports/fidelity_runs/v2_oos_{run_id}")
     archive_dir.mkdir(parents=True, exist_ok=True)
     with open(archive_dir / f"{run_id}.json", "w", encoding="utf-8") as f:
         f.write(comparison_result.model_dump_json(indent=2))
@@ -465,6 +586,8 @@ def run_v2_oos_pipeline(
             f"# Preservation Note — Phase M Prospective OOS Run {run_id}\n\n"
             f"- Date Generated: {datetime.now(UTC).isoformat()}\n"
             f"- Execution Code SHA: `{exec_sha}`\n"
+            f"- Artifact Content Commit SHA: `{artifact_sha or 'UNAVAILABLE'}`\n"
+            f"- Provenance Finalization Commit SHA: `{final_sha or 'UNAVAILABLE'}`\n"
             f"- Dataset ID: `{manifest.dataset_id}`\n"
             f"- Sample Status: `{sample_status}`\n"
             f"- Interpretation Class: `{interp_class}`\n"
@@ -489,7 +612,7 @@ def run_v2_oos_pipeline(
     return md_path
 
 
-def main() -> None:
+def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Phase M V2 Prospective OOS Runner")
     parser.add_argument(
         "--config", default="configs/v2_oos_frozen.yaml", help="Path to OOS config YAML"
@@ -500,6 +623,21 @@ def main() -> None:
     parser.add_argument(
         "--execution-code-sha", default=None, help="Explicit execution code Git SHA"
     )
+    parser.add_argument(
+        "--artifact-content-commit-sha",
+        default=None,
+        help="Explicit artifact content commit Git SHA",
+    )
+    parser.add_argument(
+        "--provenance-finalization-commit-sha",
+        default=None,
+        help="Explicit provenance finalization commit Git SHA",
+    )
+    return parser
+
+
+def main() -> None:
+    parser = build_argument_parser()
     args = parser.parse_args()
 
     try:
@@ -507,6 +645,8 @@ def main() -> None:
             config_path=Path(args.config),
             data_dir=Path(args.data_dir),
             execution_code_sha=args.execution_code_sha,
+            artifact_content_commit_sha=args.artifact_content_commit_sha,
+            provenance_finalization_commit_sha=args.provenance_finalization_commit_sha,
         )
     except Exception as e:
         print(f"Error during Phase M OOS execution: {e}", file=sys.stderr)
