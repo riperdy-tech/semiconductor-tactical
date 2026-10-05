@@ -43,6 +43,9 @@ from tactical_engine.research.v2_oos_runner import (
     evaluate_interpretation,
     generate_oos_markdown_report,
     run_v2_oos_pipeline,
+    validate_continuation_chronology,
+    validate_continuation_lineage_args,
+    validate_evaluation_window_shift,
     validate_oos_chronology,
     validate_oos_universe,
     validate_parameter_fingerprint,
@@ -417,7 +420,7 @@ def test_12_phase_m1_provenance_taxonomy_in_oos_model_and_artifacts() -> None:
         data = json.loads(json_path.read_text(encoding="utf-8"))
         assert data["execution_code_sha"] == "30473ee"
         assert data["artifact_content_commit_sha"] == "c691672"
-        assert data["provenance_finalization_commit_sha"] is None
+        assert data["provenance_finalization_commit_sha"] == "81d9649"
         assert data["git_sha"] == "30473ee"
         assert "artifact_commit_sha" not in data
 
@@ -431,7 +434,7 @@ def test_12_phase_m1_provenance_taxonomy_in_oos_model_and_artifacts() -> None:
         assert "Artifact Commit SHA" not in content
         assert "**Execution Code SHA:** `30473ee`" in content
         assert "**Artifact Content Commit SHA:** `c691672`" in content
-        assert "**Provenance Finalization Commit SHA:** `UNAVAILABLE`" in content
+        assert "**Provenance Finalization Commit SHA:** `81d9649`" in content
 
 
 def test_13_phase_m1_report_structure_and_two_session_framing() -> None:
@@ -501,3 +504,286 @@ def test_14_phase_m1_cli_sha_overrides() -> None:
     assert "**Provenance Finalization Commit SHA:** `aaa10b5`" in md
     assert "### 3.1 Observed Monitoring Data" in md
     assert "### 3.2 Scientific Interpretation & Pre-Registered Gate" in md
+
+
+def test_15_f1_cli_exposes_continuation_arguments() -> None:
+    """F1: The parser must recognize --prior-oos-run-id and --prior-oos-end-timestamp."""
+    parser = build_argument_parser()
+    args = parser.parse_args([
+        "--prior-oos-run-id", "bb0887e4",
+        "--prior-oos-end-timestamp", "2026-10-02T19:59:00Z",
+        "--run-id", "test_new_id",
+    ])
+    assert args.prior_oos_run_id == "bb0887e4"
+    assert args.prior_oos_end_timestamp == "2026-10-02T19:59:00Z"
+    assert args.run_id == "test_new_id"
+
+
+def test_16_f2_paired_lineage_requirement() -> None:
+    """F2: Supplying only one of the two continuation arguments must fail."""
+    with pytest.raises(V2OOSEvaluationError) as exc_info_1:
+        validate_continuation_lineage_args(
+            prior_oos_run_id="bb0887e4", prior_oos_end_timestamp=None
+        )
+    assert "must be paired" in str(exc_info_1.value)
+
+    with pytest.raises(V2OOSEvaluationError) as exc_info_2:
+        validate_continuation_lineage_args(
+            prior_oos_run_id=None, prior_oos_end_timestamp="2026-10-02T19:59:00Z"
+        )
+    assert "must be paired" in str(exc_info_2.value)
+
+    with pytest.raises(V2OOSEvaluationError) as exc_info_pipeline:
+        run_v2_oos_pipeline(
+            config_path=Path("configs/v2_oos_frozen.yaml"),
+            data_dir=Path("data/processed_oos"),
+            prior_oos_run_id="bb0887e4",
+            prior_oos_end_timestamp=None,
+        )
+    assert "must be paired" in str(exc_info_pipeline.value)
+
+
+def test_17_f3_initial_window_remains_frozen() -> None:
+    """F3: No prior lineage + start date other than 2026-10-01 must fail."""
+    # Frozen start passes
+    validate_evaluation_window_shift("2026-10-01", prior_oos_end_timestamp=None)
+    validate_evaluation_window_shift("2026-10-01T13:30:00Z", prior_oos_end_timestamp=None)
+
+    # Shifted start fails
+    with pytest.raises(V2OOSEvaluationError) as exc_info:
+        validate_evaluation_window_shift("2026-10-05", prior_oos_end_timestamp=None)
+    assert "differs from frozen boundary" in str(exc_info.value)
+
+
+def test_18_f4_continuation_window_may_move_forward() -> None:
+    """F4: With prior endpoint 2026-10-02T19:59:00Z, a new start such as 2026-10-05 must pass."""
+    validate_evaluation_window_shift(
+        nominal_start="2026-10-05",
+        prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+    )
+    validate_evaluation_window_shift(
+        nominal_start="2026-10-05T13:30:00Z",
+        prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+    )
+
+
+def test_19_f5_continuation_overlap_is_rejected() -> None:
+    """F5: Any bar at or before the prior endpoint must fail."""
+    prior_endpoint = datetime(2026, 10, 2, 19, 59, tzinfo=UTC)
+
+    # Bar exactly at endpoint
+    bar_at_endpoint = _make_bar("MU", prior_endpoint, 100.0)
+    with pytest.raises(V2OOSChronologyError) as exc_info_1:
+        validate_continuation_chronology({"MU": [bar_at_endpoint]}, prior_oos_end=prior_endpoint)
+    assert "on or before prior accepted OOS endpoint" in str(exc_info_1.value)
+
+    # Bar prior to endpoint
+    bar_before = _make_bar("MU", datetime(2026, 10, 2, 18, 0, tzinfo=UTC), 100.0)
+    with pytest.raises(V2OOSChronologyError) as exc_info_2:
+        validate_continuation_chronology({"MU": [bar_before]}, prior_oos_end=prior_endpoint)
+    assert "on or before prior accepted OOS endpoint" in str(exc_info_2.value)
+
+    # In window validation, start_dt <= prior_dt must fail
+    with pytest.raises(V2OOSEvaluationError) as exc_info_window:
+        validate_evaluation_window_shift(
+            "2026-10-02T19:59:00Z", prior_oos_end_timestamp="2026-10-02T19:59:00Z"
+        )
+    assert "on or before prior accepted OOS endpoint" in str(exc_info_window.value)
+
+
+def test_20_f6_continuation_after_endpoint_is_accepted() -> None:
+    """F6: Synthetic unit fixture with all bars strictly after prior endpoint must pass."""
+    prior_endpoint = datetime(2026, 10, 2, 19, 59, tzinfo=UTC)
+    bars = {
+        "MU": [
+            _make_bar("MU", datetime(2026, 10, 5, 13, 30 + i, tzinfo=UTC), 100.0)
+            for i in range(5)
+        ],
+        "SNDK": [
+            _make_bar("SNDK", datetime(2026, 10, 5, 13, 30 + i, tzinfo=UTC), 50.0)
+            for i in range(5)
+        ],
+        "SKHY": [
+            _make_bar("SKHY", datetime(2026, 10, 5, 13, 30 + i, tzinfo=UTC), 25.0)
+            for i in range(5)
+        ],
+    }
+    validate_continuation_chronology(bars, prior_oos_end=prior_endpoint)
+
+
+def test_21_f7_historical_cutoff_still_applies_to_continuation() -> None:
+    """F7: Continuation data at or before 2026-09-30 must fail regardless of prior endpoint."""
+    prior_endpoint = datetime(2026, 10, 2, 19, 59, tzinfo=UTC)
+    hist_bar = _make_bar("MU", datetime(2026, 9, 30, 23, 59, 59, tzinfo=UTC), 100.0)
+
+    with pytest.raises(V2OOSChronologyError) as exc_info:
+        validate_continuation_chronology({"MU": [hist_bar]}, prior_oos_end=prior_endpoint)
+    assert "violates chronology cutoff" in str(exc_info.value)
+
+    with pytest.raises(V2OOSChronologyError) as exc_info_win:
+        validate_evaluation_window_shift(
+            "2026-09-30", prior_oos_end_timestamp="2026-10-02T19:59:00Z"
+        )
+    assert "on or before historical cutoff" in str(exc_info_win.value)
+
+
+def test_22_f8_new_run_id_protection_and_no_overwrite() -> None:
+    """F8: Continuation cannot overwrite an existing run directory or equal prior run ID."""
+    # Attempting to reuse prior run ID as new run ID
+    with pytest.raises(V2OOSEvaluationError) as exc_same:
+        run_v2_oos_pipeline(
+            config_path=Path("configs/v2_oos_frozen.yaml"),
+            data_dir=Path("data/processed_oos"),
+            prior_oos_run_id="bb0887e4",
+            prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+            run_id="bb0887e4",
+        )
+    assert "cannot equal prior accepted OOS run ID" in str(exc_same.value)
+
+    # Attempting to assign run_id of existing run (bb0887e4 artifacts exist)
+    with pytest.raises(V2OOSEvaluationError) as exc_exists:
+        run_v2_oos_pipeline(
+            config_path=Path("configs/v2_oos_frozen.yaml"),
+            data_dir=Path("data/processed_oos"),
+            run_id="bb0887e4",
+        )
+    assert "already exist" in str(exc_exists.value)
+
+
+def test_23_f9_prior_lineage_serialization() -> None:
+    """F9: Prior lineage fields serialize to JSON and Markdown."""
+    dummy_res = V2BacktestResult(
+        mode="V2-A",
+        initial_cash=100000.0,
+        final_equity=105000.0,
+        total_net_pnl=5000.0,
+        total_return_pct=5.0,
+        max_drawdown_pct=1.5,
+        core_starting_value=59000.0,
+        core_ending_value=64000.0,
+        effective_start_timestamp="2026-10-05T13:30:00Z",
+        evaluation_end_timestamp="2026-10-06T19:59:00Z",
+    )
+    result = V2OOSComparisonResult(
+        run_id="test_cont_1",
+        created_at_utc="2026-10-06T20:00:00Z",
+        execution_code_sha="30473ee",
+        artifact_content_commit_sha="c691672",
+        provenance_finalization_commit_sha="81d9649",
+        git_sha="30473ee",
+        accounting_tolerance=ACCOUNTING_TOLERANCE,
+        dataset_id="massive_stocks_1m_oos_test",
+        aggregate_data_hash="abc123hash",
+        nominal_date_range="2026-10-05 to 2026-10-06",
+        effective_evaluation_start="2026-10-05T13:30:00Z",
+        evaluation_end_timestamp="2026-10-06T19:59:00Z",
+        evaluation_status="PRISTINE_PROSPECTIVE_OOS",
+        sample_status="PHASE_M_PRISTINE_OOS_INSUFFICIENT_SAMPLE",
+        interpretation_class="NEUTRAL / INCONCLUSIVE",
+        complete_sessions_count=2,
+        prior_oos_run_id="bb0887e4",
+        prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+        incremental_sessions_count=2,
+        cumulative_sessions_count=4,
+        v2_a_core_only=dummy_res,
+        v2_b_core_tactical=dummy_res,
+        v2_c_core_tactical_margin=dummy_res,
+        tactical_net_contribution_unlevered=0.0,
+        tactical_net_contribution_margin=0.0,
+    )
+    dumped = result.model_dump()
+    assert dumped["prior_oos_run_id"] == "bb0887e4"
+    assert dumped["prior_oos_end_timestamp"] == "2026-10-02T19:59:00Z"
+    assert dumped["incremental_sessions_count"] == 2
+    assert dumped["cumulative_sessions_count"] == 4
+
+    md = generate_oos_markdown_report(result)
+    assert "**Prior OOS Run ID:** `bb0887e4`" in md
+    assert "**Prior OOS End Timestamp:** `2026-10-02T19:59:00Z`" in md
+    assert "**Incremental Complete Sessions:** `2`" in md
+    assert "**Cumulative Complete Sessions:** `4`" in md
+
+
+def test_24_f10_provenance_taxonomy_and_semantic_distinction() -> None:
+    """F10 & Repair A4: Continuation result has 3 distinct SHAs and no artifact_commit_sha."""
+    dummy_res = V2BacktestResult(
+        mode="V2-A",
+        initial_cash=100000.0,
+        final_equity=105000.0,
+        total_net_pnl=5000.0,
+        total_return_pct=5.0,
+        max_drawdown_pct=1.5,
+        core_starting_value=59000.0,
+        core_ending_value=64000.0,
+        effective_start_timestamp="2026-10-05T13:30:00Z",
+        evaluation_end_timestamp="2026-10-06T19:59:00Z",
+    )
+    result = V2OOSComparisonResult(
+        run_id="tax_check",
+        created_at_utc="2026-10-06T20:00:00Z",
+        execution_code_sha="30473ee",
+        artifact_content_commit_sha="c691672",
+        provenance_finalization_commit_sha="81d9649",
+        git_sha="30473ee",
+        accounting_tolerance=ACCOUNTING_TOLERANCE,
+        dataset_id="massive_stocks_1m_oos_test",
+        aggregate_data_hash="abc123hash",
+        nominal_date_range="2026-10-05 to 2026-10-06",
+        effective_evaluation_start="2026-10-05T13:30:00Z",
+        evaluation_end_timestamp="2026-10-06T19:59:00Z",
+        evaluation_status="PRISTINE_PROSPECTIVE_OOS",
+        sample_status="PHASE_M_PRISTINE_OOS_INSUFFICIENT_SAMPLE",
+        interpretation_class="NEUTRAL / INCONCLUSIVE",
+        complete_sessions_count=2,
+        v2_a_core_only=dummy_res,
+        v2_b_core_tactical=dummy_res,
+        v2_c_core_tactical_margin=dummy_res,
+        tactical_net_contribution_unlevered=0.0,
+        tactical_net_contribution_margin=0.0,
+    )
+    dumped = result.model_dump()
+    assert dumped["execution_code_sha"] == "30473ee"
+    assert dumped["artifact_content_commit_sha"] == "c691672"
+    assert dumped["provenance_finalization_commit_sha"] == "81d9649"
+    # Strict semantic distinction (execution != content != finalization)
+    assert dumped["execution_code_sha"] != dumped["artifact_content_commit_sha"]
+    assert dumped["artifact_content_commit_sha"] != dumped["provenance_finalization_commit_sha"]
+    assert dumped["execution_code_sha"] != dumped["provenance_finalization_commit_sha"]
+    assert "artifact_commit_sha" not in dumped
+
+
+def test_25_f11_frozen_strategy_fingerprint_enforced_in_continuation() -> None:
+    """F11: Altering strategy/cost parameters still fails even when continuation window is valid."""
+    validate_evaluation_window_shift(
+        nominal_start="2026-10-05",
+        prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+    )
+
+    altered_sig = V2DirectionalConfig(
+        impulse_lookback_bars=30,
+        min_impulse_pct=0.025,
+        pullback_depth_fraction=0.500,
+        stabilization_bars=5,
+        tactical_scale_out_ratio=0.50,
+        stop_buffer_pct=0.002,
+        rebound_target_ratio=0.50,
+        trend_filter=True,
+    )
+    cost = CostConfig(equity_commission_bps=0.0, equity_slippage_bps=5.0)
+    with pytest.raises(V2OOSParameterFingerprintError):
+        validate_parameter_fingerprint(altered_sig, cost, max_leverage=2.0)
+
+    frozen_sig = V2DirectionalConfig(
+        impulse_lookback_bars=30,
+        min_impulse_pct=0.020,
+        pullback_depth_fraction=0.500,
+        stabilization_bars=5,
+        tactical_scale_out_ratio=0.50,
+        stop_buffer_pct=0.002,
+        rebound_target_ratio=0.50,
+        trend_filter=True,
+    )
+    altered_cost = CostConfig(equity_commission_bps=2.0, equity_slippage_bps=5.0)
+    with pytest.raises(V2OOSParameterFingerprintError):
+        validate_parameter_fingerprint(frozen_sig, altered_cost, max_leverage=2.0)
+

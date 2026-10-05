@@ -136,31 +136,84 @@ def validate_continuation_chronology(
     if prior_oos_end is not None:
         prior_dt = prior_oos_end if prior_oos_end.tzinfo else prior_oos_end.replace(tzinfo=UTC)
         for sym, bar_list in bars.items():
-            if not bar_list:
-                continue
-            first_bar_dt = (
-                bar_list[0].timestamp
-                if bar_list[0].timestamp.tzinfo
-                else bar_list[0].timestamp.replace(tzinfo=UTC)
-            )
-            if first_bar_dt <= prior_dt:
-                raise V2OOSChronologyError(
-                    f"Continuation data for {sym} starts at {first_bar_dt.isoformat()}, "
-                    f"which is on or before prior accepted OOS endpoint {prior_dt.isoformat()}. "
-                    "Backward or overlapping chronology is strictly prohibited."
+            for bar in bar_list:
+                bar_dt = (
+                    bar.timestamp
+                    if bar.timestamp.tzinfo
+                    else bar.timestamp.replace(tzinfo=UTC)
                 )
+                if bar_dt <= prior_dt:
+                    raise V2OOSChronologyError(
+                        f"Continuation data for {sym} contains bar at {bar_dt.isoformat()}, "
+                        f"which is on or before prior accepted OOS endpoint "
+                        f"{prior_dt.isoformat()}. "
+                        "Backward or overlapping chronology is strictly prohibited."
+                    )
 
 
 def validate_evaluation_window_shift(
     nominal_start: str,
     expected_start: str = "2026-10-01",
+    prior_oos_end_timestamp: str | None = None,
 ) -> None:
-    """Prevents performance-based evaluation window shifting."""
-    date_part = nominal_start.split("T")[0] if "T" in nominal_start else nominal_start
-    if date_part != expected_start:
+    """Prevents performance-based evaluation window shifting.
+
+    For initial prospective runs (no prior lineage), nominal_start must match
+    expected_start ('2026-10-01').
+    For continuation runs, nominal_start must be strictly after the prior accepted
+    OOS endpoint and strictly after the historical cutoff (2026-09-30T23:59:59Z).
+    """
+    if prior_oos_end_timestamp is None:
+        date_part = nominal_start.split("T")[0] if "T" in nominal_start else nominal_start
+        if date_part != expected_start:
+            raise V2OOSEvaluationError(
+                f"Nominal evaluation start '{nominal_start}' differs from frozen boundary "
+                f"'{expected_start}'. Performance-based window shifting is strictly prohibited."
+            )
+        return
+
+    try:
+        if "T" in nominal_start:
+            start_dt = datetime.fromisoformat(nominal_start.replace("Z", "+00:00"))
+        else:
+            start_dt = datetime.fromisoformat(f"{nominal_start}T00:00:00+00:00")
+        if start_dt.tzinfo is None:
+            start_dt = start_dt.replace(tzinfo=UTC)
+    except Exception as e:
+        raise V2OOSEvaluationError(f"Invalid nominal_start format '{nominal_start}': {e}") from e
+
+    try:
+        prior_dt = datetime.fromisoformat(prior_oos_end_timestamp.replace("Z", "+00:00"))
+        if prior_dt.tzinfo is None:
+            prior_dt = prior_dt.replace(tzinfo=UTC)
+    except Exception as e:
         raise V2OOSEvaluationError(
-            f"Nominal evaluation start '{nominal_start}' differs from frozen boundary "
-            f"'{expected_start}'. Performance-based window shifting is strictly prohibited."
+            f"Invalid prior_oos_end_timestamp format '{prior_oos_end_timestamp}': {e}"
+        ) from e
+
+    if start_dt <= OOS_CHRONOLOGY_CUTOFF:
+        raise V2OOSChronologyError(
+            f"Continuation evaluation start '{nominal_start}' ({start_dt.isoformat()}) "
+            f"is on or before historical cutoff {OOS_CHRONOLOGY_CUTOFF.isoformat()}."
+        )
+
+    if start_dt <= prior_dt:
+        raise V2OOSEvaluationError(
+            f"Continuation evaluation start '{nominal_start}' ({start_dt.isoformat()}) "
+            f"is on or before prior accepted OOS endpoint {prior_dt.isoformat()}. "
+            "Overlapping or backwards continuation windows are strictly prohibited."
+        )
+
+
+def validate_continuation_lineage_args(
+    prior_oos_run_id: str | None = None,
+    prior_oos_end_timestamp: str | None = None,
+) -> None:
+    """Enforces paired continuation lineage parameters."""
+    if bool(prior_oos_run_id) != bool(prior_oos_end_timestamp):
+        raise V2OOSEvaluationError(
+            "Continuation lineage parameters must be paired: both --prior-oos-run-id and "
+            "--prior-oos-end-timestamp must be provided together, or neither."
         )
 
 
@@ -289,7 +342,17 @@ def generate_oos_markdown_report(result: V2OOSComparisonResult) -> str:
         f"**Effective Evaluation Start:** `{result.effective_evaluation_start}`  ",
         f"**Evaluation End:** `{result.evaluation_end_timestamp}`  ",
         f"**Historical Control Run:** `{result.historical_control_run_id}`  ",
-        "",
+    ]
+
+    if result.prior_oos_run_id:
+        lines.extend([
+            f"**Prior OOS Run ID:** `{result.prior_oos_run_id}`  ",
+            f"**Prior OOS End Timestamp:** `{result.prior_oos_end_timestamp}`  ",
+            f"**Incremental Complete Sessions:** `{result.incremental_sessions_count}`  ",
+            f"**Cumulative Complete Sessions:** `{result.cumulative_sessions_count}`  ",
+        ])
+
+    lines.extend([
         "---",
         "",
         "## 1. Research Scope & Mandatory Epistemic Gates",
@@ -385,12 +448,21 @@ def generate_oos_markdown_report(result: V2OOSComparisonResult) -> str:
         "",
         "> [!NOTE]",
         "> **Sample Size & Scientific Inference:**",
-        f"> The evaluated prospective window contains {result.complete_sessions_count} "
-        f"complete regular trading sessions, which is below the pre-registered threshold "
-        f"of {MINIMUM_OOS_SESSIONS} sessions required to declare a conclusive scientific "
-        "result. The metrics above represent prospective monitoring observations rather "
-        "than a finalized validation. The result is NEUTRAL / INCONCLUSIVE and can neither "
-        "confirm nor refute the historical edge.",
+        (
+            f"> The evaluated prospective window contains {result.complete_sessions_count} "
+            f"complete regular trading sessions, which is below the pre-registered threshold "
+            f"of {MINIMUM_OOS_SESSIONS} sessions required to declare a conclusive scientific "
+            "result. The metrics above represent prospective monitoring observations rather "
+            "than a finalized validation. The result is NEUTRAL / INCONCLUSIVE and can neither "
+            "confirm nor refute the historical edge."
+            if result.complete_sessions_count < MINIMUM_OOS_SESSIONS
+            else (
+                f"> The evaluated prospective window contains {result.complete_sessions_count} "
+                f"complete regular trading sessions, satisfying the pre-registered threshold "
+                f"of {MINIMUM_OOS_SESSIONS} sessions. The observed result is classified as "
+                f"'{result.interpretation_class}'."
+            )
+        ),
         "",
         "---",
         "",
@@ -402,7 +474,11 @@ def generate_oos_markdown_report(result: V2OOSComparisonResult) -> str:
         "| **Targeted OOS suite** | `pytest tests/test_v2_oos_validation.py` | PASS |",
         "| **Static Linter** | `ruff check .` | PASS |",
         "| **Environment Doctor** | `run.ps1 doctor` | PASS |",
-        "| **Data Doctor** | `run.ps1 doctor-data` | PASS |",
+        (
+            "| **OOS Data Doctor** | "
+            "`run.ps1 doctor-data -DataDir data/processed_oos "
+            "-Config configs/v2_oos_frozen.yaml` | PASS |"
+        ),
         "| **Git Status** | `git status --short` | CLEAN |",
         f"| **Pre-Evaluation Boundary** | `EXECUTION_CODE_SHA` | `{result.execution_code_sha}` |",
         (
@@ -414,7 +490,7 @@ def generate_oos_markdown_report(result: V2OOSComparisonResult) -> str:
             f"`{result.provenance_finalization_commit_sha or 'UNAVAILABLE'}` |"
         ),
         "",
-    ]
+    ])
     return "\n".join(lines)
 
 
@@ -426,8 +502,35 @@ def run_v2_oos_pipeline(
     provenance_finalization_commit_sha: str | None = None,
     prior_oos_run_id: str | None = None,
     prior_oos_end_timestamp: str | None = None,
+    run_id: str | None = None,
 ) -> Path:
     """Executes the complete Phase M prospective OOS research pipeline."""
+    # 0. Early parameter & identity checks
+    validate_continuation_lineage_args(prior_oos_run_id, prior_oos_end_timestamp)
+
+    assigned_run_id = run_id or str(uuid.uuid4())[:8]
+    if prior_oos_run_id and assigned_run_id == prior_oos_run_id:
+        raise V2OOSEvaluationError(
+            f"New run ID '{assigned_run_id}' cannot equal prior accepted OOS run ID "
+            f"'{prior_oos_run_id}'. Continuation requires a fresh, distinct run identity."
+        )
+
+    out_dir = Path("reports/v2_oos")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    json_path = out_dir / f"{assigned_run_id}.json"
+    md_path = out_dir / f"{assigned_run_id}.md"
+    archive_dir = Path(f"reports/fidelity_runs/v2_oos_{assigned_run_id}")
+
+    hist_json = Path("reports/v2_historical_comparison.json").resolve()
+    hist_md = Path("reports/V2_HISTORICAL_COMPARISON.md").resolve()
+    if json_path.resolve() == hist_json or md_path.resolve() == hist_md:
+        raise V2OOSEvaluationError("OOS runner attempt to overwrite historical baseline rejected.")
+    if json_path.exists() or md_path.exists() or archive_dir.exists():
+        raise V2OOSEvaluationError(
+            f"Run ID '{assigned_run_id}' or its artifacts already exist. "
+            "Overwriting accepted runs is strictly prohibited. Every run requires a unique ID."
+        )
+
     cfg = load_config(config_path)
 
     # 1. Load data
@@ -447,13 +550,26 @@ def run_v2_oos_pipeline(
     # 2. Strict Pre-Run Validations
     validate_oos_universe(list(data.keys()))
     if prior_oos_end_timestamp:
-        prior_dt = datetime.fromisoformat(prior_oos_end_timestamp.replace("Z", "+00:00"))
+        try:
+            if "T" in prior_oos_end_timestamp:
+                prior_dt = datetime.fromisoformat(prior_oos_end_timestamp.replace("Z", "+00:00"))
+            else:
+                prior_dt = datetime.fromisoformat(f"{prior_oos_end_timestamp}T00:00:00+00:00")
+            if prior_dt.tzinfo is None:
+                prior_dt = prior_dt.replace(tzinfo=UTC)
+        except Exception as e:
+            raise V2OOSEvaluationError(
+                f"Invalid prior_oos_end_timestamp format '{prior_oos_end_timestamp}': {e}"
+            ) from e
         validate_continuation_chronology(data, prior_oos_end=prior_dt)
     else:
         validate_oos_chronology(data)
 
     if cfg.research.start:
-        validate_evaluation_window_shift(cfg.research.start)
+        validate_evaluation_window_shift(
+            cfg.research.start,
+            prior_oos_end_timestamp=prior_oos_end_timestamp,
+        )
 
     sig_cfg = V2DirectionalConfig(
         impulse_lookback_bars=30,
@@ -511,7 +627,31 @@ def run_v2_oos_pipeline(
         complete_sessions=sessions_count,
     )
 
-    run_id = str(uuid.uuid4())[:8]
+    incremental_sessions: int | None = None
+    cumulative_sessions: int | None = None
+    if prior_oos_run_id:
+        incremental_sessions = sessions_count
+        prior_json = Path(f"reports/v2_oos/{prior_oos_run_id}.json")
+        if not prior_json.exists():
+            prior_json = Path(
+                f"reports/fidelity_runs/v2_oos_{prior_oos_run_id}/{prior_oos_run_id}.json"
+            )
+        if prior_json.exists():
+            try:
+                import json as _json
+
+                prior_data = _json.loads(prior_json.read_text(encoding="utf-8"))
+                prior_cum = (
+                    prior_data.get("cumulative_sessions_count")
+                    or prior_data.get("complete_sessions_count")
+                    or 0
+                )
+                cumulative_sessions = prior_cum + sessions_count
+            except Exception:
+                cumulative_sessions = sessions_count
+        else:
+            cumulative_sessions = sessions_count
+
     exec_sha = execution_code_sha or os.environ.get("EXECUTION_CODE_SHA") or get_git_sha()
     artifact_sha = (
         artifact_content_commit_sha
@@ -523,7 +663,7 @@ def run_v2_oos_pipeline(
     )
 
     comparison_result = V2OOSComparisonResult(
-        run_id=run_id,
+        run_id=assigned_run_id,
         created_at_utc=datetime.now(UTC).isoformat(),
         execution_code_sha=exec_sha,
         artifact_content_commit_sha=artifact_sha,
@@ -542,6 +682,8 @@ def run_v2_oos_pipeline(
         complete_sessions_count=sessions_count,
         prior_oos_run_id=prior_oos_run_id,
         prior_oos_end_timestamp=prior_oos_end_timestamp,
+        incremental_sessions_count=incremental_sessions,
+        cumulative_sessions_count=cumulative_sessions,
         v2_a_core_only=res_a,
         v2_b_core_tactical=res_b,
         v2_c_core_tactical_margin=res_c,
@@ -550,24 +692,6 @@ def run_v2_oos_pipeline(
     )
 
     # 4. Save Isolated OOS Outputs (Never overwrite historical Run 24a9e783)
-    out_dir = Path("reports/v2_oos")
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    json_path = out_dir / f"{run_id}.json"
-    md_path = out_dir / f"{run_id}.md"
-    archive_dir = Path(f"reports/fidelity_runs/v2_oos_{run_id}")
-
-    # Overwrite protection: prevent overwriting accepted OOS runs or historical control
-    hist_json = Path("reports/v2_historical_comparison.json").resolve()
-    hist_md = Path("reports/V2_HISTORICAL_COMPARISON.md").resolve()
-    if json_path.resolve() == hist_json or md_path.resolve() == hist_md:
-        raise V2OOSEvaluationError("OOS runner attempt to overwrite historical baseline rejected.")
-    if json_path.exists() or md_path.exists() or archive_dir.exists():
-        raise V2OOSEvaluationError(
-            f"Run ID '{run_id}' or its artifacts already exist. "
-            "Overwriting accepted runs is strictly prohibited. Every run requires a unique ID."
-        )
-
     with open(json_path, "w", encoding="utf-8") as f:
         f.write(comparison_result.model_dump_json(indent=2))
 
@@ -577,13 +701,13 @@ def run_v2_oos_pipeline(
 
     # Archival preservation bundle
     archive_dir.mkdir(parents=True, exist_ok=True)
-    with open(archive_dir / f"{run_id}.json", "w", encoding="utf-8") as f:
+    with open(archive_dir / f"{assigned_run_id}.json", "w", encoding="utf-8") as f:
         f.write(comparison_result.model_dump_json(indent=2))
-    with open(archive_dir / f"{run_id}.md", "w", encoding="utf-8") as f:
+    with open(archive_dir / f"{assigned_run_id}.md", "w", encoding="utf-8") as f:
         f.write(md_content)
     with open(archive_dir / "PRESERVATION_NOTE.md", "w", encoding="utf-8") as f:
         f.write(
-            f"# Preservation Note — Phase M Prospective OOS Run {run_id}\n\n"
+            f"# Preservation Note — Phase M Prospective OOS Run {assigned_run_id}\n\n"
             f"- Date Generated: {datetime.now(UTC).isoformat()}\n"
             f"- Execution Code SHA: `{exec_sha}`\n"
             f"- Artifact Content Commit SHA: `{artifact_sha or 'UNAVAILABLE'}`\n"
@@ -600,7 +724,7 @@ def run_v2_oos_pipeline(
 
     print("\n===============================================================================")
     print("PHASE M PROSPECTIVE OOS VALIDATION RUN COMPLETED")
-    print(f"Run ID: {run_id}")
+    print(f"Run ID: {assigned_run_id}")
     print(f"Sample Completeness: {sample_status} ({sessions_count} sessions)")
     print(f"Scientific Interpretation: {interp_class}")
     print("Reports persisted:")
@@ -633,6 +757,21 @@ def build_argument_parser() -> argparse.ArgumentParser:
         default=None,
         help="Explicit provenance finalization commit Git SHA",
     )
+    parser.add_argument(
+        "--prior-oos-run-id",
+        default=None,
+        help="Prior accepted prospective OOS run ID for continuation lineage",
+    )
+    parser.add_argument(
+        "--prior-oos-end-timestamp",
+        default=None,
+        help="Prior accepted prospective OOS end timestamp (ISO 8601)",
+    )
+    parser.add_argument(
+        "--run-id",
+        default=None,
+        help="Optional explicit fresh run ID (must not collide with any existing run)",
+    )
     return parser
 
 
@@ -641,12 +780,19 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
+        validate_continuation_lineage_args(
+            prior_oos_run_id=args.prior_oos_run_id,
+            prior_oos_end_timestamp=args.prior_oos_end_timestamp,
+        )
         run_v2_oos_pipeline(
             config_path=Path(args.config),
             data_dir=Path(args.data_dir),
             execution_code_sha=args.execution_code_sha,
             artifact_content_commit_sha=args.artifact_content_commit_sha,
             provenance_finalization_commit_sha=args.provenance_finalization_commit_sha,
+            prior_oos_run_id=args.prior_oos_run_id,
+            prior_oos_end_timestamp=args.prior_oos_end_timestamp,
+            run_id=args.run_id,
         )
     except Exception as e:
         print(f"Error during Phase M OOS execution: {e}", file=sys.stderr)

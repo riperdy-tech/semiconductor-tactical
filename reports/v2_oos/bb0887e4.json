@@ -3,7 +3,7 @@
   "created_at_utc": "2026-10-04T13:44:02.847266+00:00",
   "execution_code_sha": "30473ee",
   "artifact_content_commit_sha": "c691672",
-  "provenance_finalization_commit_sha": null,
+  "provenance_finalization_commit_sha": "81d9649",
   "git_sha": "30473ee",
   "accounting_tolerance": 0.001,
   "dataset_id": "massive_stocks_1m_c857b18f710f",
