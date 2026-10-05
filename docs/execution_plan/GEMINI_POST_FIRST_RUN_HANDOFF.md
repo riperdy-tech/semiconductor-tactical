@@ -794,3 +794,44 @@ Global statuses remain:
 After one valid continuation performance run:
 
 **STOP SOFTWARE CHANGES** and proceed to cross-track research interpretation only.
+
+
+# Phase M — Structural OOS Data Acquisition / Validation Only
+
+Before the next frozen continuation performance run, execute:
+
+`docs/execution_plan/REDDIT_V2_PHASE_M_STRUCTURAL_OOS_DATA_ACQUISITION_VALIDATION_PLAN.md`
+
+This is **data acquisition and structural validation only**.
+
+Hard rules:
+
+- do not execute V2-A/B/C;
+- do not inspect new strategy P&L or trade-level performance;
+- do not rerun `bb0887e4`;
+- do not modify `configs/v2_oos_frozen.yaml`;
+- do not change strategy parameters, costs, margin, execution, or universe;
+- do not merge new chronology into `bb0887e4`;
+- count only genuinely complete MU/SNDK/SKHY regular-trading sessions;
+- the preregistered threshold remains **20 complete sessions**;
+- partial/in-progress sessions do not count and must not enter a performance run.
+
+Chronology gate:
+
+`bar.timestamp > 2026-10-02T19:59:00Z`
+
+Structural work must validate source identity, dataset ID, timestamps, RTH coverage, missing bars, duplicates, chronology, cross-symbol coverage, per-symbol SHA256, aggregate SHA256, and provenance.
+
+Use these classifications:
+
+- `PHASE_M_STRUCTURAL_OOS_INSUFFICIENT_SAMPLE` when fewer than 20 complete sessions exist;
+- `PHASE_M_STRUCTURAL_OOS_PERFORMANCE_GATE_READY` when 20+ complete sessions pass all structural gates;
+- `PHASE_M_STRUCTURAL_OOS_INVALID` when any structural/provenance gate fails.
+
+Even when the performance gate is ready, **do not automatically execute the backtest**. Preserve the structural manifest and stop. A separate frozen continuation performance execution remains required.
+
+Explicit completion requirement:
+
+**NO PERFORMANCE RUN EXECUTED**
+
+**NO PARAMETERS OR STRATEGY LOGIC CHANGED**
