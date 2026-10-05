@@ -545,10 +545,15 @@ def test_16_f2_paired_lineage_requirement() -> None:
 
 
 def test_17_f3_initial_window_remains_frozen() -> None:
-    """F3: No prior lineage + start date other than 2026-10-01 must fail."""
-    # Frozen start passes
+    """F3: No prior lineage + start date other than exact frozen boundary must fail."""
+    # Frozen start passes (both date-only midnight normalization and exact ISO timestamp)
     validate_evaluation_window_shift("2026-10-01", prior_oos_end_timestamp=None)
-    validate_evaluation_window_shift("2026-10-01T13:30:00Z", prior_oos_end_timestamp=None)
+    validate_evaluation_window_shift("2026-10-01T00:00:00Z", prior_oos_end_timestamp=None)
+
+    # Intraday start fails
+    with pytest.raises(V2OOSEvaluationError) as exc_intra:
+        validate_evaluation_window_shift("2026-10-01T13:30:00Z", prior_oos_end_timestamp=None)
+    assert "differs from frozen boundary" in str(exc_intra.value)
 
     # Shifted start fails
     with pytest.raises(V2OOSEvaluationError) as exc_info:
@@ -1059,5 +1064,178 @@ def test_37_m13_t12_existing_run_protection() -> None:
             end="2026-10-05T23:59:59Z",
         )
     assert "cannot equal prior accepted OOS run ID" in str(exc_same.value)
+
+
+# ==============================================================================
+# Phase M.1.4 Regression Tests (Exact Initial Freeze-Boundary Enforcement)
+# ==============================================================================
+
+
+def test_38_m14_exact_initial_start_passes() -> None:
+    """M1.4 - 1: Exact initial start matches frozen config instant."""
+    start, end = validate_evaluation_window(
+        start="2026-10-01T00:00:00Z",
+        end="2026-10-31T23:59:59Z",
+        frozen_config_start="2026-10-01T00:00:00Z",
+        frozen_config_end="2026-10-31T23:59:59Z",
+        prior_oos_end_timestamp=None,
+    )
+    assert start == "2026-10-01T00:00:00Z"
+    assert end == "2026-10-31T23:59:59Z"
+
+
+def test_39_m14_start_one_minute_later_fails() -> None:
+    """M1.4 - 2: Initial start one minute after frozen boundary fails."""
+    with pytest.raises(V2OOSEvaluationError) as exc_info:
+        validate_evaluation_window(
+            start="2026-10-01T00:01:00Z",
+            end=None,
+            frozen_config_start="2026-10-01T00:00:00Z",
+            frozen_config_end="2026-10-31T23:59:59Z",
+            prior_oos_end_timestamp=None,
+        )
+    assert "differs from frozen boundary" in str(exc_info.value)
+
+
+def test_40_m14_same_day_intraday_start_fails() -> None:
+    """M1.4 - 3: Same-day intraday start (e.g. 13:30 market open) fails for initial run."""
+    with pytest.raises(V2OOSEvaluationError) as exc_info:
+        validate_evaluation_window(
+            start="2026-10-01T13:30:00Z",
+            end=None,
+            frozen_config_start="2026-10-01T00:00:00Z",
+            frozen_config_end="2026-10-31T23:59:59Z",
+            prior_oos_end_timestamp=None,
+        )
+    assert "differs from frozen boundary" in str(exc_info.value)
+
+
+def test_41_m14_exact_initial_end_passes() -> None:
+    """M1.4 - 4: Exact initial end matches frozen config instant."""
+    start, end = validate_evaluation_window(
+        start=None,
+        end="2026-10-31T23:59:59Z",
+        frozen_config_start="2026-10-01T00:00:00Z",
+        frozen_config_end="2026-10-31T23:59:59Z",
+        prior_oos_end_timestamp=None,
+    )
+    assert start == "2026-10-01T00:00:00Z"
+    assert end == "2026-10-31T23:59:59Z"
+
+
+def test_42_m14_end_one_second_earlier_fails() -> None:
+    """M1.4 - 5: Initial end one second earlier than frozen boundary fails."""
+    with pytest.raises(V2OOSEvaluationError) as exc_info:
+        validate_evaluation_window(
+            start=None,
+            end="2026-10-31T23:59:58Z",
+            frozen_config_start="2026-10-01T00:00:00Z",
+            frozen_config_end="2026-10-31T23:59:59Z",
+            prior_oos_end_timestamp=None,
+        )
+    assert "differs from frozen boundary" in str(exc_info.value)
+
+
+def test_43_m14_end_one_second_later_fails() -> None:
+    """M1.4 - 6: Initial end one second later than frozen boundary fails."""
+    with pytest.raises(V2OOSEvaluationError) as exc_info:
+        validate_evaluation_window(
+            start=None,
+            end="2026-11-01T00:00:00Z",
+            frozen_config_start="2026-10-01T00:00:00Z",
+            frozen_config_end="2026-10-31T23:59:59Z",
+            prior_oos_end_timestamp=None,
+        )
+    assert "differs from frozen boundary" in str(exc_info.value)
+
+
+def test_44_m14_date_only_input_normalization() -> None:
+    """M1.4 - 7: Date-only input normalizes to midnight UTC."""
+    # Date-only start normalizes to 00:00:00 UTC and matches frozen start
+    start, _ = validate_evaluation_window(
+        start="2026-10-01",
+        end=None,
+        frozen_config_start="2026-10-01T00:00:00Z",
+        frozen_config_end="2026-10-31T23:59:59Z",
+        prior_oos_end_timestamp=None,
+    )
+    assert start == "2026-10-01"
+
+    # Date-only end normalizes to 00:00:00 UTC, which does NOT match 23:59:59 UTC
+    with pytest.raises(V2OOSEvaluationError) as exc_info:
+        validate_evaluation_window(
+            start=None,
+            end="2026-10-31",
+            frozen_config_start="2026-10-01T00:00:00Z",
+            frozen_config_end="2026-10-31T23:59:59Z",
+            prior_oos_end_timestamp=None,
+        )
+    assert "differs from frozen boundary" in str(exc_info.value)
+
+
+def test_45_m14_equivalent_timezone_instant() -> None:
+    """M1.4 - 8: Non-UTC timestamp representing equivalent instant passes."""
+    # 2026-10-01T09:00:00+09:00 is exactly 2026-10-01T00:00:00 UTC
+    start, _ = validate_evaluation_window(
+        start="2026-10-01T09:00:00+09:00",
+        end=None,
+        frozen_config_start="2026-10-01T00:00:00Z",
+        frozen_config_end="2026-10-31T23:59:59Z",
+        prior_oos_end_timestamp=None,
+    )
+    assert start == "2026-10-01T09:00:00+09:00"
+
+
+def test_46_m14_valid_forward_continuation() -> None:
+    """M1.4 - 9: Continuation forward window operates cleanly without exact freeze restriction."""
+    start, end = validate_evaluation_window(
+        start="2026-10-05T00:00:00Z",
+        end="2026-10-05T23:59:59Z",
+        prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+    )
+    assert start == "2026-10-05T00:00:00Z"
+    assert end == "2026-10-05T23:59:59Z"
+
+
+def test_47_m14_continuation_overlap_rejection() -> None:
+    """M1.4 - 10: Continuation start on or before prior endpoint remains strictly rejected."""
+    with pytest.raises(V2OOSEvaluationError) as exc_overlap:
+        validate_evaluation_window(
+            start="2026-10-02T19:59:00Z",
+            end="2026-10-05T23:59:59Z",
+            prior_oos_end_timestamp="2026-10-02T19:59:00Z",
+        )
+    assert "on or before prior accepted OOS endpoint" in str(exc_overlap.value)
+
+
+def test_48_m14_frozen_yaml_sha_verified() -> None:
+    """M1.4 - 11: Frozen YAML configs/v2_oos_frozen.yaml SHA256 is verified."""
+    import hashlib
+
+    frozen_path = Path("configs/v2_oos_frozen.yaml")
+    expected_sha256 = "be21c7dc0f998cf21310ffb5ffeae39fe039046d80aaa4ee4c656189f44f502a"
+    actual_sha256 = hashlib.sha256(frozen_path.read_bytes()).hexdigest()
+    assert actual_sha256 == expected_sha256
+
+
+def test_49_m14_strategy_fingerprint_remains_unchanged() -> None:
+    """M1.4 - 12: Strategy parameter fingerprint validation remains strictly enforced."""
+    frozen_sig = V2DirectionalConfig(
+        impulse_lookback_bars=30,
+        min_impulse_pct=0.020,
+        pullback_depth_fraction=0.500,
+        stabilization_bars=5,
+        tactical_scale_out_ratio=0.50,
+        stop_buffer_pct=0.002,
+        rebound_target_ratio=0.50,
+        trend_filter=True,
+    )
+    cost = CostConfig(equity_commission_bps=0.0, equity_slippage_bps=5.0)
+    # Valid parameters pass
+    validate_parameter_fingerprint(frozen_sig, cost, max_leverage=2.0)
+
+    # Altered leverage fails
+    with pytest.raises(V2OOSParameterFingerprintError):
+        validate_parameter_fingerprint(frozen_sig, cost, max_leverage=3.0)
 
 

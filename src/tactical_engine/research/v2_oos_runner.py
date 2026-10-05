@@ -193,14 +193,12 @@ def validate_evaluation_window(
         tuple[str, str]: (effective_research_start, effective_research_end)
     """
     if prior_oos_end_timestamp is None:
+        frozen_start_dt = _parse_iso_or_date(frozen_config_start)
+        frozen_end_dt = _parse_iso_or_date(frozen_config_end)
+
         if start is not None:
-            s_date = start.split("T")[0] if "T" in start else start
-            f_s_date = (
-                frozen_config_start.split("T")[0]
-                if "T" in frozen_config_start
-                else frozen_config_start
-            )
-            if s_date != f_s_date:
+            start_dt = _parse_iso_or_date(start)
+            if start_dt != frozen_start_dt:
                 raise V2OOSEvaluationError(
                     f"Nominal evaluation start '{start}' differs from frozen boundary "
                     f"'{frozen_config_start}'. "
@@ -209,15 +207,11 @@ def validate_evaluation_window(
             eff_start = start
         else:
             eff_start = frozen_config_start
+            start_dt = frozen_start_dt
 
         if end is not None:
-            e_date = end.split("T")[0] if "T" in end else end
-            f_e_date = (
-                frozen_config_end.split("T")[0]
-                if "T" in frozen_config_end
-                else frozen_config_end
-            )
-            if e_date != f_e_date:
+            end_dt = _parse_iso_or_date(end)
+            if end_dt != frozen_end_dt:
                 raise V2OOSEvaluationError(
                     f"Nominal evaluation end '{end}' differs from frozen boundary "
                     f"'{frozen_config_end}'. "
@@ -226,9 +220,7 @@ def validate_evaluation_window(
             eff_end = end
         else:
             eff_end = frozen_config_end
-
-        start_dt = _parse_iso_or_date(eff_start)
-        end_dt = _parse_iso_or_date(eff_end)
+            end_dt = frozen_end_dt
 
         if start_dt <= OOS_CHRONOLOGY_CUTOFF:
             raise V2OOSChronologyError(
