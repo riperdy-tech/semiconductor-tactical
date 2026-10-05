@@ -835,3 +835,31 @@ Explicit completion requirement:
 **NO PERFORMANCE RUN EXECUTED**
 
 **NO PARAMETERS OR STRATEGY LOGIC CHANGED**
+
+
+# Remaining Research Tracks — Master Gemini Execution Package
+
+The remaining post-engineering research work is now coordinated by:
+
+`docs/execution_plan/REDDIT_V2_REMAINING_RESEARCH_TRACKS_GEMINI_EXECUTION_PACKAGE.md`
+
+The three tracks are:
+
+- **Phase M:** frozen prospective OOS validation;
+- **Phase N / V2-D:** authentic historical covered-call reconstruction;
+- **Phase O / V2-F:** genuine Level-2 information-set ablation.
+
+Current operating mode:
+
+- Phase M performance is **blocked until the preregistered 20 complete-session gate is satisfied**;
+- Phase M structural acquisition/validation may continue as new chronology becomes available;
+- Phase N data acquisition, lifecycle engineering, and pre-performance freeze work may proceed now;
+- Phase O genuine Level-2 data acquisition, deterministic order-book replay, and pre-performance freeze work may proceed now;
+- N/O headline performance must not be exposed until their authentic-data gates and frozen policies pass;
+- no M/N/O result may be used to tune another track;
+- live production remains a separate, non-research track.
+
+The existing detailed Phase M/N/O packages remain authoritative for implementation-specific requirements. The master package governs sequencing, contamination control, and stop states.
+
+Do not collapse M/N/O into one headline "Reddit strategy return."
+
