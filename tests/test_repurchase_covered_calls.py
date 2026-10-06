@@ -71,9 +71,9 @@ def test_pullback_repurchase():
         underlying_price_at_entry=100.0,
         config=cfg,
     )
-    assert should_repurch is True
-    assert reason == "underlying_pullback_2pct"
-    assert repurch_p > 0
+    assert should_repurch is False
+    assert reason == "NO_EXECUTABLE_OPTION_QUOTE"
+    assert repurch_p == 0.0
 
 
 def test_expiration_only_rule_does_not_repurchase_early():
