@@ -21,6 +21,9 @@ def should_repurchase_covered_call(
     if current_call_quote is None:
         return False, "NO_EXECUTABLE_OPTION_QUOTE", 0.0
 
+    if current_call_quote.symbol != call_position.symbol:
+        return False, "OPTION_CONTRACT_MISMATCH", 0.0
+
     current_ask = current_call_quote.ask
     if current_ask <= 0:
         return False, "NO_EXECUTABLE_OPTION_QUOTE", 0.0
