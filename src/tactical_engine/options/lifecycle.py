@@ -1,15 +1,15 @@
 """Covered-call lifecycle state machine and cash accounting.
 
-The ledger is intentionally isolated from portfolio execution. It provides
-deterministic, auditable transitions that a later V2-D integration can compose
-with V2-C without changing the underlying strategy.
+The lifecycle is immutable: every transition returns a new state snapshot.
+This prevents callers from bypassing coverage, execution, or expiry rules by
+mutating the state object directly.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic import BaseModel, computed_field
 
 from tactical_engine.options.contracts import (
     CoveredCallRecord,
@@ -29,9 +29,7 @@ class CoveredCallTransition(BaseModel, frozen=True):
     reason: str = ""
 
 
-class CoveredCallLifecycle(BaseModel):
-    model_config = ConfigDict(validate_assignment=True)
-
+class CoveredCallLifecycle(BaseModel, frozen=True):
     state: OptionLifecycleState = OptionLifecycleState.AVAILABLE
     history: tuple[OptionLifecycleState, ...] = (OptionLifecycleState.AVAILABLE,)
 
@@ -59,10 +57,6 @@ class CoveredCallLifecycle(BaseModel):
     def notional_shares(self) -> float:
         return float(self.contracts * self.contract_multiplier)
 
-    def _append_state(self, state: OptionLifecycleState) -> None:
-        self.history = (*self.history, state)
-        self.state = state
-
     def sell(
         self,
         quote: OptionQuote,
@@ -70,7 +64,7 @@ class CoveredCallLifecycle(BaseModel):
         contracts: int,
         eligible_underlying_shares: float,
         entry_fee: float = 0.0,
-    ) -> CoveredCallTransition:
+    ) -> tuple["CoveredCallLifecycle", CoveredCallTransition]:
         if self.state != OptionLifecycleState.AVAILABLE:
             raise ValueError(f"Cannot sell a covered call from state {self.state}")
         if quote.contract_type != OptionContractType.CALL:
@@ -87,23 +81,30 @@ class CoveredCallLifecycle(BaseModel):
         if entry_fee < 0:
             raise ValueError("Entry fee cannot be negative")
 
-        self.contract_symbol = quote.symbol
-        self.underlying = quote.underlying
-        self.strike = quote.strike
-        self.expiration = quote.expiration
-        self.contracts = contracts
-        self.contract_multiplier = quote.contract_multiplier
-        self.covered_shares = float(contracts * quote.contract_multiplier)
-        self.entry_time = quote.timestamp
-        self.entry_premium = quote.bid
-        self.entry_fees = entry_fee
-        self.underlying_price_at_entry = quote.underlying_price
+        updated = self.model_copy(
+            update={
+                "state": OptionLifecycleState.OPEN,
+                "history": (
+                    *self.history,
+                    OptionLifecycleState.SOLD,
+                    OptionLifecycleState.OPEN,
+                ),
+                "contract_symbol": quote.symbol,
+                "underlying": quote.underlying,
+                "strike": quote.strike,
+                "expiration": quote.expiration,
+                "contracts": contracts,
+                "contract_multiplier": quote.contract_multiplier,
+                "covered_shares": float(contracts * quote.contract_multiplier),
+                "entry_time": quote.timestamp,
+                "entry_premium": quote.bid,
+                "entry_fees": entry_fee,
+                "underlying_price_at_entry": quote.underlying_price,
+            }
+        )
 
-        self._append_state(OptionLifecycleState.SOLD)
-        self._append_state(OptionLifecycleState.OPEN)
-
-        cash_delta = quote.bid * self.covered_shares - entry_fee
-        return CoveredCallTransition(
+        cash_delta = quote.bid * updated.covered_shares - entry_fee
+        return updated, CoveredCallTransition(
             state_before=OptionLifecycleState.AVAILABLE,
             state_after=OptionLifecycleState.OPEN,
             timestamp=quote.timestamp,
@@ -117,7 +118,7 @@ class CoveredCallLifecycle(BaseModel):
         quote: OptionQuote,
         *,
         exit_fee: float = 0.0,
-    ) -> CoveredCallTransition:
+    ) -> tuple["CoveredCallLifecycle", CoveredCallTransition]:
         if self.state != OptionLifecycleState.OPEN:
             raise ValueError(f"Cannot buy back a covered call from state {self.state}")
         if quote.symbol != self.contract_symbol:
@@ -129,24 +130,30 @@ class CoveredCallLifecycle(BaseModel):
         if exit_fee < 0:
             raise ValueError("Exit fee cannot be negative")
 
-        self.exit_time = quote.timestamp
-        self.exit_premium = quote.ask
-        self.exit_fees = exit_fee
-        self.realized_option_pnl = round(
+        realized_option_pnl = round(
             (self.entry_premium - quote.ask) * self.covered_shares
             - self.entry_fees
             - exit_fee,
             10,
         )
-        self._append_state(OptionLifecycleState.BOUGHT_BACK)
+        updated = self.model_copy(
+            update={
+                "state": OptionLifecycleState.BOUGHT_BACK,
+                "history": (*self.history, OptionLifecycleState.BOUGHT_BACK),
+                "exit_time": quote.timestamp,
+                "exit_premium": quote.ask,
+                "exit_fees": exit_fee,
+                "realized_option_pnl": realized_option_pnl,
+            }
+        )
 
         cash_delta = -(quote.ask * self.covered_shares) - exit_fee
-        return CoveredCallTransition(
+        return updated, CoveredCallTransition(
             state_before=OptionLifecycleState.OPEN,
             state_after=OptionLifecycleState.BOUGHT_BACK,
             timestamp=quote.timestamp,
             cash_delta=cash_delta,
-            realized_option_pnl=self.realized_option_pnl,
+            realized_option_pnl=realized_option_pnl,
             reason="covered_call_bought_back_at_ask",
         )
 
@@ -156,7 +163,7 @@ class CoveredCallLifecycle(BaseModel):
         settlement_time: datetime,
         underlying_close: float,
         assignment_fee: float = 0.0,
-    ) -> CoveredCallTransition:
+    ) -> tuple["CoveredCallLifecycle", CoveredCallTransition]:
         if self.state != OptionLifecycleState.OPEN:
             raise ValueError(f"Cannot settle expiration from state {self.state}")
         if self.expiration is None or settlement_time < self.expiration:
@@ -168,45 +175,40 @@ class CoveredCallLifecycle(BaseModel):
         if assignment_fee < 0:
             raise ValueError("Assignment fee cannot be negative")
 
-        self.exit_time = settlement_time
-        self.exit_premium = 0.0
-        self.exit_fees = assignment_fee
-
-        if underlying_close > self.strike:
-            self.shares_delivered = self.covered_shares
-            self.realized_option_pnl = round(
-                self.entry_premium * self.covered_shares
-                - self.entry_fees
-                - assignment_fee,
-                10,
-            )
-            self._append_state(OptionLifecycleState.ASSIGNED)
-            cash_delta = self.strike * self.covered_shares - assignment_fee
-            return CoveredCallTransition(
-                state_before=OptionLifecycleState.OPEN,
-                state_after=OptionLifecycleState.ASSIGNED,
-                timestamp=settlement_time,
-                cash_delta=cash_delta,
-                realized_option_pnl=self.realized_option_pnl,
-                shares_delivered=self.shares_delivered,
-                reason="expiration_assignment",
-            )
-
-        self.shares_delivered = 0.0
-        self.realized_option_pnl = round(
+        realized_option_pnl = round(
             self.entry_premium * self.covered_shares
             - self.entry_fees
             - assignment_fee,
             10,
         )
-        self._append_state(OptionLifecycleState.EXPIRED)
-        return CoveredCallTransition(
+        is_assigned = underlying_close > self.strike
+        next_state = OptionLifecycleState.ASSIGNED if is_assigned else OptionLifecycleState.EXPIRED
+        shares_delivered = self.covered_shares if is_assigned else 0.0
+        cash_delta = (
+            self.strike * self.covered_shares - assignment_fee
+            if is_assigned
+            else -assignment_fee
+        )
+
+        updated = self.model_copy(
+            update={
+                "state": next_state,
+                "history": (*self.history, next_state),
+                "exit_time": settlement_time,
+                "exit_premium": 0.0,
+                "exit_fees": assignment_fee,
+                "realized_option_pnl": realized_option_pnl,
+                "shares_delivered": shares_delivered,
+            }
+        )
+        return updated, CoveredCallTransition(
             state_before=OptionLifecycleState.OPEN,
-            state_after=OptionLifecycleState.EXPIRED,
+            state_after=next_state,
             timestamp=settlement_time,
-            cash_delta=-assignment_fee,
-            realized_option_pnl=self.realized_option_pnl,
-            reason="expiration_without_assignment",
+            cash_delta=cash_delta,
+            realized_option_pnl=realized_option_pnl,
+            shares_delivered=shares_delivered,
+            reason="expiration_assignment" if is_assigned else "expiration_without_assignment",
         )
 
     def to_record(self) -> CoveredCallRecord:
@@ -253,6 +255,9 @@ def validate_covered_share_capacity(
         raise ValueError("Covered-call contracts must be positive")
     if eligible_underlying_shares < 0:
         raise ValueError("Eligible underlying shares cannot be negative")
+    if contract_multiplier <= 0:
+        raise ValueError("Contract multiplier must be positive")
+
     required_shares = contracts * contract_multiplier
     if required_shares > eligible_underlying_shares:
         raise ValueError(
