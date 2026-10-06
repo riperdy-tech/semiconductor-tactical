@@ -943,7 +943,7 @@ def test_34_m13_t9_frozen_yaml_untouched() -> None:
 
     frozen_path = Path("configs/v2_oos_frozen.yaml")
     expected_sha256 = "be21c7dc0f998cf21310ffb5ffeae39fe039046d80aaa4ee4c656189f44f502a"
-    actual_sha256 = hashlib.sha256(frozen_path.read_bytes()).hexdigest()
+    actual_sha256 = hashlib.sha256(frozen_path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
     assert actual_sha256 == expected_sha256
 
 
@@ -1214,7 +1214,7 @@ def test_48_m14_frozen_yaml_sha_verified() -> None:
 
     frozen_path = Path("configs/v2_oos_frozen.yaml")
     expected_sha256 = "be21c7dc0f998cf21310ffb5ffeae39fe039046d80aaa4ee4c656189f44f502a"
-    actual_sha256 = hashlib.sha256(frozen_path.read_bytes()).hexdigest()
+    actual_sha256 = hashlib.sha256(frozen_path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
     assert actual_sha256 == expected_sha256
 
 

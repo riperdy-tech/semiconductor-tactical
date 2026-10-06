@@ -317,3 +317,14 @@
 
 
 
+
+
+## 2026-10-06 — Phase N option data/lifecycle hardening
+
+**Decision:** Strengthen the existing covered-call engine before authentic option-chain acquisition.
+
+**Scope:** Step 1–2 engineering only. Add provider-neutral cbbo-1m normalization, explicit option-data manifest validation, point-in-time as-of chain lookup, a covered-call lifecycle state machine, strict covered-share capacity checks, bid-side sale / ask-side buyback accounting, deterministic expiration/assignment settlement, and no-fabricated-fill behavior.
+
+**Reason:** The existing options layer had the broad mechanics but was not strict enough for the V2-D research gates. In particular, exact-timestamp-only lookup could not represent a deterministic point-in-time quote query, the pullback repurchase helper could fabricate a theoretical exit price when a quote was missing, and the lifecycle/coverage invariants were not isolated in a reusable audited component.
+
+**Research boundary:** No authentic option data was added, no V2-D performance was executed, no headline contract-selection policy was frozen, and HISTORICAL_OPTION_CHAIN_STATUS remains UNVALIDATED.

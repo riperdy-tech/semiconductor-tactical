@@ -1,0 +1,33 @@
+{
+  "manifest_version": "v2d-1",
+  "status": "GATED_UNVALIDATED",
+  "source_vendor": null,
+  "product": null,
+  "license_usage_status": null,
+  "retrieval_timestamp_utc": null,
+  "underlying_symbols": [
+    "MU",
+    "SNDK",
+    "SKHY"
+  ],
+  "start_timestamp_utc": null,
+  "end_timestamp_utc": null,
+  "quote_resolution": null,
+  "timestamp_precision": null,
+  "option_symbology": null,
+  "strike_range": null,
+  "expiration_coverage": null,
+  "bid_ask_completeness": null,
+  "volume_open_interest": null,
+  "delta_availability": null,
+  "underlying_price_source": null,
+  "corporate_action_source": null,
+  "per_file_sha256": {},
+  "aggregate_sha256": null,
+  "structural_validation": {
+    "acquisition_performed": false,
+    "headline_performance_allowed": false,
+    "synthetic_prices_permitted": false,
+    "midpoint_primary_execution_permitted": false
+  }
+}
