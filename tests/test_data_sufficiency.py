@@ -3,10 +3,17 @@ from pathlib import Path
 from tactical_engine.data.sufficiency import ComponentValidationStatus, check_data_sufficiency
 
 
-def test_data_sufficiency_evaluation():
+def test_data_sufficiency_evaluation(tmp_path: Path):
+    universe = ["MU", "SNDK", "SKHY", "USD", "SMH", "SPY"]
+    for sym in universe:
+        (tmp_path / f"{sym}.csv").write_text(
+            "timestamp,open,high,low,close,volume,vwap\n",
+            encoding="utf-8",
+        )
+
     report = check_data_sufficiency(
-        data_dir=Path("data/processed"),
-        universe=["MU", "SNDK", "SKHY", "USD", "SMH", "SPY"],
+        data_dir=tmp_path,
+        universe=universe,
     )
 
     assert report.equity_rth == ComponentValidationStatus.VALIDATED
