@@ -3,7 +3,12 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from tactical_engine.config import OptionConfig
-from tactical_engine.options.contracts import OptionContractType, OptionLifecycleState, OptionPosition, OptionQuote
+from tactical_engine.options.contracts import (
+    OptionContractType,
+    OptionLifecycleState,
+    OptionPosition,
+    OptionQuote,
+)
 from tactical_engine.options.lifecycle import CoveredCallLifecycle, validate_covered_share_capacity
 from tactical_engine.options.repurchase import should_repurchase_covered_call
 
@@ -31,7 +36,9 @@ def _quote(
 def test_sell_uses_bid_and_records_sold_to_open_lifecycle():
     t0 = datetime(2026, 10, 5, 14, 30, tzinfo=UTC)
     lifecycle = CoveredCallLifecycle()
-    transition = lifecycle.sell(_quote(t0), contracts=1, eligible_underlying_shares=100)
+    lifecycle, transition = lifecycle.sell(
+        _quote(t0), contracts=1, eligible_underlying_shares=100
+    )
 
     assert transition.cash_delta == 200.0
     assert lifecycle.state == OptionLifecycleState.OPEN
@@ -41,6 +48,17 @@ def test_sell_uses_bid_and_records_sold_to_open_lifecycle():
     )
     assert lifecycle.covered_shares == 100.0
     assert lifecycle.entry_premium == 2.0
+
+
+def test_lifecycle_is_immutable_between_transitions():
+    t0 = datetime(2026, 10, 5, 14, 30, tzinfo=UTC)
+    lifecycle = CoveredCallLifecycle()
+    opened, _ = lifecycle.sell(_quote(t0), contracts=1, eligible_underlying_shares=100)
+
+    assert lifecycle.state == OptionLifecycleState.AVAILABLE
+    assert opened.state == OptionLifecycleState.OPEN
+    with pytest.raises(ValueError):
+        opened.state = OptionLifecycleState.BOUGHT_BACK
 
 
 def test_overwrite_is_rejected():
@@ -65,9 +83,11 @@ def test_buyback_uses_ask_and_reconciles_realized_pnl():
     t0 = datetime(2026, 10, 5, 14, 30, tzinfo=UTC)
     t1 = t0 + timedelta(minutes=2)
     lifecycle = CoveredCallLifecycle()
-    lifecycle.sell(_quote(t0, bid=2.00, ask=2.20), contracts=1, eligible_underlying_shares=100)
+    lifecycle, _ = lifecycle.sell(
+        _quote(t0, bid=2.00, ask=2.20), contracts=1, eligible_underlying_shares=100
+    )
 
-    transition = lifecycle.buy_back(_quote(t1, bid=1.00, ask=1.10))
+    lifecycle, transition = lifecycle.buy_back(_quote(t1, bid=1.00, ask=1.10))
     assert transition.cash_delta == -110.0
     assert transition.realized_option_pnl == pytest.approx(90.0)
     assert lifecycle.state == OptionLifecycleState.BOUGHT_BACK
@@ -77,22 +97,22 @@ def test_buyback_uses_ask_and_reconciles_realized_pnl():
 def test_buyback_rejects_future_or_missing_executable_quote():
     t0 = datetime(2026, 10, 5, 14, 30, tzinfo=UTC)
     lifecycle = CoveredCallLifecycle()
-    lifecycle.sell(_quote(t0), contracts=1, eligible_underlying_shares=100)
+    lifecycle, _ = lifecycle.sell(_quote(t0), contracts=1, eligible_underlying_shares=100)
 
     with pytest.raises(ValueError, match="precede"):
         lifecycle.buy_back(_quote(t0 - timedelta(minutes=1), ask=1.0))
 
     with pytest.raises(ValueError, match="positive executable ask"):
-        lifecycle.buy_back(_quote(t0 + timedelta(minutes=1), ask=0.0))
+        lifecycle.buy_back(_quote(t0 + timedelta(minutes=1), ask=0.0)
 
 
 def test_expiration_without_assignment():
     t0 = datetime(2026, 10, 5, 14, 30, tzinfo=UTC)
     expiration = datetime(2026, 10, 16, 20, 0, tzinfo=UTC)
     lifecycle = CoveredCallLifecycle()
-    lifecycle.sell(_quote(t0), contracts=1, eligible_underlying_shares=100)
+    lifecycle, _ = lifecycle.sell(_quote(t0), contracts=1, eligible_underlying_shares=100)
 
-    transition = lifecycle.settle_expiration(
+    lifecycle, transition = lifecycle.settle_expiration(
         settlement_time=expiration,
         underlying_close=104.99,
     )
@@ -106,9 +126,9 @@ def test_expiration_assignment_delivers_only_linked_shares():
     t0 = datetime(2026, 10, 5, 14, 30, tzinfo=UTC)
     expiration = datetime(2026, 10, 16, 20, 0, tzinfo=UTC)
     lifecycle = CoveredCallLifecycle()
-    lifecycle.sell(_quote(t0), contracts=1, eligible_underlying_shares=100)
+    lifecycle, _ = lifecycle.sell(_quote(t0), contracts=1, eligible_underlying_shares=100)
 
-    transition = lifecycle.settle_expiration(
+    lifecycle, transition = lifecycle.settle_expiration(
         settlement_time=expiration,
         underlying_close=108.0,
     )
