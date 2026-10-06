@@ -115,6 +115,19 @@ Replaced single-symbol trend substitution with actual benchmark inputs and Regim
 
 # Phase 6 — Historical options and covered-call engine [MECHANICALLY IMPLEMENTED / HISTORICALLY UNVALIDATED]
 
+- [x] Hardened provider-neutral V2-D option quote models with executable bid/ask validation.
+- [x] Added point-in-time option-chain lookup that never returns future quotes and enforces an explicit quote-freshness bound.
+- [x] Added provider-neutral cbbo-1m normalization with exact timestamp-matched underlying prices.
+- [x] Added V2-D option-data manifest/status validation and a gated manifest template.
+- [x] Added explicit covered-call lifecycle state machine: AVAILABLE -> SOLD -> OPEN -> BOUGHT_BACK / EXPIRED / ASSIGNED.
+- [x] Enforced covered-share capacity and bid-side sale / ask-side buyback accounting.
+- [x] Rejected fabricated buyback prices when authentic option quotes are missing.
+- [x] Added deterministic expiration/assignment cash and share-settlement tests.
+- [ ] Ingest real historical option-chain dataset (currently UNVALIDATED due to absence of historical option chains).
+
+# Phase 6 — Historical options and covered-call engine [MECHANICALLY IMPLEMENTED / HISTORICALLY UNVALIDATED]
+
+
 - [x] OptionQuote model retaining underlying, contract ID, strike, expiration, timestamp, bid, ask, volume, open interest, and underlying price.
 - [x] Do not substitute theoretical Black-Scholes prices for historical executable quotes. If real historical chains are unavailable, options experiment = UNVALIDATED.
 - [x] Implement underlying ownership, call selection, realistic short fill, premium cash flow, repurchase variants (pullback, profit, expiration), assignment, expiration, and remaining underlying shares.
