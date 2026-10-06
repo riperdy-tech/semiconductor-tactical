@@ -83,7 +83,7 @@ def test_buyback_rejects_future_or_missing_executable_quote():
         lifecycle.buy_back(_quote(t0 - timedelta(minutes=1), ask=1.0))
 
     with pytest.raises(ValueError, match="positive executable ask"):
-        lifecycle.buy_back(_quote(t0 + timedelta(minutes=1), ask=0.0)
+        lifecycle.buy_back(_quote(t0 + timedelta(minutes=1), ask=0.0))
 
 
 def test_expiration_without_assignment():
