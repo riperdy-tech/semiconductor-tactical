@@ -88,7 +88,7 @@ def test_buyback_uses_ask_and_reconciles_realized_pnl():
     )
 
     lifecycle, transition = lifecycle.buy_back(_quote(t1, bid=1.00, ask=1.10))
-    assert transition.cash_delta == -110.0
+    assert transition.cash_delta == pytest.approx(-110.0)
     assert transition.realized_option_pnl == pytest.approx(90.0)
     assert lifecycle.state == OptionLifecycleState.BOUGHT_BACK
     assert lifecycle.realized_option_pnl == pytest.approx(90.0)
@@ -100,7 +100,7 @@ def test_buyback_rejects_future_or_missing_executable_quote():
     lifecycle, _ = lifecycle.sell(_quote(t0), contracts=1, eligible_underlying_shares=100)
 
     with pytest.raises(ValueError, match="precede"):
-        lifecycle.buy_back(_quote(t0 - timedelta(minutes=1), ask=1.0))
+        lifecycle.buy_back(_quote(t0 - timedelta(minutes=1), bid=1.0, ask=1.1))
 
     with pytest.raises(ValueError, match="positive executable ask"):
         lifecycle.buy_back(_quote(t0 + timedelta(minutes=1), ask=0.0))
