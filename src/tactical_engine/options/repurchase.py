@@ -9,31 +9,33 @@ def should_repurchase_covered_call(
     underlying_price_at_entry: float,
     config: OptionConfig,
 ) -> tuple[bool, str, float]:
-    """Evaluates whether an open covered call should be repurchased before expiration.
+    """Return a buyback decision using only executable historical data.
 
-    Returns:
-        (should_repurchase, reason, repurchase_price)
+    Missing quotes never fabricate a fill price. A pullback trigger without an
+    executable ask is reported as no-fill rather than being converted into a
+    theoretical premium.
     """
     if config.repurchase_rule == "expiration":
         return False, "", 0.0
 
-    current_ask = current_call_quote.ask if current_call_quote else None
+    if current_call_quote is None:
+        return False, "NO_EXECUTABLE_OPTION_QUOTE", 0.0
 
-    # 1. Profit-based repurchase: buy back when premium decays by profit_target_pct (default 50%)
-    if config.repurchase_rule == "profit" and current_ask is not None:
+    current_ask = current_call_quote.ask
+    if current_ask <= 0:
+        return False, "NO_EXECUTABLE_OPTION_QUOTE", 0.0
+
+    if call_position.entry_time is not None and current_call_quote.timestamp < call_position.entry_time:
+        return False, "FUTURE_QUOTE_LOOKAHEAD_BLOCKED", 0.0
+
+    if config.repurchase_rule == "profit":
         target_buyback_price = call_position.avg_price * 0.50
         if current_ask <= target_buyback_price:
             return True, "profit_target_50pct", current_ask
 
-    # 2. Pullback repurchase: buy back call when underlying pulls back below entry price
     if config.repurchase_rule == "pullback":
         pullback_threshold = 0.02
         if current_underlying_price <= underlying_price_at_entry * (1.0 - pullback_threshold):
-            repurchase_p = (
-                current_ask
-                if current_ask is not None
-                else max(0.01, call_position.avg_price * 0.30)
-            )
-            return True, "underlying_pullback_2pct", repurchase_p
+            return True, "underlying_pullback_2pct", current_ask
 
     return False, "", 0.0
